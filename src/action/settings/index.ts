@@ -1,6 +1,43 @@
 import { client } from "@/lib/prisma";
 import { currentUser } from "@clerk/nextjs";
 
+export const onIntegrateDomain = async(domain: string, icon: string) => {
+  const user = await currentUser();
+  if(!user) return;
+  try{
+      const subcription = await  client.user.findUnique({
+        where: {
+          clerkId: user.id
+        },
+        select: {
+          _count: {
+            select: {
+              domains: true,
+            },
+          },
+          subscription: {
+            select: {
+              plan: true
+            },
+          },
+        },
+      });
+
+      const domainExists = await client.user.findFirst({
+        where: {
+          clerkId: user.id,
+          domains: {
+            some: {
+              name: domain,
+            },
+          },
+        },
+      });
+
+
+  }catch(error){}
+}
+
 export const ongetSubscriptionPlan = async () => {
   try {
     const user = await currentUser();
