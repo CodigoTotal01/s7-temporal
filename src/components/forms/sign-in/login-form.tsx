@@ -18,7 +18,7 @@ const LoginForm = (props: Props) => {
       <p className="text-iridium md:text-sm">
         Recibirás una contraseña de un solo uso
       </p>
-      {USER_LOGIN_FORM.map((field) => (
+      {/* {USER_LOGIN_FORM.map((field) => (
         <FormGenerator
           key={field.id}
           {...field}
@@ -26,7 +26,7 @@ const LoginForm = (props: Props) => {
           register={register}
           name={field.name}
         />
-      ))}
+      ))} */}
     </>
   );
 };
