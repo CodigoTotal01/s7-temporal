@@ -5,9 +5,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { AddDomainSchema } from "@/schemas/settings.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { UploadClient } from "@uploadcare/upload-client";
-import { Upload } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { Field, FieldValue, FieldValues, useForm } from "react-hook-form";
+import { FieldValues, useForm } from "react-hook-form";
 import { onIntegrateDomain } from "@/action/settings";
 
 const upload = new UploadClient({
@@ -37,7 +36,7 @@ export const useDomain = () => {
     const onAddDomain = handleSubmit(async (values: FieldValues) => {
         setLoading(true);
         const uploaded = await upload.uploadFile(values.image[0]);
-        const domain = await onIntegrateDomain(values.domain, values.uuid);
+        const domain = await onIntegrateDomain(values.domain, uploaded.uuid);
         if (domain) {
             reset();
             setLoading(false);

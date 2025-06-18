@@ -24,11 +24,11 @@ type MinMenuProps = {
 const MinMenu = ({ current, domains, onShrink, onSignOut }: MinMenuProps) => {
     return (
         <div className="py-3 flex flex-col h-full items-center">
-            <span className="animate-fade-in opacity-0 delay-300 fill-mode-forwards cursor-pointer">
+            <span className="animate-fade-in opacity-0 delay-300 fill-mode-forwards cursor-pointer max-h-12">
                 <MenuLogo onClick={onShrink} />
             </span>
 
-            <span className="animate-fade-in opacity-0 delay-300 fill-mode-forwards flex flex-col justify-between h-full pt-10">
+            <span className="animate-fade-in opacity-0 delay-300 fill-mode-forwards flex flex-col justify-between h-full pt-1">
                 <div className="flex flex-col">
                     {SIDE_BAR_MENU.map((menu, key) => (
                         <MenuItem
@@ -50,7 +50,7 @@ const MinMenu = ({ current, domains, onShrink, onSignOut }: MinMenuProps) => {
                         icon={<LogOut />}
                         onSignOut={onSignOut}
                     />
-                     <MenuItem
+                    <MenuItem
                         size="min"
                         label="Mobile App"
                         icon={<MonitorSmartphone />}

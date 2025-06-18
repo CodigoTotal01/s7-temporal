@@ -14,10 +14,10 @@ type Props = {
 const UploadButton = ({ errors, label, register }: Props) => {
     return (
         <>
-            <div className='flex gap-2 items-center'>
+            <div className='flex gap-2 items-center flex-col w-full'>
                 <Label
                     htmlFor='upload-button'
-                    className='flex gap-2 p-3 rounded-lg bg-cream text-gray-500 cursor-pointer font-semibold text-sm items-center'>
+                    className='flex gap-2 p-3 rounded-lg bg-cream text-gray-500 cursor-pointer font-semibold text-sm items-center w-full'>
                     <Input
                         {...register('image')}
                         className='hidden'
@@ -26,7 +26,7 @@ const UploadButton = ({ errors, label, register }: Props) => {
                     <Edit />
                     {label}
                 </Label>
-                <p className='text-sm text-gray-400 ml-6'>
+                <p className='text-sm text-gray-400 ml-6 w-full'>
                     Recommended size is 300px * 300px, size <br />less than 2MB
                 </p>
             </div >

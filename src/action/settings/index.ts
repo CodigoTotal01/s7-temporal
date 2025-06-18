@@ -1,5 +1,7 @@
-import { client } from "@/lib/prisma";
+'use server'
+
 import { currentUser } from "@clerk/nextjs";
+import { client } from "@/lib/prisma";
 
 export const onIntegrateDomain = async (domain: string, icon: string) => {
   const user = await currentUser();
@@ -62,7 +64,6 @@ export const onIntegrateDomain = async (domain: string, icon: string) => {
         if (newDomain) {
           return { status: 200, message: "Domain successfully added" };
         }
-
       }
       return {
         status: 400,
@@ -119,7 +120,7 @@ export const onGetAllAccountDomains = async () => {
   try {
     const domains = await client.user.findUnique({
       where: {
-        id: user.id,
+        clerkId: user.id,
       },
       select: {
         id: true,
