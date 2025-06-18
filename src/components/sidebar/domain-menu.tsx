@@ -30,12 +30,12 @@ const DomainMenu = ({ domains, min }: Props) => {
                     title="Add your business domain"
                     onOpen={
                         <div className="cursor-pointer text-gray-500 rounded-full border-2 w-9 h-9 flex items-center justify-center ml-auto">
-                            <Plus  />
+                            <Plus />
                         </div>
                     }>
                     <Loader loading={loading}>
                         <form
-                            className="m-3 w-6/12 flex flex-col gap-3"
+                            className="mt-3 w-6/12 flex flex-col gap-3"
                             onSubmit={onAddDomain}>
                             <FormGenerator
                                 inputType="input"
@@ -61,7 +61,7 @@ const DomainMenu = ({ domains, min }: Props) => {
                 </AppDrawer>
             </div>
             <div className="flex flex-col gap-1 text-ironside font-medium">
-                {domains?.map((domain) => (
+                {domains && domains.map((domain) => (
                     <Link
                         href={`/settings/${domain.name.split('.')[0]}`}
                         key={domain.id}
@@ -72,7 +72,7 @@ const DomainMenu = ({ domains, min }: Props) => {
                         )}
                     >
                         <Image
-                            src={`https://ucarecdn.com/${domain.icon}`}
+                            src={`https://ucarecdn.com/${domain.icon}/`}
                             alt="logo"
                             width={20}
                             height={20}
