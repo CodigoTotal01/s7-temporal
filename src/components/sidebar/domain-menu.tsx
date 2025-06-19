@@ -69,8 +69,7 @@ const DomainMenu = ({ domains, min }: Props) => {
                             'flex gap-3 items-center justify-center hover:bg-white rounded-lg transition duration-100 ease-in-out cursor-pointer',
                             !min ? 'p-2' : 'py-2',
                             domain.name.split('.')[0] == isDomain && 'bg-white'
-                        )}
-                    >
+                        )}>
                         <Image
                             src={`https://ucarecdn.com/${domain.icon}/`}
                             alt="logo"

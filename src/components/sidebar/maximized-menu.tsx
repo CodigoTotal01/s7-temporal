@@ -39,7 +39,6 @@ const MaxMenu = ({ current, domains, onExpand, onSignOut }: Props) => {
           className="cursor-pointer animate-fade-in opacity-0 delay-300 fill-mode-forwards"
           onClick={onExpand} />
       </div>
-
       <div
         className="animate-fade-in opacity-0 delay-300 fill-mode-forwards flex flex-col justify-between h-full pt-5">
 

@@ -7,11 +7,11 @@ type SIDE_BAR_MENU_PROPS = {
 };
 
 export const SIDE_BAR_MENU: SIDE_BAR_MENU_PROPS[] = [
-    {
+   /*  {
         label: 'Dashboard',
         icon: <LayoutDashboard />,
         path: 'dashboard',
-    },
+    }, */
     {
         label: 'Conversations',
         icon: <MessageSquareMore />,
@@ -27,16 +27,16 @@ export const SIDE_BAR_MENU: SIDE_BAR_MENU_PROPS[] = [
         icon: <Settings />,
         path: 'settings',
     },
-    {
+   /*  {
         label: 'Appointments',
         icon: <SquareUser />,
         path: 'appointment',
-    },
-    {
+    }, */
+   /*  {
         label: 'Email Marketing',
         icon: <Mail />,
         path: 'email-marketing'
-    }
+    } */
 ]
 
 type TABS_MENU_PROPS = {
