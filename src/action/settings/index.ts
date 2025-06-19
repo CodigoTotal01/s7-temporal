@@ -1,41 +1,83 @@
 import { client } from "@/lib/prisma";
 import { currentUser } from "@clerk/nextjs";
 
-export const onIntegrateDomain = async(domain: string, icon: string) => {
+export const onIntegrateDomain = async (domain: string, icon: string) => {
   const user = await currentUser();
-  if(!user) return;
-  try{
-      const subcription = await  client.user.findUnique({
-        where: {
-          clerkId: user.id
-        },
-        select: {
-          _count: {
-            select: {
-              domains: true,
-            },
-          },
-          subscription: {
-            select: {
-              plan: true
-            },
+  if (!user) return;
+  try {
+    const subscription = await client.user.findUnique({
+      where: {
+        clerkId: user.id
+      },
+      select: {
+        _count: {
+          select: {
+            domains: true,
           },
         },
-      });
-
-      const domainExists = await client.user.findFirst({
-        where: {
-          clerkId: user.id,
-          domains: {
-            some: {
-              name: domain,
-            },
+        subscription: {
+          select: {
+            plan: true
           },
         },
-      });
+      },
+    });
 
+    const domainExists = await client.user.findFirst({
+      where: {
+        clerkId: user.id,
+        domains: {
+          some: {
+            name: domain,
+          },
+        },
+      },
+    });
 
-  }catch(error){}
+    if (!domainExists) {
+      if (
+        (subscription?.subscription?.plan == "STANDARD" && subscription._count.domains < 1) ||
+        (subscription?.subscription?.plan == "PRO" && subscription._count.domains < 5) ||
+        (subscription?.subscription?.plan == "ULTIMATE" && subscription._count.domains < 10)
+      ) {
+        const newDomain = await client.user.update({
+          where: {
+            clerkId: user.id,
+          },
+          data: {
+            domains: {
+              create: {
+                name: domain,
+                icon,
+                chatBot: {
+                  create: {
+                    welcomeMessage: "Hey there, have a question? Text us here",
+                  }
+                }
+              }
+            }
+          }
+        });
+
+        if (newDomain) {
+          return { status: 200, message: "Domain successfully added" };
+        }
+
+      }
+      return {
+        status: 400,
+        message: "You've reached the maximum number of domains, upgrade your plan"
+      }
+    }
+
+    return {
+      status: 400,
+      message: "Domain already exists"
+    };
+
+  } catch (error) {
+    console.log("Error in onIntegrateDomain: " + error)
+  }
 }
 
 export const ongetSubscriptionPlan = async () => {
@@ -59,8 +101,8 @@ export const ongetSubscriptionPlan = async () => {
     });
 
 
-    if (plan){
-        return plan.subscription?.plan;
+    if (plan) {
+      return plan.subscription?.plan;
     }
   } catch (error) {
 
@@ -68,14 +110,13 @@ export const ongetSubscriptionPlan = async () => {
   }
 };
 
-
 export const onGetAllAccountDomains = async () => {
   const user = await currentUser();
   if (!user) {
     return;
-  } 
+  }
 
-  try{
+  try {
     const domains = await client.user.findUnique({
       where: {
         id: user.id,
@@ -102,8 +143,8 @@ export const onGetAllAccountDomains = async () => {
       },
     });
 
-    return {...domains}
-  }catch (error: any) {
+    return { ...domains }
+  } catch (error: any) {
     console.error("onGetAllAccountDomains - Error fetching account domains:", error);
   }
 }

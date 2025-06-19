@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useRouter } from "next/router";
-import { usePathname } from "next/navigation";
+import React, { useCallback, useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 import { useChatContext } from "./user-chat-context";
 import { onGetConversationMode, onToggleRealtime } from "@/action/conversation";
@@ -37,20 +36,20 @@ const useSideBar = () => {
     }
   };
 
-  const onGetCurrentMode = async () => {
+  const onGetCurrentMode = useCallback(async () => {
     setLoading(true);
     const mode = await onGetConversationMode(chatRoom!);
     if (mode) {
       setRealtime(mode.live);
       setLoading(false);
     }
-  };
+  }, [chatRoom]);
 
   useEffect(() => {
     if (chatRoom) {
       onGetCurrentMode();
     }
-  }, [chatRoom]);
+  }, [chatRoom, onGetCurrentMode]);
 
   const page = pathname.split("/").pop();
 
