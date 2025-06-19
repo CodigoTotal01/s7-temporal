@@ -20,25 +20,29 @@ type Props = {
 };
 
 const FormGenerator = ({
-  type,
-  inputType,
-  options,
-  label,
-  placeholder,
-  register,
-  name,
   errors,
-  lines,
-  form,
+  inputType,
+  name,
+  placeholder,
   defaultValue,
+  register,
+  type,
+  form,
+  label,
+  lines,
+  options,
 }: Props) => {
   switch (inputType) {
-    case "input":
+    case 'input':
+    default:
       return (
-        <Label className="flex flex-col gap-2 w-full" htmlFor={`input-${name}`}>
+        <Label
+          className="flex flex-col gap-2"
+          htmlFor={`input-${label}`}
+        >
           {label && label}
           <Input
-            id={`input-${name}`}
+            id={`input-${label}`}
             type={type}
             placeholder={placeholder}
             form={form}
@@ -50,20 +54,27 @@ const FormGenerator = ({
             name={name}
             render={({ message }) => (
               <p className="text-red-400 mt-2">
-                {message === "Required" ? "" : message}
+                {message === 'Required' ? '' : message}
               </p>
             )}
           />
         </Label>
-      );
-    case "select":
+      )
+    case 'select':
       return (
-        <Label htmlFor={`select-${name}`}>
+        <Label htmlFor={`select-${label}`}>
           {label && label}
-          <select form={form} id={`select-${name}`} {...register(name)}>
+          <select
+            form={form}
+            id={`select-${label}`}
+            {...register(name)}
+          >
             {options?.length &&
               options.map((option) => (
-                <option value={option.value} key={option.id}>
+                <option
+                  value={option.value}
+                  key={option.id}
+                >
                   {option.label}
                 </option>
               ))}
@@ -73,19 +84,22 @@ const FormGenerator = ({
             name={name}
             render={({ message }) => (
               <p className="text-red-400 mt-2">
-                {message === "Required" ? "" : message}
+                {message === 'Required' ? '' : message}
               </p>
             )}
           />
         </Label>
-      );
-    case "textarea":
+      )
+    case 'textarea':
       return (
-        <Label className="flex flex-col gap-2" htmlFor={`input-${name}`}>
+        <Label
+          className="flex flex-col gap-2"
+          htmlFor={`input-${label}`}
+        >
           {label && label}
           <Textarea
             form={form}
-            id={`input-${name}`}
+            id={`input-${label}`}
             placeholder={placeholder}
             {...register(name)}
             rows={lines}
@@ -96,15 +110,14 @@ const FormGenerator = ({
             name={name}
             render={({ message }) => (
               <p className="text-red-400 mt-2">
-                {message === "Required" ? "" : message}
+                {message === 'Required' ? '' : message}
               </p>
             )}
           />
         </Label>
-      );
-    default:
-      return <></>;
+      )
+      defualt: return <></>
   }
-};
+}
 
 export default FormGenerator;

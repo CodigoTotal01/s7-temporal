@@ -8,10 +8,6 @@ const nextConfig = {
                 hostname: 'ucarecdn.com'
 
             }
-            /*  {
-                 protocol: 'https',
-                 hostname: 'wordpress-1'
-             } */
         ]
     }
 };

@@ -27,16 +27,16 @@ export const SIDE_BAR_MENU: SIDE_BAR_MENU_PROPS[] = [
         icon: <Settings />,
         path: 'settings',
     },
-    {
+   /*  {
         label: 'Appointments',
         icon: <SquareUser />,
         path: 'appointment',
-    },
-    {
+    }, */
+   /*  {
         label: 'Email Marketing',
         icon: <Mail />,
         path: 'email-marketing'
-    }
+    } */
 ]
 
 type TABS_MENU_PROPS = {

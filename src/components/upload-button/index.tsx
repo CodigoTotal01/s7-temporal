@@ -14,7 +14,7 @@ type Props = {
 const UploadButton = ({ errors, label, register }: Props) => {
     return (
         <>
-            <div className='flex gap-2 items-center'>
+            <div className='flex gap-2 items-center flex-col w-full'>
                 <Label
                     htmlFor='upload-button'
                     className='flex gap-2 p-3 rounded-lg bg-cream text-gray-500 cursor-pointer font-semibold text-sm items-center'>
