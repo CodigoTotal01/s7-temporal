@@ -1,6 +1,6 @@
 export const pricingCards = [
   {
-    title: "Estándar",
+    title: "Standard",
     description: "Perfecto para probar Corinna AI",
     price: "S/0",
     duration: "",

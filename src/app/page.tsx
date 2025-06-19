@@ -1,5 +1,6 @@
-import NavBar from "@/components/navbar";
-import { Button } from "@/components/ui/button";
+import { onGetBlogPosts } from '@/action/landing'
+import NavBar from '@/components/navbar'
+import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
@@ -7,14 +8,24 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { pricingCards } from "@/constants/landing-page";
-import clsx from "clsx";
-import { Check } from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
+} from '@/components/ui/card'
+import { pricingCards } from '@/constants/landing-page'
+import clsx from 'clsx'
+import { ArrowRightCircleIcon, Check } from 'lucide-react'
+import Image from 'next/image'
+import Link from 'next/link'
 
-export default function Home() {
+export default async function Home() {
+
+  const posts:
+    | {
+      id: string
+      title: string
+      image: string
+      content: string
+      createdAt: Date
+    }[]
+    | undefined = await onGetBlogPosts()
   return (
     <main>
       <NavBar />

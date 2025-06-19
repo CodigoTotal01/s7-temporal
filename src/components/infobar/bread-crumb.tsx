@@ -28,15 +28,14 @@ const BreadCrumb = (props: Props) => {
         {page == 'settings'
           ? 'Manage your account settings, preferences and integrations'
           : page == 'dashboard'
-            ? 'A detailed overview of your metrics, usage, customers, and more'
+            ? 'A detailed overview of your metrics, usage, customers and more'
             : page == 'appointment'
               ? 'View and edit all your appointments'
               : page == 'email-marketing'
                 ? 'Send bulk emails to your customers'
                 : page == 'integration'
                   ? 'Connect third-party applications into Corinna-AI'
-                  : 'Modify domain settings, change chatbot options, enter sales questions and train your bot to do what you want it to.'
-        }
+                  : 'Modify domain settings, change chatbot options, enter sales questions and train your bot to do what you want it to.'}
       </p>
 
 

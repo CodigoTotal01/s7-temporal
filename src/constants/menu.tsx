@@ -7,11 +7,11 @@ type SIDE_BAR_MENU_PROPS = {
 };
 
 export const SIDE_BAR_MENU: SIDE_BAR_MENU_PROPS[] = [
-   /*  {
+    {
         label: 'Dashboard',
         icon: <LayoutDashboard />,
         path: 'dashboard',
-    }, */
+    },
     {
         label: 'Conversations',
         icon: <MessageSquareMore />,
