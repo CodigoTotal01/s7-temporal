@@ -5,7 +5,7 @@ import React from "react";
 import { LogOut, MonitorSmartphone } from "lucide-react";
 import MenuItem from "./menu-item";
 import DomainMenu from "./domain-menu";
-import MenuLogo from "@/icons/menu-logo";
+import { MenuLogo } from "@/icons/menu-logo";
 
 type MinMenuProps = {
     onShrink(): void;
@@ -23,12 +23,11 @@ type MinMenuProps = {
 
 const MinMenu = ({ current, domains, onShrink, onSignOut }: MinMenuProps) => {
     return (
-        <div className="py-3 flex flex-col h-full items-center">
-            <span className="animate-fade-in opacity-0 delay-300 fill-mode-forwards cursor-pointer max-h-12">
+        <div className="p-3 flex flex-col items-center h-full">
+            <span className="animate-fade-in opacity-0 delay-300 fill-mode-forwards cursor-pointer">
                 <MenuLogo onClick={onShrink} />
             </span>
-
-            <span className="animate-fade-in opacity-0 delay-300 fill-mode-forwards flex flex-col justify-between h-full pt-1">
+            <div className="animate-fade-in opacity-0 delay-300 fill-mode-forwards flex flex-col justify-between h-full pt-10">
                 <div className="flex flex-col">
                     {SIDE_BAR_MENU.map((menu, key) => (
                         <MenuItem
@@ -56,7 +55,7 @@ const MinMenu = ({ current, domains, onShrink, onSignOut }: MinMenuProps) => {
                         icon={<MonitorSmartphone />}
                     />
                 </div>
-            </span>
+            </div>
         </div>
     );
 };
