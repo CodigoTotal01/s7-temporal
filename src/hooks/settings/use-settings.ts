@@ -1,10 +1,10 @@
-import { onChatBotImageUpdate, onDeleteUserDomain, onUpdateDomain, onUpdatePassword, onUpdateWelcomeMessage } from '@/action/settings'
+import { onChatBotImageUpdate, onCreateFilterQuestions, onCreateHelpDeskQuestion, onDeleteUserDomain, onGetAllFilterQuestions, onGetAllHelpDeskQuestions, onUpdateDomain, onUpdatePassword, onUpdateWelcomeMessage } from '@/action/settings'
 import { useToast } from '@/components/ui/use-toast'
 import {
     ChangePasswordProps,
     ChangePasswordSchema,
 } from '@/schemas/auth.schema'
-import { DomainSettingsProps, DomainSettingsSchema } from '@/schemas/settings.schema'
+import { DomainSettingsProps, DomainSettingsSchema, FilterQuestionsProps, FilterQuestionsSchema, HelpDeskQuestionsProps, HelpDeskQuestionsSchema } from '@/schemas/settings.schema'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { UploadClient } from '@uploadcare/upload-client'
 import { useTheme } from 'next-themes'
@@ -129,7 +129,7 @@ export const useSettings = (id: string) => {
         deleting,
     }
 }
-/*
+
 export const useHelpDesk = (id: string) => {
     const {
         register,
@@ -235,7 +235,7 @@ export const useFilterQuestions = (id: string) => {
         isQuestions,
     }
 }
-
+/*
 export const useProducts = (domainId: string) => {
     const { toast } = useToast()
     const [loading, setLoading] = useState<boolean>(false)
