@@ -3,11 +3,13 @@
 import { client } from '@/lib/prisma'
 import { onRealTimeChat } from '../conversation'
 import { clerkClient } from '@clerk/nextjs'
-import { extractEmailsFromString } from '@/lib/utils'
+import { extractEmailsFromString, extractURLfromString } from '@/lib/utils'
+import { onMailer } from '../mailer'
+import OpenAi from 'openai'
 
-/* const openai = new OpenAi({
+const openai = new OpenAi({
   apiKey: process.env.OPEN_AI_KEY,
-}) */
+})
 
 export const onStoreConversations = async (
   id: string,
