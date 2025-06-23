@@ -141,7 +141,7 @@ export const useChatBot = () => {
         }
       }
     }
-    reset()
+   // reset()
 
     if (values.content) {
       if (!onRealTime?.mode) {
@@ -194,7 +194,7 @@ export const useChatBot = () => {
   }
 }
 
-export const useRealTime = (
+/* export const useRealTime = (
   chatRoom: string,
   setChats: React.Dispatch<
     React.SetStateAction<
@@ -228,4 +228,4 @@ export const useRealTime = (
       pusherClient.unsubscribe(chatRoom)
     }
   }, [])
-}
+} */

@@ -4,6 +4,8 @@ import React from 'react'
 import { cn } from '@/lib/utils'
 import Image from 'next/image'
 import { BotIcon } from '@/icons/bot-icon'
+import { useChatBot } from '@/hooks/chatbot/use-chatbot'
+import { BotWindow } from './window'
 
 type Props = {}
 

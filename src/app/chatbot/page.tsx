@@ -1,3 +1,4 @@
+import AiChatBot from '@/components/chatbot'
 import React from 'react'
 
 type Props = {}
