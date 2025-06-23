@@ -153,11 +153,6 @@ export const onRealTimeChat = async (
   })
 }
 
-const roleMap: Record<'user' | 'assistant', Role> = {
-  user: Role.CUSTOMER,
-  assistant: Role.OWNER,
-}
-
 export const onOwnerSendMessage = async (
   chatroom: string,
   message: string,
@@ -172,7 +167,7 @@ export const onOwnerSendMessage = async (
         message: {
           create: {
             message,
-            role: roleMap[role],
+            role: role,
           },
         },
       },

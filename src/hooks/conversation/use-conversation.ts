@@ -1,6 +1,6 @@
 import { onGetChatMessages, onGetDomainChatRooms, onOwnerSendMessage, onRealTimeChat, onViewUnReadMessages } from '@/action/conversation'
 import { useChatContext } from '@/context/user-chat-context'
-import { convertRole, getMonthName, pusherClient } from '@/lib/utils'
+import { getMonthName, pusherClient } from '@/lib/utils'
 import { ChatBotMessageSchema, ConversationSearchSchema } from '@/schemas/conversation.schema'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useRef, useState } from 'react'
@@ -51,13 +51,7 @@ export const useConversation = () => {
         setChatRoom(id)
         loadMessages(false)
         //!FIX:Corregir
-        // setChats(messages[0].message)
-        setChats(
-          messages[0].message.map((msg) => ({
-            ...msg,
-            role: convertRole(msg.role),
-          }))
-        )
+        setChats(messages[0].message)
       }
     } catch (error) {
       console.log(error)
@@ -158,13 +152,8 @@ export const useChatWindow = () => {
         'assistant'
       )
       if (message) {
-        setChats((prev) => [
-          ...prev,
-          {
-            ...message.message[0],
-            role: convertRole(message.message[0].role),
-          },
-        ])
+        // setChats((prev) => [...prev, message.message[0]])
+        setChats((prev) => [...prev, { ...message.message[0], role: 'assistant' }])
         /* await onRealTimeChat(
           chatRoom!,
           message.message[0].message,
