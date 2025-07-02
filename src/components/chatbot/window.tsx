@@ -22,7 +22,7 @@ import UploadButton from '../upload-button'
 type Props = {
   errors: any
   register: UseFormRegister<ChatBotMessageProps>
-  chats: { role: 'assistant' | 'user'; content: string; link?: string }[]
+  chats: { role: 'user' | 'assistant'; content: string; link?: string }[]
   onChat(): void
   onResponding: boolean
   domainName: string

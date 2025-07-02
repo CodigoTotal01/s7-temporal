@@ -14,7 +14,7 @@ const openai = new OpenAi({
 export const onStoreConversations = async (
   id: string,
   message: string,
-  role: 'assistant' | 'user'
+  role: 'user' | 'assistant'
 ) => {
   await client.chatRoom.update({
     where: {
@@ -24,7 +24,7 @@ export const onStoreConversations = async (
       message: {
         create: {
           message,
-          role: role,
+          role,
         },
       },
     },
@@ -65,7 +65,7 @@ let customerEmail: string | undefined
 
 export const onAiChatBotAssistant = async (
   id: string,
-  chat: { role: 'assistant' | 'user'; content: string }[],
+  chat: { role: 'user' | 'assistant'; content: string }[],
   author: 'user',
   message: string
 ) => {

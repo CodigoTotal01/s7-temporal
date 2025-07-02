@@ -10,7 +10,7 @@ type ChatInitialValuesProps = {
   chats: {
     message: string
     id: string
-    role: 'assistant' | 'user' | null
+    role: 'user' | 'assistant' | null
     createdAt: Date
     seen: boolean
   }[]
@@ -19,7 +19,7 @@ type ChatInitialValuesProps = {
       {
         message: string
         id: string
-        role: 'assistant' | 'user' | null
+        role: 'user' | 'assistant' | null
         createdAt: Date
         seen: boolean
       }[]

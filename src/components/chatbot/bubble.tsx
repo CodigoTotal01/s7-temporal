@@ -7,7 +7,7 @@ import { cn, extractUUIDFromString, getMonthName } from '@/lib/utils'
 
 type Props = {
   message: {
-    role: 'assistant' | 'user'
+    role: 'user' | 'assistant'
     content: string
     link?: string
   }
