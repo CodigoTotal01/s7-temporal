@@ -1,4 +1,4 @@
-import { HeartHandshake, LayoutDashboard, Mail, MessageCircleMore, MessageSquareMore, Settings, Settings2, SquareUser, StarIcon, TimerIcon} from "lucide-react";
+import { HeartHandshake, LayoutDashboard, Mail, MessageCircleMore, MessageSquareMore, Settings, Settings2, SquareUser, StarIcon, TimerIcon } from "lucide-react";
 
 type SIDE_BAR_MENU_PROPS = {
     label: string;
@@ -27,16 +27,16 @@ export const SIDE_BAR_MENU: SIDE_BAR_MENU_PROPS[] = [
         icon: <Settings />,
         path: 'settings',
     },
-   /*  {
+    {
         label: 'Appointments',
         icon: <SquareUser />,
         path: 'appointment',
-    }, */
-   /*  {
+    },
+    {
         label: 'Email Marketing',
         icon: <Mail />,
         path: 'email-marketing'
-    } */
+    }
 ]
 
 type TABS_MENU_PROPS = {
@@ -55,7 +55,7 @@ export const TABS_MENU: TABS_MENU_PROPS[] = [
     },
     {
         label: 'expired',
-        icon: <TimerIcon/>
+        icon: <TimerIcon />
     },
     {
         label: 'starred',
@@ -64,23 +64,23 @@ export const TABS_MENU: TABS_MENU_PROPS[] = [
 ]
 
 export const HELP_DESK_TABS_MENU: TABS_MENU_PROPS[] = [
-{
-    label: 'help desk',
+    {
+        label: 'help desk',
 
-}, {
-    label: 'questions',
-}
+    }, {
+        label: 'questions',
+    }
 ]
 
 
 export const APPOINTMENT_TABLE_HEADER = [
-    'Name',
-    'RequestedTime',
-    'Added Time',
-    'Domain',
+    'Nombre',
+    'Hora solicitada',
+    'Hora añadida',
+    'Dominio',
 ]
 
-export const   EMAIL_MARKETING_HEADER = [
+export const EMAIL_MARKETING_HEADER = [
     'Id',
     'Email',
     'Answers',
@@ -88,12 +88,12 @@ export const   EMAIL_MARKETING_HEADER = [
 ]
 
 export const BOT_TABS_MENU: TABS_MENU_PROPS[] = [
-        {
-            label: 'chat',
-            icon: <MessageCircleMore />
-        },
-        {
-            label: 'helpdesk',
-            icon: <HeartHandshake />
-        }
+    {
+        label: 'chat',
+        icon: <MessageCircleMore />
+    },
+    {
+        label: 'helpdesk',
+        icon: <HeartHandshake />
+    }
 ]
