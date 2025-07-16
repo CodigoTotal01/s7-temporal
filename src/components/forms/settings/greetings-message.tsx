@@ -15,12 +15,12 @@ const GreetingsMessage = ({
   errors,
 }: GreetingMessageProps) => {
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2 w-full">
       <Section
         label="Mensaje de saludo"
         message="Personaliza tu mensaje de bienvenida"
       />
-      <div className="lg:w-[500px]">
+      <div className="w-full max-w-full">
         <FormGenerator
           placeholder={message}
           inputType="textarea"
