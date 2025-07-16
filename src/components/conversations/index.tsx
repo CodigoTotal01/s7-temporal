@@ -28,7 +28,7 @@ const ConversationMenu = ({ domains }: Props) => {
   return (
     <div className="py-3 px-0">
       <TabsMenu triggers={TABS_MENU}>
-        <TabsContent value="unread">
+        <TabsContent value="no leidos">
           <ConversationSearch
             domains={domains}
             register={register}
@@ -48,26 +48,26 @@ const ConversationMenu = ({ domains }: Props) => {
                   />
                 ))
               ) : (
-                <CardDescription>No chats for you domain</CardDescription>
+                <CardDescription>No hay chats para tu empresa</CardDescription>
               )}
             </Loader>
           </div>
         </TabsContent>
-        <TabsContent value="all">
+        <TabsContent value="todos">
           <Separator
             orientation="horizontal"
             className="mt-5"
           />
           all
         </TabsContent>
-        <TabsContent value="expired">
+        <TabsContent value="expirados">
           <Separator
             orientation="horizontal"
             className="mt-5"
           />
           expired
         </TabsContent>
-        <TabsContent value="starred">
+        <TabsContent value="favoritos">
           <Separator
             orientation="horizontal"
             className="mt-5"

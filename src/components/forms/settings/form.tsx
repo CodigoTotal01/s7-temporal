@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button'
 import { Loader } from '@/components/loader'
 import { DomainUpdate } from './domain-update'
 import CodeSnippet from './code-snippet'
-import PremiumBadge from '@/icons/premium-badge'
 import EditChatbotIcon from './edit-chatbot-icon'
 
 const WelcomeMessage = dynamic(
@@ -44,7 +43,7 @@ const SettingsForm = ({ id, name, chatBot, plan }: Props) => {
       onSubmit={onUpdateSettings}
     >
       <div className="flex flex-col gap-3">
-        <h2 className="font-bold text-2xl">Domain Settings</h2>
+        <h2 className="font-bold text-2xl">Configuración de la Empresa</h2>
         <Separator orientation="horizontal" />
         <DomainUpdate
           name={name}
@@ -55,11 +54,7 @@ const SettingsForm = ({ id, name, chatBot, plan }: Props) => {
       </div>
       <div className="flex flex-col gap-3 mt-5">
         <div className="flex gap-4 items-center">
-          <h2 className="font-bold text-2xl">Chatbot Settings</h2>
-          <div className="flex gap-1 bg-cream rounded-full px-3 py-1 text-xs items-center font-bold">
-            <PremiumBadge />
-            Premium
-          </div>
+          <h2 className="font-bold text-2xl">Configuración del Chatbot</h2>
         </div>
         <Separator orientation="horizontal" />
         <div className="grid md:grid-cols-2">
@@ -93,13 +88,13 @@ const SettingsForm = ({ id, name, chatBot, plan }: Props) => {
           type="button"
           className="px-10 h-[50px]"
         >
-          <Loader loading={deleting}>Delete Domain</Loader>
+          <Loader loading={deleting}>Eliminar Empresa</Loader>
         </Button>
         <Button
           type="submit"
           className="w-[100px] h-[50px]"
         >
-          <Loader loading={loading}>Save</Loader>
+          <Loader loading={loading}>Guardar</Loader>
         </Button>
       </div>
     </form>

@@ -62,18 +62,18 @@ export const onIntegrateDomain = async (domain: string, icon: string) => {
         });
 
         if (newDomain) {
-          return { status: 200, message: "Dominio agregado exitosamente" };
+          return { status: 200, message: "Empresa agregada exitosamente" };
         }
       }
       return {
         status: 400,
-        message: "Has alcanzado el número máximo de dominios, actualiza tu plan"
+        message: "Has alcanzado el número máximo de empresas, actualiza tu plan"
       }
     }
 
     return {
       status: 400,
-      message: "Un dominio con este nombre ya existe"
+      message: "Una empresa con este nombre ya existe"
     };
 
   } catch (error) {
@@ -233,7 +233,7 @@ export const onUpdateDomain = async (id: string, name: string) => {
       if (domain) {
         return {
           status: 200,
-          message: 'Dominio actualizado',
+          message: 'Empresa actualizada',
         }
       }
 
@@ -245,7 +245,7 @@ export const onUpdateDomain = async (id: string, name: string) => {
 
     return {
       status: 400,
-      message: 'Un dominio con este nombre ya existe',
+      message: 'Una empresa con este nombre ya existe',
     }
   } catch (error) {
     console.log(error)
@@ -276,7 +276,7 @@ export const onChatBotImageUpdate = async (id: string, icon: string) => {
     if (domain) {
       return {
         status: 200,
-        message: 'Dominio actualizado',
+        message: 'Empresa actualizada',
       }
     }
 
@@ -348,7 +348,7 @@ export const onDeleteUserDomain = async (id: string) => {
       if (deletedDomain) {
         return {
           status: 200,
-          message: `${deletedDomain.name} fue eliminado exitosamente`,
+          message: `${deletedDomain.name} fue eliminada exitosamente`,
         }
       }
     }

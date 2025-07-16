@@ -15,8 +15,8 @@ const ChangePassword = (props: Props) => {
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-10">
       <div className="lg:col-span-1">
         <Section
-          label="Change Password"
-          message="Reset your password"
+          label="Cambiar Contraseña"
+          message="Restablece tu contraseña"
         />
       </div>
       <form
@@ -28,7 +28,7 @@ const ChangePassword = (props: Props) => {
             register={register}
             errors={errors}
             name="password"
-            placeholder="New Password"
+            placeholder="Nueva Contraseña"
             type="text"
             inputType="input"
           />
@@ -36,12 +36,12 @@ const ChangePassword = (props: Props) => {
             register={register}
             errors={errors}
             name="confirmPassword"
-            placeholder="Confirm Password"
+            placeholder="Confirmar Contraseña"
             type="text"
             inputType="input"
           />
           <Button className="bg-grandis text-gray-700 font-semibold">
-            <Loader loading={loading}>Change Password</Loader>
+            <Loader loading={loading}>Cambiar Contraseña</Loader>
           </Button>
         </div>
       </form>

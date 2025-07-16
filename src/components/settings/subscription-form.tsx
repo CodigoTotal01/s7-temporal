@@ -45,7 +45,7 @@ const SubscriptionForm = ({ plan }: Props) => {
     {
       id: 'STANDARD',
       title: 'STANDARD',
-      description: 'Perfecto para comenzar con Corinna AI',
+      description: 'Perfecto para comenzar con Lunari AI',
       price: '0',
       features: [
         'Chatbot básico',
