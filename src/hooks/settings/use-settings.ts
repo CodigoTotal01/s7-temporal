@@ -1,10 +1,10 @@
-import { onChatBotImageUpdate, onCreateFilterQuestions, onCreateHelpDeskQuestion, onDeleteUserDomain, onGetAllFilterQuestions, onGetAllHelpDeskQuestions, onUpdateDomain, onUpdatePassword, onUpdateWelcomeMessage } from '@/action/settings'
+import { onChatBotImageUpdate, onCreateFilterQuestions, onCreateHelpDeskQuestion, onCreateNewDomainProduct, onDeleteUserDomain, onGetAllFilterQuestions, onGetAllHelpDeskQuestions, onUpdateDomain, onUpdatePassword, onUpdateWelcomeMessage } from '@/action/settings'
 import { useToast } from '@/components/ui/use-toast'
 import {
     ChangePasswordProps,
     ChangePasswordSchema,
 } from '@/schemas/auth.schema'
-import { DomainSettingsProps, DomainSettingsSchema, FilterQuestionsProps, FilterQuestionsSchema, HelpDeskQuestionsProps, HelpDeskQuestionsSchema } from '@/schemas/settings.schema'
+import { AddProductProps, AddProductSchema, DomainSettingsProps, DomainSettingsSchema, FilterQuestionsProps, FilterQuestionsSchema, HelpDeskQuestionsProps, HelpDeskQuestionsSchema } from '@/schemas/settings.schema'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { UploadClient } from '@uploadcare/upload-client'
 import { useTheme } from 'next-themes'
@@ -44,7 +44,7 @@ export const useChangePassword = () => {
             if (updated) {
                 reset()
                 setLoading(false)
-                toast({ title: 'Success', description: updated.message })
+                toast({ title: 'Éxito al actualizar contraseña', description: updated.message })
             }
         } catch (error) {
             console.log(error)
@@ -78,7 +78,7 @@ export const useSettings = (id: string) => {
             const domain = await onUpdateDomain(id, values.domain)
             if (domain) {
                 toast({
-                    title: 'Success',
+                    title: 'Éxito al actualizar dominio',
                     description: domain.message,
                 })
             }
@@ -88,7 +88,7 @@ export const useSettings = (id: string) => {
             const image = await onChatBotImageUpdate(id, uploaded.uuid)
             if (image) {
                 toast({
-                    title: image.status == 200 ? 'Success' : 'Error',
+                    title: image.status == 200 ? 'Éxito al actualizar imagen' : 'Error al actualizar imagen',
                     description: image.message,
                 })
                 setLoading(false)
@@ -98,7 +98,7 @@ export const useSettings = (id: string) => {
             const message = await onUpdateWelcomeMessage(values.welcomeMessage, id)
             if (message) {
                 toast({
-                    title: 'Success',
+                    title: 'Éxito al actualizar mensaje de bienvenida',
                     description: message.message,
                 })
             }
@@ -113,7 +113,7 @@ export const useSettings = (id: string) => {
         const deleted = await onDeleteUserDomain(id)
         if (deleted) {
             toast({
-                title: 'Success',
+                title: 'Éxito al eliminar dominio',
                 description: deleted.message,
             })
             setDeleting(false)
@@ -155,7 +155,7 @@ export const useHelpDesk = (id: string) => {
         if (question) {
             setIsQuestions(question.questions!)
             toast({
-                title: question.status == 200 ? 'Success' : 'Error',
+                title: question.status == 200 ? 'Éxito al crear pregunta' : 'Error al crear pregunta',
                 description: question.message,
             })
             setLoading(false)
@@ -206,7 +206,7 @@ export const useFilterQuestions = (id: string) => {
         if (questions) {
             setIsQuestions(questions.questions!)
             toast({
-                title: questions.status == 200 ? 'Success' : 'Error',
+                title: questions.status == 200 ? 'Éxito al crear pregunta' : 'Error al crear pregunta',
                 description: questions.message,
             })
             reset()
@@ -235,7 +235,8 @@ export const useFilterQuestions = (id: string) => {
         isQuestions,
     }
 }
-/*
+
+
 export const useProducts = (domainId: string) => {
     const { toast } = useToast()
     const [loading, setLoading] = useState<boolean>(false)
@@ -261,7 +262,7 @@ export const useProducts = (domainId: string) => {
             if (product) {
                 reset()
                 toast({
-                    title: 'Success',
+                    title: 'Éxito al crear producto',
                     description: product.message,
                 })
                 setLoading(false)
@@ -272,4 +273,4 @@ export const useProducts = (domainId: string) => {
     })
 
     return { onCreateNewProduct, register, errors, loading }
-} */
+}

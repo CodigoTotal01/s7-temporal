@@ -27,19 +27,19 @@ export type FilterQuestionsProps = {
 export const AddDomainSchema = z.object({
   domain: z
     .string()
-    .min(4, { message: 'A domain must have atleast 3 characters' })
+    .min(4, { message: 'Un dominio debe tener al menos 3 caracteres' })
     .refine(
       (value) =>
         /^((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,3}$/.test(value ?? ''),
-      'This is not a valid domain'
+      'Este no es un dominio válido'
     ),
   image: z
     .any()
     .refine((files) => files?.[0]?.size <= MAX_UPLOAD_SIZE, {
-      message: 'Your file size must be less then 2MB',
+      message: 'El tamaño del archivo debe ser menor a 2MB',
     })
     .refine((files) => ACCEPTED_FILE_TYPES.includes(files?.[0]?.type), {
-      message: 'Only JPG, JPEG & PNG are accepted file formats',
+      message: 'Solo se aceptan archivos JPG, JPEG & PNG',
     }),
 })
 
@@ -47,18 +47,18 @@ export const DomainSettingsSchema = z
   .object({
     domain: z
       .string()
-      .min(4, { message: 'A domain must have atleast 3 characters' })
+      .min(4, { message: 'Un dominio debe tener al menos 3 caracteres' })
       .refine(
         (value) =>
           /^((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,3}$/.test(value ?? ''),
-        'This is not a valid domain'
+        'Este no es un dominio válido'
       )
       .optional()
       .or(z.literal('').transform(() => undefined)),
     image: z.any().optional(),
     welcomeMessage: z
       .string()
-      .min(6, 'The message must be atleast 6 characters')
+      .min(6, 'El mensaje debe tener al menos 6 caracteres')
       .optional()
       .or(z.literal('').transform(() => undefined)),
   })
@@ -78,31 +78,31 @@ export const DomainSettingsSchema = z
     },
     {
       message:
-        'The fill must be less then 2MB, and on PNG, JPEG & JPG files are accepted',
+        'El archivo debe ser menor a 2MB, y solo se aceptan archivos PNG, JPEG & JPG',
       path: ['image'],
     }
   )
 
 export const HelpDeskQuestionsSchema = z.object({
-  question: z.string().min(1, { message: 'Question cannot be left empty' }),
-  answer: z.string().min(1, { message: 'Question cannot be left empty' }),
+  question: z.string().min(1, { message: 'La pregunta no puede estar vacía' }),
+  answer: z.string().min(1, { message: 'La respuesta no puede estar vacía' }),
 })
 
 export const FilterQuestionsSchema = z.object({
-  question: z.string().min(1, { message: 'Question cannot be left empty' }),
+  question: z.string().min(1, { message: 'La pregunta no puede estar vacía' }),
 })
 
 export const AddProductSchema = z.object({
   name: z
     .string()
-    .min(3, { message: 'The name must have atleast 3 characters' }),
+    .min(3, { message: 'El nombre debe tener al menos 3 caracteres' }),
   image: z
     .any()
     .refine((files) => files?.[0]?.size <= MAX_UPLOAD_SIZE, {
-      message: 'Your file size must be less then 2MB',
+      message: 'El tamaño del archivo debe ser menor a 2MB',
     })
     .refine((files) => ACCEPTED_FILE_TYPES.includes(files?.[0]?.type), {
-      message: 'Only JPG, JPEG & PNG are accepted file formats',
+      message: 'Solo se aceptan archivos JPG, JPEG & PNG',
     }),
   price: z.string(),
 })

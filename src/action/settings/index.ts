@@ -53,7 +53,7 @@ export const onIntegrateDomain = async (domain: string, icon: string) => {
                 icon,
                 chatBot: {
                   create: {
-                    welcomeMessage: "Hey there, have a question? Text us here",
+                    welcomeMessage: "Hola, ¿tienes alguna pregunta? Envíanos un mensaje aquí",
                   }
                 }
               }
@@ -62,18 +62,18 @@ export const onIntegrateDomain = async (domain: string, icon: string) => {
         });
 
         if (newDomain) {
-          return { status: 200, message: "Domain successfully added" };
+          return { status: 200, message: "Dominio agregado exitosamente" };
         }
       }
       return {
         status: 400,
-        message: "You've reached the maximum number of domains, upgrade your plan"
+        message: "Has alcanzado el número máximo de dominios, actualiza tu plan"
       }
     }
 
     return {
       status: 400,
-      message: "Domain already exists"
+      message: "Un dominio con este nombre ya existe"
     };
 
   } catch (error) {
@@ -157,7 +157,7 @@ export const onUpdatePassword = async (password: string) => {
     if (!user) return null
     const update = await clerkClient.users.updateUser(user.id, { password })
     if (update) {
-      return { status: 200, message: 'Password updated' }
+      return { status: 200, message: 'Contraseña actualizada' }
     }
   } catch (error) {
     console.log(error)
@@ -189,7 +189,7 @@ export const onGetCurrentDomainInfo = async (domain: string) => {
             name: true,
             icon: true,
             userId: true,
-            //products: true,
+            products: true,
             chatBot: {
               select: {
                 id: true,
@@ -233,19 +233,19 @@ export const onUpdateDomain = async (id: string, name: string) => {
       if (domain) {
         return {
           status: 200,
-          message: 'Domain updated',
+          message: 'Dominio actualizado',
         }
       }
 
       return {
         status: 400,
-        message: 'Oops something went wrong!',
+        message: 'Oops! algo salió mal',
       }
     }
 
     return {
       status: 400,
-      message: 'Domain with this name already exists',
+      message: 'Un dominio con este nombre ya existe',
     }
   } catch (error) {
     console.log(error)
@@ -276,13 +276,13 @@ export const onChatBotImageUpdate = async (id: string, icon: string) => {
     if (domain) {
       return {
         status: 200,
-        message: 'Domain updated',
+        message: 'Dominio actualizado',
       }
     }
 
     return {
       status: 400,
-      message: 'Oops something went wrong!',
+      message: 'Oops! algo salió mal',
     }
   } catch (error) {
     console.log(error)
@@ -310,7 +310,7 @@ export const onUpdateWelcomeMessage = async (
     })
 
     if (update) {
-      return { status: 200, message: 'Welcome message updated' }
+      return { status: 200, message: 'Mensaje de bienvenida actualizado' }
     }
   } catch (error) {
     console.log(error)
@@ -348,7 +348,7 @@ export const onDeleteUserDomain = async (id: string) => {
       if (deletedDomain) {
         return {
           status: 200,
-          message: `${deletedDomain.name} was deleted successfully`,
+          message: `${deletedDomain.name} fue eliminado exitosamente`,
         }
       }
     }
@@ -389,14 +389,14 @@ export const onCreateHelpDeskQuestion = async (
     if (helpDeskQuestion) {
       return {
         status: 200,
-        message: 'New help desk question added',
+        message: 'Nueva pregunta agregada',
         questions: helpDeskQuestion.helpdesk,
       }
     }
 
     return {
       status: 400,
-      message: 'Oops! something went wrong',
+      message: 'Oops! algo salió mal',
     }
   } catch (error) {
     console.log(error)
@@ -418,7 +418,7 @@ export const onGetAllHelpDeskQuestions = async (id: string) => {
 
     return {
       status: 200,
-      message: 'New help desk question added',
+      message: 'Nueva pregunta agregada',
       questions: questions,
     }
   } catch (error) {
@@ -452,13 +452,13 @@ export const onCreateFilterQuestions = async (id: string, question: string) => {
     if (filterQuestion) {
       return {
         status: 200,
-        message: 'Filter question added',
+        message: 'Pregunta de filtro agregada',
         questions: filterQuestion.filterQuestions,
       }
     }
     return {
       status: 400,
-      message: 'Oops! something went wrong',
+      message: 'Oops! algo salió mal',
     }
   } catch (error) {
     console.log(error)
@@ -504,6 +504,39 @@ export const onGetPaymentConnected = async () => {
       })
       if (connected) {
         return connected.stripeId
+      }
+    }
+  } catch (error) {
+    console.log(error)
+  }
+}
+
+export const onCreateNewDomainProduct = async (
+  id: string,
+  name: string,
+  image: string,
+  price: string
+) => {
+  try {
+    const product = await client.domain.update({
+      where: {
+        id,
+      },
+      data: {
+        products: {
+          create: {
+            name,
+            image,
+            price: parseInt(price),
+          },
+        },
+      },
+    })
+
+    if (product) {
+      return {
+        status: 200,
+        message: 'Producto creado exitosamente',
       }
     }
   } catch (error) {
