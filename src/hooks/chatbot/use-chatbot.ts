@@ -97,7 +97,6 @@ export const useChatBot = () => {
 
   useEffect(() => {
     window.addEventListener('message', (e) => {
-      console.log(e.data)
       const botid = e.data
       if (limitRequest < 1 && typeof botid == 'string') {
         onGetDomainChatBot(botid)
