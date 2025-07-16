@@ -34,7 +34,13 @@ export const postToParent = (message: string) => {
 }
 
 export const extractURLfromString = (url: string) => {
-  return url.match(/https?:\/\/[^\s"<>]+/)
+  // Regex mejorado que excluye paréntesis, comillas y otros caracteres no deseados al final
+  const urlMatch = url.match(/https?:\/\/[^\s"<>()]+/)
+  if (urlMatch) {
+    // Limpiar cualquier carácter no deseado al final
+    return [urlMatch[0].replace(/[()]+$/, '')]
+  }
+  return null
 }
 
 export const extractEmailsFromString = (text: string) => {
@@ -50,19 +56,19 @@ export const getMonthName = (month: number) => {
         ? 'Mar'
         : month == 4
           ? 'Apr'
-          : month == 5
-            ? 'May'
-            : month == 6
-              ? 'Jun'
-              : month == 7
-                ? 'Jul'
-                : month == 8
-                  ? 'Aug'
-                  : month == 9
-                    ? 'Sep'
-                    : month == 10
-                      ? 'Oct'
-                      : month == 11
-                        ? 'Nov'
-                        : month == 12 && 'Dec'
+        : month == 5
+          ? 'May'
+          : month == 6
+            ? 'Jun'
+            : month == 7
+              ? 'Jul'
+              : month == 8
+                ? 'Aug'
+                : month == 9
+                  ? 'Sep'
+                  : month == 10
+                    ? 'Oct'
+                    : month == 11
+                      ? 'Nov'
+                      : month == 12 && 'Dec'
 }
