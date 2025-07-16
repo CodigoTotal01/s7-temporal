@@ -79,9 +79,9 @@ export const useChatBot = () => {
 
   let limitRequest = 0
 
-  const onGetDomainChatBot = async (id: string) => {
-    setCurrentBotId(id)
-    const chatbot = await onGetCurrentChatBot(id)
+  const onGetDomainChatBot = async (idOrName: string) => {
+    setCurrentBotId(idOrName)
+    const chatbot = await onGetCurrentChatBot(idOrName)
     if (chatbot) {
       setOnChats((prev) => [
         ...prev,
@@ -92,6 +92,8 @@ export const useChatBot = () => {
       ])
       setCurrentBot(chatbot)
       setLoading(false)
+    } else {
+      console.error('No se pudo encontrar el chatbot para:', idOrName)
     }
   }
 

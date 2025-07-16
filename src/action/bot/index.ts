@@ -103,13 +103,19 @@ export const onStoreConversations = async (
   })
 }
 
-export const onGetCurrentChatBot = async (id: string) => {
+export const onGetCurrentChatBot = async (idOrName: string) => {
   try {
-    const chatbot = await client.domain.findUnique({
-      where: {
-        id,
+    // Verificar si es un UUID (ID) o un nombre
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrName)
+    
+    const chatbot = await client.domain.findFirst({
+      where: isUUID ? {
+        id: idOrName,
+      } : {
+        name: idOrName,
       },
       select: {
+        id: true,
         helpdesk: true,
         name: true,
         chatBot: {
@@ -127,9 +133,11 @@ export const onGetCurrentChatBot = async (id: string) => {
 
     if (chatbot) {
       return chatbot
+    } else {
+      console.log(`No se encontró chatbot para: ${idOrName}`)
     }
   } catch (error) {
-    console.log(error)
+    console.log('Error en onGetCurrentChatBot:', error)
   }
 }
 
