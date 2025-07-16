@@ -74,7 +74,38 @@ export const onBookNewAppointment = async (
         })
 
         if (booking) {
-            return { status: 200, message: 'Booking created' }
+            return { status: 200, message: 'Reunión reservada' }
+        }
+    } catch (error) {
+        console.log(error)
+    }
+}
+
+export const saveAnswers = async (
+    questions: [question: string],
+    customerId: string
+) => {
+    try {
+        for (const question in questions) {
+            await client.customer.update({
+                where: { id: customerId },
+                data: {
+                    questions: {
+                        update: {
+                            where: {
+                                id: question,
+                            },
+                            data: {
+                                answered: questions[question],
+                            },
+                        },
+                    },
+                },
+            })
+        }
+        return {
+            status: 200,
+            messege: 'Respuestas actualizadas',
         }
     } catch (error) {
         console.log(error)

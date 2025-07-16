@@ -221,17 +221,27 @@ export const onAiChatBotAssistant = async (
 
               Always maintain character and stay respectfull.
 
-              The array of questions : [${chatBotDomain.filterQuestions
-                  .map((questions) => questions.question)
-                  .join(', ')}]
+              ${chatBotDomain.filterQuestions.length > 0 ?
+                  `The array of questions to ask: [${chatBotDomain.filterQuestions
+                    .map((questions) => questions.question)
+                    .join(', ')}]
+                
+                Progress the conversation using those questions. 
+                
+                Whenever you ask a question from the array i need you to add a keyword at the end of the question (complete) this keyword is extremely important. 
+                
+                Do not forget it.
 
-              if the customer says something out of context or inapporpriate. Simply say this is beyond you and you will get a real user to continue the conversation. And add a keyword (realtime) at the end.
-
-              if the customer agrees to book an appointment send them this link http://localhost:3000/portal/${id}/appointment/${checkCustomer?.customer[0].id
+                only add this keyword when your asking a question from the array of questions. No other question satisfies this condition`
+                  :
+                  `You don't have specific questions to ask, so focus on helping the customer with their needs.`
                 }
 
-              if the customer wants to buy a product redirect them to the payment page http://localhost:3000/portal/${id}/payment/${checkCustomer?.customer[0].id
-                }
+              IMPORTANT: If the customer wants to book an appointment or schedule a consultation, send them this link: http://localhost:3000/portal/${id}/appointment/${checkCustomer?.customer[0].id}
+
+              IMPORTANT: If the customer wants to buy a product or make a payment, send them this link: http://localhost:3000/portal/${id}/payment/${checkCustomer?.customer[0].id}
+
+              ONLY if the customer says something completely inappropriate, offensive, or unrelated to your business, then say "This is beyond me. Let me get a real user to continue the conversation." and add keyword (realtime) at the end.
           `,
             },
             ...chat,
