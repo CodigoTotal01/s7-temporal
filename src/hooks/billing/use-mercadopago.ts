@@ -41,7 +41,7 @@ export const useMercadoPago = () => {
   return { connectMercadoPago, disconnectMercadoPago, loading }
 }
 
-export const useMercadoPagoCustomer = (amount: number, mercadopagoId: string) => {
+export const useMercadoPagoCustomer = (amount: number, products?: any[]) => {
   const [preferenceId, setPreferenceId] = useState<string | null>(null)
   const [loadForm, setLoadForm] = useState(true)
 
@@ -49,20 +49,28 @@ export const useMercadoPagoCustomer = (amount: number, mercadopagoId: string) =>
     const createPreference = async () => {
       try {
         setLoadForm(true)
-        const response = await axios.post('/api/mercadopago/create-preference', {
-          items: [
-            {
+        
+        // Usar productos reales si están disponibles, sino crear un item genérico
+        const items = products && products.length > 0 
+          ? products.map(product => ({
+              name: product.name,
+              price: product.price,
+              quantity: 1
+            }))
+          : [{
               name: 'Pago de servicio',
               price: amount,
               quantity: 1
-            }
-          ],
+            }]
+
+        const response = await axios.post('/api/mercadopago/create-preference', {
+          items,
           customerId: 'customer',
           domainId: 'domain'
         })
 
-        if (response.data?.id) {
-          setPreferenceId(response.data.id)
+        if (response.data?.init_point) {
+          setPreferenceId(response.data.init_point)
         }
       } catch (error) {
         console.error('Error creando preferencia:', error)
@@ -71,10 +79,10 @@ export const useMercadoPagoCustomer = (amount: number, mercadopagoId: string) =>
       }
     }
 
-    if (amount && mercadopagoId) {
+    if (amount) {
       createPreference()
     }
-  }, [amount, mercadopagoId])
+  }, [amount, products])
 
   return { preferenceId, loadForm }
 }
