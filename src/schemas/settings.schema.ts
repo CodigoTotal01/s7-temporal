@@ -27,11 +27,11 @@ export type FilterQuestionsProps = {
 export const AddDomainSchema = z.object({
   domain: z
     .string()
-    .min(4, { message: 'Un dominio debe tener al menos 3 caracteres' })
+    .min(2, { message: 'El nombre de la empresa debe tener al menos 2 caracteres' })
+    .max(50, { message: 'El nombre de la empresa no puede exceder 50 caracteres' })
     .refine(
-      (value) =>
-        /^((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,3}$/.test(value ?? ''),
-      'Este no es un dominio válido'
+      (value) => /^[A-Za-z0-9\s\-_]+$/.test(value ?? ''),
+      'El nombre de la empresa solo puede contener letras, números, espacios, guiones y guiones bajos'
     ),
   image: z
     .any()
@@ -47,11 +47,11 @@ export const DomainSettingsSchema = z
   .object({
     domain: z
       .string()
-      .min(4, { message: 'Un dominio debe tener al menos 3 caracteres' })
+      .min(2, { message: 'El nombre de la empresa debe tener al menos 2 caracteres' })
+      .max(50, { message: 'El nombre de la empresa no puede exceder 50 caracteres' })
       .refine(
-        (value) =>
-          /^((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,3}$/.test(value ?? ''),
-        'Este no es un dominio válido'
+        (value) => /^[A-Za-z0-9\s\-_]+$/.test(value ?? ''),
+        'El nombre de la empresa solo puede contener letras, números, espacios, guiones y guiones bajos'
       )
       .optional()
       .or(z.literal('').transform(() => undefined)),

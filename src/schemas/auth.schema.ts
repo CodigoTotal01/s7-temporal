@@ -10,33 +10,34 @@ export type UserRegistrationProps = {
   otp: string;
 };
 
-export const UserRegistrationSchema: ZodType<UserRegistrationProps> = z
+export const UserRegistrationSchema = z
   .object({
     type: z.string().min(1),
     fullname: z
       .string()
-      .min(4, { message: "your full name must be atleast 4 characters long" }),
-    email: z.string().email({ message: "Incorrect email format" }),
+      .min(4, { message: "Tu nombre completo debe tener al menos 4 caracteres" }),
+    email: z.string().email({ message: "Formato de email incorrecto" }),
     confirmEmail: z.string().email(),
     password: z
       .string()
-      .min(8, { message: "Your password must be 8 characters long" })
+      .min(8, { message: "Tu contraseña debe tener al menos 8 caracteres" })
       .max(64, {
-        message: "Your password can not be longer than 64 characters",
+        message: "Tu contraseña no puede ser mayor a 64 caracteres",
       })
       .refine(
         (value) => /^[a-zA-Z0-9_.-]*$/.test(value ?? ""),
-        "password should contain only alphabets and numbers",
+        "Tu contraseña debe contener solo letras y números",
       ),
     confirmPassword: z.string(),
-    otp: z.string().min(6, { message: "You must enter a 6 digit code" }),
+    otp: z.string().min(6, { message: "Debes ingresar un código de 6 dígitos" }),
   })
+  .required()
   .refine((schema) => schema.password === schema.confirmPassword, {
-    message: "passwords do not match",
+    message: "Las contraseñas no coinciden",
     path: ["confirmPassword"],
   })
   .refine((schema) => schema.email === schema.confirmEmail, {
-    message: "Your emails not match",
+    message: "Tus emails no coinciden",
     path: ["confirmEmail"],
   });
 
@@ -50,21 +51,21 @@ export type ChangePasswordProps = {
   confirmPassword: string;
 };
 
-export const UserLoginSchema: ZodType<UserLoginProps> = z.object({
-  email: z.string().email({ message: "You did not enter a valid email" }),
+export const UserLoginSchema = z.object({
+  email: z.string().email({ message: "No ingresaste un email válido" }),
   password: z
     .string()
-    .min(8, { message: "Your password must be atleast 8 characters long" })
-    .max(64, { message: "Your password cannot be longer than 64 characters" }),
+    .min(8, { message: "Tu contraseña debe tener al menos 8 caracteres" })
+    .max(64, { message: "Tu contraseña no puede ser mayor a 64 caracteres" }),
 });
 
-export const ChangePasswordSchema: ZodType<ChangePasswordProps> = z
+export const ChangePasswordSchema = z
   .object({
     password: z
       .string()
-      .min(8, { message: 'Your password must be atleast 8 characters long' })
+      .min(8, { message: 'Tu contraseña debe tener al menos 8 caracteres' })
       .max(64, {
-        message: 'Your password can not be longer then 64 characters long',
+        message: 'Tu contraseña no puede ser mayor a 64 caracteres',
       })
       .refine(
         (value) => /^[a-zA-Z0-9_.-]*$/.test(value ?? ''),
@@ -72,7 +73,8 @@ export const ChangePasswordSchema: ZodType<ChangePasswordProps> = z
       ),
     confirmPassword: z.string(),
   })
+  .required()
   .refine((schema) => schema.password === schema.confirmPassword, {
-    message: 'passwords do not match',
+    message: 'Las contraseñas no coinciden',
     path: ['confirmPassword'],
   })
