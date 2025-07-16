@@ -34,7 +34,7 @@ const Modal = ({
           <DialogTrigger asChild>{trigger}</DialogTrigger>
           <DialogContent>
             <div className="flex justify-center gap-3">
-              <div className="w-12 h-12 relative">
+              <div className="w-20 h-20 relative">
                 <Image
                   src={`https://ucarecdn.com/2c9bd4ab-1f00-41df-bad2-df668f65a232/`}
                   fill
@@ -45,7 +45,7 @@ const Modal = ({
                 <ArrowLeft size={20} />
                 <ArrowRight size={20} />
               </div>
-              <div className="w-12 h-12 relative">
+              <div className="w-20 h-20 relative">
                 <Image
                   src={`https://ucarecdn.com/${logo}/`}
                   fill

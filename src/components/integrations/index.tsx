@@ -7,7 +7,7 @@ import IntegrationTrigger from './IntegrationTrigger'
 
 type Props = {
   connections: {
-    stripe: boolean
+    mercadopago: boolean
   }
 }
 
@@ -19,7 +19,7 @@ const IntegrationsList = ({ connections }: Props) => {
           <CardContent className="flex flex-col p-5 gap-2">
             <div className="flex w-full justify-between items-start gap-x-20">
               <div className="">
-                <div className="w-10 h-10 relative">
+                <div className="w-32 h-32 relative">
                   <Image
                     sizes="100vw"
                     src={`https://ucarecdn.com/${item.logo}/`}

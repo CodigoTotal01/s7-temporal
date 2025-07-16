@@ -1,6 +1,6 @@
 type IntegrationsListItemProps = {
   id: string
-  name: 'stripe'
+  name: 'mercadopago'
   logo: string
   description: string
   title: string
@@ -10,12 +10,12 @@ type IntegrationsListItemProps = {
 export const INTEGRATION_LIST_ITEMS: IntegrationsListItemProps[] = [
   {
     id: '1',
-    name: 'stripe',
+    name: 'mercadopago',
     description:
-      'Stripe es la forma más rápida y sencilla de integrar pagos y servicios financieros en tu plataforma de software o marketplace.',
-    logo: '914be637-39bf-47e6-bb81-37b553163945',
-    title: 'Conectar cuenta de Stripe',
+      'Mercado Pago es la plataforma de pagos más popular en Perú, con soporte para tarjetas, Yape, Plin y otros métodos de pago locales.',
+    logo: '196e1022-956e-41f5-b317-303dc97bacfc',
+    title: 'Conectar cuenta de Mercado Pago',
     modalDescription:
-      'Las plataformas y marketplaces más exitosas, como Shopify y DoorDash, utilizan Stripe Connect.',
+      'Mercado Pago es utilizado por millones de usuarios en Perú para pagos seguros y rápidos.',
   },
 ]

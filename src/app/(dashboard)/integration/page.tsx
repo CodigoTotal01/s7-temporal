@@ -6,7 +6,7 @@ const IntegrationsPage = async () => {
   const payment = await onGetPaymentConnected()
 
   const connections = {
-    stripe: payment ? true : false,
+    mercadopago: payment ? true : false,
   }
 
   return (
