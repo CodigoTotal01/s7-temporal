@@ -22,17 +22,20 @@ const HelpDesk = ({ id }: Props) => {
     useHelpDesk(id)
 
   return (
-    <Card className="w-full grid grid-cols-1 lg:grid-cols-2">
-      <CardContent className="p-6 border-r-[1px]">
-        <CardTitle>Help Desk</CardTitle>
+    <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+      <div className="bg-gray-50 rounded-lg p-4 md:p-6 border border-gray-100">
+        <div className="flex items-center gap-3 mb-4 md:mb-6">
+          <div className="w-1 h-6 md:h-8 bg-blue-500 rounded-full"></div>
+          <h3 className="font-semibold text-lg md:text-xl text-gray-900">Ayuda</h3>
+        </div>
         <form
           onSubmit={onSubmitQuestion}
-          className="flex flex-col gap-6 mt-10"
+          className="flex flex-col gap-4 md:gap-6"
         >
           <div className="flex flex-col gap-3">
             <Section
-              label="Question"
-              message="Add a question that you believe is frequently asked."
+              label="Pregunta"
+              message="Añade una pregunta que creas que se hace frecuentemente."
             />
             <FormGenerator
               inputType="input"
@@ -40,14 +43,14 @@ const HelpDesk = ({ id }: Props) => {
               errors={errors}
               form="help-desk-form"
               name="question"
-              placeholder="Type your question"
+              placeholder="Escribe tu pregunta"
               type="text"
             />
           </div>
           <div className="flex flex-col gap-3">
             <Section
-              label="Answer to question"
-              message="The answer for the question above."
+              label="Respuesta"
+              message="La respuesta para la pregunta anterior."
             />
             <FormGenerator
               inputType="textarea"
@@ -55,35 +58,41 @@ const HelpDesk = ({ id }: Props) => {
               errors={errors}
               name="answer"
               form="help-desk-form"
-              placeholder="Type your answer"
+              placeholder="Escribe tu respuesta"
               type="text"
               lines={5}
             />
           </div>
           <Button
             type="submit"
-            className="bg-orange hover:bg-orange hover:opacity-70 transition duration-150 ease-in-out text-white font-semibold"
+            className="bg-orange hover:bg-orange/90 transition duration-150 ease-in-out text-white font-semibold px-6 py-2 rounded-lg"
           >
-            Create
+            Crear
           </Button>
         </form>
-      </CardContent>
-      <CardContent className="p-6 overflow-y-auto chat-window">
-        <Loader loading={loading}>
-          {isQuestions.length ? (
-            isQuestions.map((question) => (
-              <Accordion
-                key={question.id}
-                trigger={question.question}
-                content={question.answer}
-              />
-            ))
-          ) : (
-            <CardDescription>No Questions to show</CardDescription>
-          )}
-        </Loader>
-      </CardContent>
-    </Card>
+      </div>
+      <div className="bg-gray-50 rounded-lg p-4 md:p-6 border border-gray-100">
+        <div className="flex items-center gap-3 mb-4 md:mb-6">
+          <div className="w-1 h-6 md:h-8 bg-green-500 rounded-full"></div>
+          <h3 className="font-semibold text-lg md:text-xl text-gray-900">Preguntas Existentes</h3>
+        </div>
+        <div className="space-y-3 md:space-y-4 max-h-96 overflow-y-auto">
+          <Loader loading={loading}>
+            {isQuestions.length ? (
+              isQuestions.map((question) => (
+                <Accordion
+                  key={question.id}
+                  trigger={question.question}
+                  content={question.answer}
+                />
+              ))
+            ) : (
+              <p className="text-gray-500 text-sm">No hay preguntas para mostrar</p>
+            )}
+          </Loader>
+        </div>
+      </div>
+    </div>
   )
 }
 

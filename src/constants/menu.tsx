@@ -13,22 +13,22 @@ export const SIDE_BAR_MENU: SIDE_BAR_MENU_PROPS[] = [
         path: 'dashboard',
     },
     {
-        label: 'Conversations',
+        label: 'Conversaciones',
         icon: <MessageSquareMore />,
         path: 'conversation',
     },
     {
-        label: 'Integrations',
+        label: 'Integraciones',
         icon: <Settings2 />,
         path: 'integration',
     },
     {
-        label: 'Settings',
+        label: 'Configuraciones',
         icon: <Settings />,
         path: 'settings',
     },
     {
-        label: 'Appointments',
+        label: 'Citas',
         icon: <SquareUser />,
         path: 'appointment',
     },
@@ -46,29 +46,29 @@ type TABS_MENU_PROPS = {
 
 export const TABS_MENU: TABS_MENU_PROPS[] = [
     {
-        label: 'unread',
+        label: 'no leidos',
         icon: <Mail />
     },
     {
-        label: 'all',
+        label: 'todos',
         icon: <Mail />
     },
     {
-        label: 'expired',
+        label: 'expirados',
         icon: <TimerIcon />
     },
     {
-        label: 'starred',
+        label: 'favoritos',
         icon: <StarIcon />
     }
 ]
 
 export const HELP_DESK_TABS_MENU: TABS_MENU_PROPS[] = [
     {
-        label: 'help desk',
+        label: 'soporte',
 
     }, {
-        label: 'questions',
+        label: 'preguntas',
     }
 ]
 
@@ -77,23 +77,23 @@ export const APPOINTMENT_TABLE_HEADER = [
     'Nombre',
     'Hora solicitada',
     'Hora añadida',
-    'Dominio',
+    'Empresa',
 ]
 
 export const EMAIL_MARKETING_HEADER = [
     'Id',
     'Email',
-    'Answers',
-    'Domain',
+    'Respuestas',
+    'Empresa',
 ]
 
 export const BOT_TABS_MENU: TABS_MENU_PROPS[] = [
     {
-        label: 'chat',
+        label: 'chatbot',
         icon: <MessageCircleMore />
     },
     {
-        label: 'helpdesk',
+        label: 'soporte',
         icon: <HeartHandshake />
     }
 ]

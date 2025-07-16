@@ -18,19 +18,21 @@ const TabsMenu = ({ triggers, children, className, button }: Props) => {
       defaultValue={triggers[0].label}
       className="w-full"
     >
-      <TabsList className={cn('pr-5', className)}>
-        {triggers.map((trigger, key) => (
-          <TabsTrigger
-            key={key}
-            value={trigger.label}
-            className="capitalize flex gap-2 font-semibold"
-          >
-            {trigger.icon && trigger.icon}
-            {trigger.label}
-          </TabsTrigger>
-        ))}
-        {button}
-      </TabsList>
+      <div className="overflow-x-auto">
+        <TabsList className={cn('pr-5 gap-1 sm:gap-0 w-full flex-nowrap', className)}>
+          {triggers.map((trigger, key) => (
+            <TabsTrigger
+              key={key}
+              value={trigger.label}
+              className="capitalize flex gap-1 sm:gap-2 font-semibold text-xs sm:text-sm px-2 sm:px-3 py-1.5 min-w-0 flex-shrink-0 whitespace-nowrap"
+            >
+              {trigger.icon && trigger.icon}
+              <span>{trigger.label}</span>
+            </TabsTrigger>
+          ))}
+          {button}
+        </TabsList>
+      </div>
       {children}
     </Tabs>
   )

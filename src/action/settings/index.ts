@@ -62,18 +62,18 @@ export const onIntegrateDomain = async (domain: string, icon: string) => {
         });
 
         if (newDomain) {
-          return { status: 200, message: "Dominio agregado exitosamente" };
+          return { status: 200, message: "Empresa agregada exitosamente" };
         }
       }
       return {
         status: 400,
-        message: "Has alcanzado el número máximo de dominios, actualiza tu plan"
+        message: "Has alcanzado el número máximo de empresas, actualiza tu plan"
       }
     }
 
     return {
       status: 400,
-      message: "Un dominio con este nombre ya existe"
+      message: "Una empresa con este nombre ya existe"
     };
 
   } catch (error) {
@@ -168,6 +168,8 @@ export const onGetCurrentDomainInfo = async (domain: string) => {
   const user = await currentUser()
   if (!user) return
   try {
+    const decodedDomain = decodeURIComponent(domain)
+    
     const userDomain = await client.user.findUnique({
       where: {
         clerkId: user.id,
@@ -180,9 +182,18 @@ export const onGetCurrentDomainInfo = async (domain: string) => {
         },
         domains: {
           where: {
-            name: {
-              contains: domain,
-            },
+            OR: [
+              {
+                name: {
+                  equals: decodedDomain,
+                },
+              },
+              {
+                name: {
+                  equals: domain,
+                },
+              },
+            ],
           },
           select: {
             id: true,
@@ -201,11 +212,14 @@ export const onGetCurrentDomainInfo = async (domain: string) => {
         },
       },
     })
+    
+    console.log('Resultado de búsqueda:', userDomain)
+    
     if (userDomain) {
       return userDomain
     }
   } catch (error) {
-    console.log(error)
+    console.log("Error en onGetCurrentDomainInfo:", error)
   }
 }
 
@@ -233,7 +247,7 @@ export const onUpdateDomain = async (id: string, name: string) => {
       if (domain) {
         return {
           status: 200,
-          message: 'Dominio actualizado',
+          message: 'Empresa actualizada',
         }
       }
 
@@ -245,7 +259,7 @@ export const onUpdateDomain = async (id: string, name: string) => {
 
     return {
       status: 400,
-      message: 'Un dominio con este nombre ya existe',
+      message: 'Una empresa con este nombre ya existe',
     }
   } catch (error) {
     console.log(error)
@@ -276,7 +290,7 @@ export const onChatBotImageUpdate = async (id: string, icon: string) => {
     if (domain) {
       return {
         status: 200,
-        message: 'Dominio actualizado',
+        message: 'Empresa actualizada',
       }
     }
 
@@ -348,7 +362,7 @@ export const onDeleteUserDomain = async (id: string) => {
       if (deletedDomain) {
         return {
           status: 200,
-          message: `${deletedDomain.name} fue eliminado exitosamente`,
+          message: `${deletedDomain.name} fue eliminada exitosamente`,
         }
       }
     }

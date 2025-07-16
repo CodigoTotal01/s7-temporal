@@ -31,8 +31,8 @@ export const useSignInForm = () => {
           await setActive({ session: authenticated.createdSessionId });
 
           toast({
-            title: "Success",
-            description: "Welcome back!",
+            title: "Éxito",
+            description: "Bienvenido de nuevo!",
           });
 
           router.push("/dashboard");
@@ -42,7 +42,7 @@ export const useSignInForm = () => {
         if (error.errors[0].code === "form_password_incorrect")
           toast({
             title: "Error",
-            description: "email/password is incorrect try again",
+            description: "email/password es incorrecto, intenta nuevamente",
           });
       }
     },

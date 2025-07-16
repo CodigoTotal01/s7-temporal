@@ -13,8 +13,8 @@ const Accordion = ({ content, trigger }: Props) => {
       collapsible
     >
       <AccordionItem value="item-1">
-        <AccordionTrigger>{trigger}</AccordionTrigger>
-        <AccordionContent>{content}</AccordionContent>
+        <AccordionTrigger className="text-xs">{trigger}</AccordionTrigger>
+        <AccordionContent className="text-xs">{content}</AccordionContent>
       </AccordionItem>
     </ShadcnAccordion>
   )

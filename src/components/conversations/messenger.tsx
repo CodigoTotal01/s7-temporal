@@ -39,7 +39,7 @@ const Messenger = (props: Props) => {
                 />
               ))
             ) : (
-              <div>No Chat Selected</div>
+              <div>No hay ningún chat seleccionado</div>
             )}
           </div>
         </Loader>
@@ -51,7 +51,7 @@ const Messenger = (props: Props) => {
         <div className="flex justify-between">
           <Input
             {...register('content')}
-            placeholder="Type your message..."
+            placeholder="Escribe tu mensaje..."
             className="focus-visible:ring-0 flex-1 p-0 focus-visible:ring-offset-0 bg-muted rounded-none outline-none border-none"
           />
           <Button
@@ -59,12 +59,9 @@ const Messenger = (props: Props) => {
             className="mt-3 px-7"
             disabled={!chatRoom}
           >
-            Send
+            Enviar
           </Button>
         </div>
-        <span>
-          <PaperclipIcon className='text-muted-foreground' />
-        </span>
       </form>
     </div>
   )

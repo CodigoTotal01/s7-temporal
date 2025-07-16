@@ -13,11 +13,9 @@ import Bubble from './bubble'
 import { Responding } from './responding'
 import { Input } from '../ui/input'
 import { Button } from '../ui/button'
-import { Paperclip, Send } from 'lucide-react'
-import { Label } from '../ui/label'
+import { Send } from 'lucide-react'
 import { CardDescription, CardTitle } from '../ui/card'
 import Accordion from '../accordian'
-import UploadButton from '../upload-button'
 
 type Props = {
   errors: any
@@ -70,10 +68,10 @@ export const BotWindow = forwardRef<HTMLDivElement, Props>(
     ref
   ) => {
     return (
-      <div className="h-[670px] w-[450px] flex flex-col bg-white rounded-xl mr-[80px] border-[1px] overflow-hidden">
-        <div className="flex justify-between px-4 pt-4">
+      <div className="h-[500px] w-[380px] flex flex-col bg-white rounded-xl mr-[80px] border-[1px] overflow-hidden shadow-lg">
+        <div className="flex justify-between px-3 pt-3">
           <div className="flex gap-2">
-            <Avatar className="w-20 h-20">
+            <Avatar className="w-12 h-12">
               <AvatarImage
                 src="https://github.com/shadcn.png"
                 alt="@shadcn"
@@ -81,10 +79,10 @@ export const BotWindow = forwardRef<HTMLDivElement, Props>(
               <AvatarFallback>CN</AvatarFallback>
             </Avatar>
             <div className="flex items-start flex-col">
-              <h3 className="text-lg font-bold leading-none">
-                Sales Rep - Web Prodigies
+              <h3 className="text-xs font-semibold leading-none">
+                Asistente virtual
               </h3>
-              <p className="text-sm">{domainName.split('.com')[0]}</p>
+              <p className="text-xs text-gray-500">{domainName}</p>
               {realtimeMode?.mode && (
                 <RealTimeMode
                   setChats={setChat}
@@ -93,7 +91,7 @@ export const BotWindow = forwardRef<HTMLDivElement, Props>(
               )}
             </div>
           </div>
-          <div className="relative w-16 h-16">
+          <div className="relative w-10 h-10">
             <Image
               src="https://ucarecdn.com/019dd17d-b69b-4dea-a16b-60e0f25de1e9/propuser.png"
               fill
@@ -106,7 +104,7 @@ export const BotWindow = forwardRef<HTMLDivElement, Props>(
           triggers={BOT_TABS_MENU}
           className=" bg-transparent border-[1px] border-border m-2"
         >
-          <TabsContent value="chat">
+          <TabsContent value="chatbot">
             <Separator orientation="horizontal" />
             <div className="flex flex-col h-full">
               <div
@@ -114,7 +112,7 @@ export const BotWindow = forwardRef<HTMLDivElement, Props>(
                   background: theme || '',
                   color: textColor || '',
                 }}
-                className="px-3 flex h-[400px] flex-col py-5 gap-3 chat-window overflow-y-auto"
+                className="px-3 flex h-[320px] flex-col py-3 gap-2 chat-window overflow-y-auto"
                 ref={ref}
               >
                 {chats.map((chat, key) => (
@@ -127,40 +125,32 @@ export const BotWindow = forwardRef<HTMLDivElement, Props>(
               </div>
               <form
                 onSubmit={onChat}
-                className="flex px-3 py-1 flex-col flex-1 bg-porcelain"
+                className="flex px-3 py-2 flex-col flex-1 bg-porcelain"
               >
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center gap-2">
                   <Input
                     {...register('content')}
-                    placeholder="Type your message..."
-                    className="focus-visible:ring-0 flex-1 p-0 focus-visible:ring-offset-0 bg-porcelain rounded-none outline-none border-none"
+                    placeholder="Escribe tu mensaje..."
+                    className="focus-visible:ring-0 flex-1 p-2 focus-visible:ring-offset-0 bg-white rounded-lg outline-none border border-gray-200 text-xs"
                   />
                   <Button
                     type="submit"
-                    className="mt-3"
+                    size="xs"
+                    className="p-2 h-8 w-8 rounded-lg"
                   >
-                    <Send />
+                    <Send className="w-4 h-4" />
                   </Button>
                 </div>
-                <Label htmlFor="bot-image">
-                  <Paperclip />
-                  <Input
-                    {...register('image')}
-                    type="file"
-                    id="bot-image"
-                    className="hidden"
-                  />
-                </Label>
               </form>
             </div>
           </TabsContent>
 
-          <TabsContent value="helpdesk">
-            <div className="h-[485px] overflow-y-auto overflow-x-hidden p-4 flex flex-col gap-4">
+          <TabsContent value="soporte">
+            <div className="h-[350px] overflow-y-auto overflow-x-hidden p-3 flex flex-col gap-3">
               <div>
-                <CardTitle>Help Desk</CardTitle>
-                <CardDescription>
-                  Browse from a list of questions people usually ask.
+                <CardTitle className="text-xs">Ayuda</CardTitle>
+                <CardDescription className="text-xs">
+                  Explora una lista de preguntas frecuentes.
                 </CardDescription>
               </div>
               <Separator orientation="horizontal" />
@@ -175,7 +165,7 @@ export const BotWindow = forwardRef<HTMLDivElement, Props>(
             </div>
           </TabsContent>
         </TabsMenu>
-        <div className="flex justify-center py-2">
+        <div className="flex justify-center py-1">
           <p className="text-gray-400 text-xs">Powered By Devs</p>
         </div>
       </div>

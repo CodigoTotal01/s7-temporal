@@ -1,7 +1,7 @@
 export const pricingCards = [
   {
     title: "Standard",
-    description: "Perfecto para probar Corinna AI",
+    description: "Perfecto para probar Lunari AI",
     price: "S/0",
     duration: "",
     highlight: "Características clave",

@@ -27,7 +27,7 @@ const useSideBar = () => {
       if (realtime) {
         setRealtime(realtime.chatRoom.live);
         toast({
-          title: "Success",
+          title: "Éxito",
           description: realtime.message,
         });
       }

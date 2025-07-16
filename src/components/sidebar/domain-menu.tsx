@@ -24,10 +24,10 @@ const DomainMenu = ({ domains, min }: Props) => {
     return (
         <div className={cn('flex flex-col gap-3 w-full', min ? 'mt-6' : 'mt-3')}>
             <div className="flex justify-between w-full items-center">
-                {!min && <p className="text-xs text-gray-500">DOMAINS</p>}
+                {!min && <p className="text-xs text-gray-500">EMPRESAS</p>}
                 <AppDrawer
-                    description="add in your domain address to integrate your chatbot"
-                    title="Add your business domain"
+                    description="Añade tu empresa para integrar tu chatbot"
+                    title="Añade tu empresa"
                     onOpen={
                         <div className="cursor-pointer text-gray-500 rounded-full border-2 w-9 h-9 flex items-center justify-center ml-auto">
                             <Plus />
@@ -40,21 +40,21 @@ const DomainMenu = ({ domains, min }: Props) => {
                             <FormGenerator
                                 inputType="input"
                                 register={register}
-                                label="Domain"
+                                label="Nombre de la empresa"
                                 name="domain"
                                 errors={errors}
-                                placeholder="mydomain.com"
+                                placeholder="Mi Empresa"
                                 type="text"
                             />
                             <UploadButton
                                 register={register}
-                                label="Upload Icon"
+                                label="Subir Icono"
                                 errors={errors}
                             />
                             <Button
                                 type="submit"
                                 className="w-full">
-                                Add Domain
+                                Añadir Empresa
                             </Button>
                         </form>
                     </Loader>
@@ -63,18 +63,19 @@ const DomainMenu = ({ domains, min }: Props) => {
             <div className="flex flex-col gap-1 text-ironside font-medium">
                 {domains && domains.map((domain) => (
                     <Link
-                        href={`/settings/${domain.name.split('.')[0]}`}
+                        href={`/settings/${encodeURIComponent(domain.name)}`}
                         key={domain.id}
                         className={cn(
                             'flex gap-3 items-center justify-center hover:bg-white rounded-lg transition duration-100 ease-in-out cursor-pointer',
                             !min ? 'p-2' : 'py-2',
-                            domain.name.split('.')[0] == isDomain && 'bg-white'
+                            domain.name == isDomain && 'bg-white'
                         )}>
                         <Image
                             src={`https://ucarecdn.com/${domain.icon}/`}
                             alt="logo"
                             width={20}
                             height={20}
+                            style={{ objectFit: 'contain' }}
                         />
                         {!min && <p className="text-sm">{domain.name}</p>}
                     </Link>

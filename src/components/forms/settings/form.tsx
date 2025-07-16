@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button'
 import { Loader } from '@/components/loader'
 import { DomainUpdate } from './domain-update'
 import CodeSnippet from './code-snippet'
-import PremiumBadge from '@/icons/premium-badge'
 import EditChatbotIcon from './edit-chatbot-icon'
 
 const WelcomeMessage = dynamic(
@@ -40,66 +39,94 @@ const SettingsForm = ({ id, name, chatBot, plan }: Props) => {
   } = useSettings(id)
   return (
     <form
-      className="flex flex-col gap-8 pb-10"
+      className="flex flex-col gap-6 md:gap-8 pb-6 md:pb-10 w-full px-4 md:px-8"
       onSubmit={onUpdateSettings}
     >
-      <div className="flex flex-col gap-3">
-        <h2 className="font-bold text-2xl">Domain Settings</h2>
-        <Separator orientation="horizontal" />
-        <DomainUpdate
-          name={name}
-          register={register}
-          errors={errors}
-        />
-        <CodeSnippet id={id} />
-      </div>
-      <div className="flex flex-col gap-3 mt-5">
-        <div className="flex gap-4 items-center">
-          <h2 className="font-bold text-2xl">Chatbot Settings</h2>
-          <div className="flex gap-1 bg-cream rounded-full px-3 py-1 text-xs items-center font-bold">
-            <PremiumBadge />
-            Premium
+      {/* Sección de Configuración de la Empresa */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm">
+        <div className="flex flex-col gap-4 md:gap-6">
+          <div className="flex items-center gap-3">
+            <div className="w-1 h-6 md:h-8 bg-orange rounded-full"></div>
+            <h2 className="font-bold text-xl md:text-2xl text-gray-900">Configuración de la Empresa</h2>
           </div>
-        </div>
-        <Separator orientation="horizontal" />
-        <div className="grid md:grid-cols-2">
-          <div className="col-span-1 flex flex-col gap-5 order-last md:order-first">
-            <EditChatbotIcon
-              chatBot={chatBot}
+          <Separator orientation="horizontal" className="bg-gray-100" />
+          <div className="space-y-4 md:space-y-6">
+            <DomainUpdate
+              name={name}
               register={register}
               errors={errors}
             />
-            <WelcomeMessage
-              message={chatBot?.welcomeMessage!}
-              register={register}
-              errors={errors}
-            />
-          </div>
-          <div className="col-span-1 relative ">
-            <Image
-              src="/images/bot-ui.png"
-              className="sticky top-0"
-              alt="bot-ui"
-              width={530}
-              height={769}
-            />
+            {/* <CodeSnippet id={id} /> */}
           </div>
         </div>
       </div>
-      <div className="flex gap-5 justify-end">
+
+      {/* Sección de Configuración del Chatbot */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm">
+        <div className="flex flex-col gap-4 md:gap-6">
+          <div className="flex items-center gap-3">
+            <div className="w-1 h-6 md:h-8 bg-orange rounded-full"></div>
+            <h2 className="font-bold text-xl md:text-2xl text-gray-900">Configuración del Chatbot</h2>
+          </div>
+          <Separator orientation="horizontal" className="bg-gray-100" />
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
+            {/* Columna izquierda - Configuraciones */}
+            <div className="space-y-6 md:space-y-8 order-2 lg:order-1">
+              <EditChatbotIcon
+                chatBot={chatBot}
+                register={register}
+                errors={errors}
+              />
+              <WelcomeMessage
+                message={chatBot?.welcomeMessage!}
+                register={register}
+                errors={errors}
+              />
+            </div>
+            
+            {/* Columna derecha - Preview o información adicional */}
+            <div className="bg-gray-50 rounded-lg p-3 md:p-4 border border-gray-100 order-1 lg:order-2">
+              <h3 className="font-semibold text-base md:text-lg text-gray-900 mb-3 md:mb-4">Vista Previa</h3>
+              <p className="text-xs md:text-sm text-gray-600 mb-3 md:mb-4">
+                Aquí puedes ver cómo se verá tu chatbot una vez configurado.
+              </p>
+              <div className="bg-white rounded-lg p-3 md:p-4 border border-gray-200">
+                <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-3">
+                  <div className="w-8 h-8 md:w-10 md:h-10 bg-orange rounded-full flex items-center justify-center">
+                    <span className="text-white font-bold text-xs md:text-sm">AI</span>
+                  </div>
+                  <div>
+                    <p className="font-medium text-xs md:text-sm text-gray-900">Asistente Virtual</p>
+                    <p className="text-xs text-gray-500">{name}</p>
+                  </div>
+                </div>
+                <div className="bg-gray-100 rounded-lg p-2 md:p-3">
+                  <p className="text-xs md:text-sm text-gray-700">
+                    {chatBot?.welcomeMessage || "Hola, ¿tienes alguna pregunta? Envíanos un mensaje aquí"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Botones de acción */}
+      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 pt-4 md:pt-6 border-t border-gray-200">
         <Button
           onClick={onDeleteDomain}
           variant="destructive"
           type="button"
-          className="px-10 h-[50px]"
+          className="px-6 md:px-8 h-11 md:h-12 rounded-lg font-medium order-2 sm:order-1"
         >
-          <Loader loading={deleting}>Delete Domain</Loader>
+          <Loader loading={deleting}>Eliminar Empresa</Loader>
         </Button>
         <Button
           type="submit"
-          className="w-[100px] h-[50px]"
+          className="px-6 md:px-8 h-11 md:h-12 rounded-lg font-medium bg-orange hover:bg-orange/90 text-white order-1 sm:order-2"
         >
-          <Loader loading={loading}>Save</Loader>
+          <Loader loading={loading}>Guardar Cambios</Loader>
         </Button>
       </div>
     </form>

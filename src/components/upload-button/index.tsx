@@ -27,7 +27,7 @@ const UploadButton = ({ errors, label, register }: Props) => {
                     {label}
                 </Label>
                 <p className='text-sm text-gray-400 ml-6'>
-                    Recommended size is 300px * 300px, size <br />less than 2MB
+                    El tamaño recomendado es 300px * 300px, tamaño <br />menor a 2MB
                 </p>
             </div >
             <ErrorMessage

@@ -27,7 +27,7 @@ const Bubble = ({ message, createdAt }: Props) => {
       )}
     >
       {message.role == 'assistant' ? (
-        <Avatar className="w-5 h-5">
+        <Avatar className="w-6 h-6">
           <AvatarImage
             src="https://github.com/shadcn.png"
             alt="@shadcn"
@@ -35,22 +35,22 @@ const Bubble = ({ message, createdAt }: Props) => {
           <AvatarFallback>CN</AvatarFallback>
         </Avatar>
       ) : (
-        <Avatar className="w-5 h-5">
+        <Avatar className="w-6 h-6">
           <AvatarFallback>
-            <User />
+            <User className="w-3 h-3" />
           </AvatarFallback>
         </Avatar>
       )}
       <div
         className={cn(
-          'flex flex-col gap-3 min-w-[200px] max-w-[300px] p-4 rounded-t-md',
+          'flex flex-col gap-1 min-w-[150px] max-w-[250px] p-3 rounded-lg',
           message.role == 'assistant'
-            ? 'bg-muted rounded-r-md'
-            : 'bg-grandis rounded-l-md'
+            ? 'bg-gray-100 rounded-br-sm'
+            : 'bg-blue-500 text-white rounded-bl-sm'
         )}
       >
         {createdAt ? (
-          <div className="flex gap-2 text-xs text-gray-600">
+          <div className="flex gap-2 text-xs opacity-70">
             <p>
               {createdAt.getDate()} {getMonthName(createdAt.getMonth())}
             </p>
@@ -60,29 +60,30 @@ const Bubble = ({ message, createdAt }: Props) => {
             </p>
           </div>
         ) : (
-          <p className="text-xs">
+          <p className="text-xs opacity-70">
             {`${d.getHours()}:${d.getMinutes()} ${d.getHours() > 12 ? 'pm' : 'am'
               }`}
           </p>
         )}
         {image ? (
-          <div className="relative aspect-square">
+          <div className="relative aspect-square rounded-md overflow-hidden">
             <Image
               src={`https://ucarecdn.com/${image[0]}/`}
               fill
               alt="image"
+              className="object-cover"
             />
           </div>
         ) : (
-          <p className="text-sm">
+          <p className="text-xs leading-relaxed">
             {message.content.replace('(complete)', ' ')}
             {message.link && (
               <Link
-                className="underline font-bold pl-2"
+                className="underline font-medium pl-1"
                 href={message.link}
                 target="_blank"
               >
-                Your Link
+                Ver enlace
               </Link>
             )}
           </p>
