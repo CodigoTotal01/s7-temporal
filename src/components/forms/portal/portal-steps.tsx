@@ -3,6 +3,7 @@ import { FieldErrors, FieldValues } from 'react-hook-form'
 import { UseFormRegister } from 'react-hook-form'
 import QuestionsForm from './questions'
 import BookAppointmentDate from './booking-date'
+import PaymentCheckout from './product-checkout'
 
 type Props = {
     questions: {
@@ -83,8 +84,7 @@ const PortalSteps = ({
         )
     }
 
-    // WIP: Setup Stripe 
-    /* if (step == 2 && type == 'Payment') {
+    if (step == 2 && type == 'Payment') {
         return (
             <PaymentCheckout
                 products={products}
@@ -93,8 +93,9 @@ const PortalSteps = ({
                 onNext={onNext}
                 amount={amount}
             />
+            
         )
-    } */
+    }
 
     return (
         <div className="flex flex-col items-center gap-3">

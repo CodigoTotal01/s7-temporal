@@ -1,8 +1,8 @@
 import {
   onDomainCustomerResponses,
   onGetAllDomainBookings,
-} from '@/actions/appointment'
-import { onGetDomainProductsAndConnectedAccountId } from '@/actions/payments'
+} from '@/action/appointment'
+import { onGetDomainProductsAndConnectedAccountId } from '@/action/payments'
 import PortalForm from '@/components/forms/portal/portal-form'
 import React from 'react'
 
