@@ -59,7 +59,7 @@ const Page = async (props: Props) => {
                         {booking.createdAt.getHours() > 12 ? 'PM' : 'AM'}
                       </p>
                       <p className="text-sm">
-                        Domain <br />
+                        Empresa <br />
                         {booking.Customer?.Domain?.name}
                       </p>
                     </div>

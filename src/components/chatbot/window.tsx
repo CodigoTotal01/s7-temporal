@@ -82,7 +82,7 @@ export const BotWindow = forwardRef<HTMLDivElement, Props>(
               <h3 className="text-xs font-semibold leading-none">
                 Asistente virtual
               </h3>
-              <p className="text-xs text-gray-500">{domainName.split('.com')[0]}</p>
+              <p className="text-xs text-gray-500">{domainName}</p>
               {realtimeMode?.mode && (
                 <RealTimeMode
                   setChats={setChat}
@@ -104,7 +104,7 @@ export const BotWindow = forwardRef<HTMLDivElement, Props>(
           triggers={BOT_TABS_MENU}
           className=" bg-transparent border-[1px] border-border m-2"
         >
-          <TabsContent value="chat">
+          <TabsContent value="chatbot">
             <Separator orientation="horizontal" />
             <div className="flex flex-col h-full">
               <div
@@ -145,7 +145,7 @@ export const BotWindow = forwardRef<HTMLDivElement, Props>(
             </div>
           </TabsContent>
 
-          <TabsContent value="helpdesk">
+          <TabsContent value="soporte">
             <div className="h-[350px] overflow-y-auto overflow-x-hidden p-3 flex flex-col gap-3">
               <div>
                 <CardTitle className="text-xs">Ayuda</CardTitle>

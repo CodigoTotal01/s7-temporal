@@ -70,15 +70,7 @@ const SettingsForm = ({ id, name, chatBot, plan }: Props) => {
               errors={errors}
             />
           </div>
-          <div className="col-span-1 relative ">
-            <Image
-              src="/images/bot-ui.png"
-              className="sticky top-0"
-              alt="bot-ui"
-              width={530}
-              height={769}
-            />
-          </div>
+
         </div>
       </div>
       <div className="flex gap-5 justify-end">
