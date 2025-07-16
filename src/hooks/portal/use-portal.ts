@@ -1,4 +1,4 @@
-import { onBookNewAppointment } from '@/action/appointment'
+import { onBookNewAppointment, saveAnswers } from '@/action/appointment'
 import { useToast } from '@/components/ui/use-toast'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -29,33 +29,33 @@ export const usePortal = (
   const onBookAppointment = handleSubmit(async (values) => {
     try {
       setLoading(true)
-      /* const questions = Object.keys(values)
+      const questions = Object.keys(values)
         .filter((key) => key.startsWith('question'))
         .reduce((obj: any, key) => {
           obj[key.split('question-')[1]] = values[key]
           return obj
-        }, {}) */
+        }, {})
 
-      /* const savedAnswers = await saveAnswers(questions, customerId)
+      const savedAnswers = await saveAnswers(questions, customerId)
 
-      if (savedAnswers) {*/
-      const booked = await onBookNewAppointment(
-        domainId,
-        customerId,
-        values.slot,
-        values.date,
-        email
-      )
-      if (booked && booked.status == 200) {
-        toast({
-          title: 'Success',
-          description: booked.message,
-        })
-        setStep(3)
+      if (savedAnswers) {
+        const booked = await onBookNewAppointment(
+          domainId,
+          customerId,
+          values.slot,
+          values.date,
+          email
+        )
+        if (booked && booked.status == 200) {
+          toast({
+            title: 'Éxito',
+            description: booked.message,
+          })
+          setStep(3)
+        }
+
+        setLoading(false)
       }
-      /* 
-              setLoading(false)
-            } */
     } catch (error) { }
   })
 

@@ -107,7 +107,7 @@ export const useChatBot = () => {
   }, [])
 
   const onStartChatting = handleSubmit(async (values) => {
-    if (values.image.length) {
+    if (values.image && values.image.length) {
       const uploaded = await upload.uploadFile(values.image[0])
       if (!onRealTime?.mode) {
         setOnChats((prev: any) => [
