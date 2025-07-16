@@ -175,8 +175,8 @@ export const BotWindow = forwardRef<HTMLDivElement, Props>(
             </div>
           </TabsContent>
         </TabsMenu>
-        <div className="flex justify-center ">
-          <p className="text-gray-400 text-xs">Powered By Web Prodigies</p>
+        <div className="flex justify-center py-2">
+          <p className="text-gray-400 text-xs">Powered By Devs</p>
         </div>
       </div>
     )
