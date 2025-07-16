@@ -23,15 +23,15 @@ const FilterQuestions = ({ id }: Props) => {
   return (
     <Card className="w-full grid grid-cols-1 lg:grid-cols-2">
       <CardContent className="p-6 border-r-[1px]">
-        <CardTitle>Bot Questions</CardTitle>
+        <CardTitle>Preguntas del Bot</CardTitle>
         <form
           onSubmit={onAddFilterQuestions}
           className="flex flex-col gap-6 mt-10"
         >
           <div className="flex flex-col gap-3">
             <Section
-              label="Question"
-              message="Add a question that you want your chatbot to ask"
+              label="Pregunta"
+              message="Añade una pregunta que quieras que tu chatbot haga"
             />
             <FormGenerator
               inputType="input"
@@ -39,14 +39,14 @@ const FilterQuestions = ({ id }: Props) => {
               errors={errors}
               form="filter-questions-form"
               name="question"
-              placeholder="Type your question"
+              placeholder="Escribe tu pregunta"
               type="text"
             />
           </div>
           <div className="flex flex-col gap-3">
             <Section
-              label="Answer to question"
-              message="The anwer for the question above"
+              label="Respuesta"
+              message="La respuesta para la pregunta anterior"
             />
             <FormGenerator
               inputType="textarea"
@@ -54,7 +54,7 @@ const FilterQuestions = ({ id }: Props) => {
               errors={errors}
               form="filter-questions-form"
               name="answer"
-              placeholder="Type your answer"
+              placeholder="Escribe tu respuesta"
               type="text"
               lines={5}
             />
@@ -63,7 +63,7 @@ const FilterQuestions = ({ id }: Props) => {
             type="submit"
             className="bg-orange hover:bg-orange hover:opacity-70 transition duration-150 ease-in-out text-white font-semibold"
           >
-            Create
+            Crear
           </Button>
         </form>
       </CardContent>
@@ -79,7 +79,7 @@ const FilterQuestions = ({ id }: Props) => {
               </p>
             ))
           ) : (
-            <CardDescription>No Questions</CardDescription>
+            <CardDescription>No hay preguntas para mostrar</CardDescription>
           )}
         </Loader>
       </CardContent>

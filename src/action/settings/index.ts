@@ -168,6 +168,8 @@ export const onGetCurrentDomainInfo = async (domain: string) => {
   const user = await currentUser()
   if (!user) return
   try {
+    const decodedDomain = decodeURIComponent(domain)
+    
     const userDomain = await client.user.findUnique({
       where: {
         clerkId: user.id,
@@ -180,9 +182,18 @@ export const onGetCurrentDomainInfo = async (domain: string) => {
         },
         domains: {
           where: {
-            name: {
-              contains: domain,
-            },
+            OR: [
+              {
+                name: {
+                  equals: decodedDomain,
+                },
+              },
+              {
+                name: {
+                  equals: domain,
+                },
+              },
+            ],
           },
           select: {
             id: true,
@@ -201,11 +212,14 @@ export const onGetCurrentDomainInfo = async (domain: string) => {
         },
       },
     })
+    
+    console.log('Resultado de búsqueda:', userDomain)
+    
     if (userDomain) {
       return userDomain
     }
   } catch (error) {
-    console.log(error)
+    console.log("Error en onGetCurrentDomainInfo:", error)
   }
 }
 

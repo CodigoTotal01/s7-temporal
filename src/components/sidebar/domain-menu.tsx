@@ -63,12 +63,12 @@ const DomainMenu = ({ domains, min }: Props) => {
             <div className="flex flex-col gap-1 text-ironside font-medium">
                 {domains && domains.map((domain) => (
                     <Link
-                        href={`/settings/${domain.name.split('.')[0]}`}
+                        href={`/settings/${encodeURIComponent(domain.name)}`}
                         key={domain.id}
                         className={cn(
                             'flex gap-3 items-center justify-center hover:bg-white rounded-lg transition duration-100 ease-in-out cursor-pointer',
                             !min ? 'p-2' : 'py-2',
-                            domain.name.split('.')[0] == isDomain && 'bg-white'
+                            domain.name == isDomain && 'bg-white'
                         )}>
                         <Image
                             src={`https://ucarecdn.com/${domain.icon}/`}
