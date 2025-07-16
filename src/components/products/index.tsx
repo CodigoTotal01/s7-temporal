@@ -70,6 +70,7 @@ const ProductTable = ({ id, products }: Props) => {
                     width={50}
                     height={50}
                     alt="image"
+                    style={{ objectFit: 'cover' }}
                   />
                 </TableCell>
                 <TableCell>{product.name}</TableCell>

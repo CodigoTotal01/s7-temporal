@@ -20,11 +20,11 @@ const EditChatbotIcon = ({ register, errors, chatBot }: Props) => {
   return (
     <div className="py-5 flex flex-col gap-5 items-start">
       <Section
-        label="Chatbot icon"
-        message="Change the icon for the chatbot."
+        label="Icono del Chatbot"
+        message="Cambia el icono del chatbot."
       />
       <UploadButton
-        label="Edit Image"
+        label="Editar Imagen"
         register={register}
         errors={errors}
       />
@@ -35,6 +35,7 @@ const EditChatbotIcon = ({ register, errors, chatBot }: Props) => {
             alt="bot"
             width={80}
             height={80}
+            style={{ objectFit: 'cover' }}
           />
         </div>
       ) : (

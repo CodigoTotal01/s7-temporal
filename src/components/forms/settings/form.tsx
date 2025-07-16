@@ -50,7 +50,7 @@ const SettingsForm = ({ id, name, chatBot, plan }: Props) => {
           register={register}
           errors={errors}
         />
-        <CodeSnippet id={id} />
+       {/*  <CodeSnippet id={id} /> */}
       </div>
       <div className="flex flex-col gap-3 mt-5">
         <div className="flex gap-4 items-center">

@@ -75,6 +75,7 @@ const DomainMenu = ({ domains, min }: Props) => {
                             alt="logo"
                             width={20}
                             height={20}
+                            style={{ objectFit: 'contain' }}
                         />
                         {!min && <p className="text-sm">{domain.name}</p>}
                     </Link>
