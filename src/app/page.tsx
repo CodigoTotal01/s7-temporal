@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/card'
 import { pricingCards } from '@/constants/landing-page'
 import clsx from 'clsx'
-import { ArrowRightCircleIcon, Check } from 'lucide-react'
+import { Check } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 
