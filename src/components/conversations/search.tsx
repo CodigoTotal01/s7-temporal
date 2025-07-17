@@ -17,11 +17,12 @@ const ConversationSearch = ({ register, domains }: Props) => {
     <div className="flex flex-col py-3">
       <select
         {...register('domain')}
+        defaultValue=""
         className="px-3 py-4 text-sm border-[1px] rounded-lg mr-5"
       >
         <option
           disabled
-          selected
+          value=""
         >
           Nombre de la empresa
         </option>
