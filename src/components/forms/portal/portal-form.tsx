@@ -62,7 +62,7 @@ const PortalForm = ({
       onNext()
     }
   }, [])
-
+ 
   return (
     <form
       className="h-full flex flex-col gap-10 justify-center"
