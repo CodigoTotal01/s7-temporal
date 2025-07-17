@@ -7,14 +7,16 @@ import TypeSelectionForm from "./type-selection-form";
 import dynamic from "next/dynamic";
 import { Spinner } from "@/components/spinner";
 
+const LoadingSpinner = () => <Spinner />;
+
 const DetailForm = dynamic(() => import("./account-details-form"), {
   ssr: false,
-  loading: Spinner,
+  loading: LoadingSpinner,
 });
 
 const OTPForm = dynamic(() => import("./otp-form"), {
   ssr: false,
-  loading: Spinner,
+  loading: LoadingSpinner,
 });
 
 const RegistrationFormStep = () => {
