@@ -29,15 +29,15 @@ const AllAppointments = ({ bookings }: Props) => {
       {bookings ? (
         bookings.map((booking) => (
           <TableRow key={booking.id}>
-            <TableCell>{booking.email}</TableCell>
-            <TableCell>
+            <TableCell className="text-xs">{booking.email}</TableCell>
+            <TableCell className="text-xs">
               <div>
                 {getMonthName(booking.date.getMonth())} {booking.date.getDate()}{' '}
                 {booking.date.getFullYear()}
               </div>
               <div className="uppercase">{booking.slot}</div>
             </TableCell>
-            <TableCell>
+            <TableCell className="text-xs">
               <div>
                 {getMonthName(booking.createdAt.getMonth())}{' '}
                 {booking.createdAt.getDate()} {booking.createdAt.getFullYear()}
@@ -47,13 +47,13 @@ const AllAppointments = ({ bookings }: Props) => {
                 {booking.createdAt.getHours() > 12 ? 'PM' : 'AM'}
               </div>
             </TableCell>
-            <TableCell className="text-right">
+            <TableCell className="text-right text-xs">
               {booking.Customer?.Domain?.name}
             </TableCell>
           </TableRow>
         ))
       ) : (
-        <CardDescription>Sin citas</CardDescription>
+        <CardDescription className="text-xs">Sin citas</CardDescription>
       )}
     </DataTable>
   )
