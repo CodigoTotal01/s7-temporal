@@ -13,7 +13,7 @@ const AccountDetailForm = ({ errors, register }: Props) => {
     <>
       <h2 className="text-gravel md:text-4xl font-bold">Detalles de la Cuenta</h2>
       <p className="text-iridium md:text-sm">Ingresa tu correo electrónico y contraseña</p>
-      {/* {USER_REGISTRATION_FORM.map((field) => (
+      {USER_REGISTRATION_FORM.map((field) => (
         <FormGenerator
           key={field.id}
           {...field}
@@ -21,7 +21,7 @@ const AccountDetailForm = ({ errors, register }: Props) => {
           register={register}
           name={field.name}
         />
-      ))} */}
+      ))}
     </>
   );
 };

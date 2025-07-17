@@ -14,7 +14,7 @@ const LoginForm = (props: Props) => {
 
   return (
     <>
-      <h2 className="text-gravel md:text-4xl font-bold">Login</h2>
+      <h2 className="text-gravel md:text-4xl font-bold">Iniciar sesión</h2>
       <p className="text-iridium md:text-sm">
         Recibirás una contraseña de un solo uso
       </p>
