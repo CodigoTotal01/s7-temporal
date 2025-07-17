@@ -39,7 +39,7 @@ export const onLoginUser = async () => {
   const user = await currentUser();
 
   if (!user) {
-    redirectToSignIn();
+    return null; // En lugar de redirectToSignIn(), retornamos null
   } else {
     try {
       const authenticated = await client.user.findUnique({
@@ -59,7 +59,9 @@ export const onLoginUser = async () => {
         return { status: 200, user: authenticated, domains: domains?.domains };
       }
     } catch (error: any) {
-      return { status: 400, error: error.message };
+      return { status:400, error: error.message };
     }
   }
+  
+  return null; // Si no se encuentra el usuario en la base de datos
 };

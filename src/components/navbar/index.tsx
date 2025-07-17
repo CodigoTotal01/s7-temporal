@@ -37,7 +37,7 @@ function NavBar() {
         <li>Contáctanos</li>
       </ul>
       <Link
-        href="/dashboard"
+        href="/dashboard?plan=Gratis"
         className="bg-orange px-4 py-2 rounded-sm text-white"
       >
         Prueba Gratis
