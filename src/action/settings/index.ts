@@ -182,7 +182,7 @@ export const onUpdatePassword = async (password: string) => {
 
 export const onGetCurrentDomainInfo = async (domain: string) => {
   const user = await currentUser()
-  if (!user) return
+  if (!user) return null
   try {
     const decodedDomain = decodeURIComponent(domain)
     
@@ -234,8 +234,11 @@ export const onGetCurrentDomainInfo = async (domain: string) => {
     if (userDomain) {
       return userDomain
     }
+    
+    return null
   } catch (error) {
     console.log("Error en onGetCurrentDomainInfo:", error)
+    return null
   }
 }
 

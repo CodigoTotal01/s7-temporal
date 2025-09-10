@@ -6,6 +6,10 @@ import ProductTable from '@/components/products'
 import { redirect } from 'next/navigation'
 import React from 'react'
 
+// Forzar SSR para evitar error en build time
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 type Props = { params: { domain: string } }
 
 const DomainSettingsPage = async ({ params }: Props) => {
