@@ -114,7 +114,10 @@ export const ongetSubscriptionPlan = async () => {
 export const onGetAllAccountDomains = async () => {
   const user = await currentUser();
   if (!user) {
-    return;
+    return {
+      id: '',
+      domains: [],
+    };
   }
 
   try {
@@ -144,9 +147,22 @@ export const onGetAllAccountDomains = async () => {
       },
     });
 
-    return { ...domains }
+    if (domains) {
+      return { ...domains }
+    }
+    
+    // Retornar estructura vacía si no se encuentran dominios
+    return {
+      id: '',
+      domains: [],
+    };
   } catch (error: any) {
     console.error("onGetAllAccountDomains - Error fetching account domains:", error);
+    // Retornar estructura vacía en caso de error para evitar fallos en build
+    return {
+      id: '',
+      domains: [],
+    };
   }
 }
 
@@ -166,7 +182,7 @@ export const onUpdatePassword = async (password: string) => {
 
 export const onGetCurrentDomainInfo = async (domain: string) => {
   const user = await currentUser()
-  if (!user) return
+  if (!user) return null
   try {
     const decodedDomain = decodeURIComponent(domain)
     
@@ -218,8 +234,11 @@ export const onGetCurrentDomainInfo = async (domain: string) => {
     if (userDomain) {
       return userDomain
     }
+    
+    return null
   } catch (error) {
     console.log("Error en onGetCurrentDomainInfo:", error)
+    return null
   }
 }
 

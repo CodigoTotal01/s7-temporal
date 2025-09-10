@@ -5,6 +5,10 @@ import InfoBar from '@/components/infobar'
 import { Separator } from '@/components/ui/separator'
 import React from 'react'
 
+// Forzar SSR para evitar error en build time
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 type Props = {}
 
 const ConversationPage = async (props: Props) => {

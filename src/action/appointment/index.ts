@@ -148,7 +148,16 @@ export const onGetAllBookingsForCurrentUser = async (clerkId: string) => {
                 bookings,
             }
         }
+        
+        // Retornar array vacío si no hay bookings
+        return {
+            bookings: [],
+        }
     } catch (error) {
-        console.log(error)
+        console.log('Error getting bookings:', error)
+        // Retornar array vacío en caso de error para evitar fallos en build
+        return {
+            bookings: [],
+        }
     }
 }

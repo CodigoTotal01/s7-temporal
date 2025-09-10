@@ -17,11 +17,11 @@ export const SIDE_BAR_MENU: SIDE_BAR_MENU_PROPS[] = [
         icon: <MessageSquareMore />,
         path: 'conversation',
     },
-    {
+    /* {
         label: 'Integraciones',
         icon: <Settings2 />,
         path: 'integration',
-    },
+    }, */
     {
         label: 'Configuraciones',
         icon: <Settings />,
