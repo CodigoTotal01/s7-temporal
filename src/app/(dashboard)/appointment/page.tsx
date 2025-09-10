@@ -10,6 +10,10 @@ import { CalendarDays, Clock, Building2, User } from 'lucide-react'
 import { currentUser } from '@clerk/nextjs'
 import React from 'react'
 
+// Forzar SSR para evitar error en build time
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 type Props = {}
 
 const Page = async (props: Props) => {
