@@ -68,7 +68,7 @@ export const BotWindow = forwardRef<HTMLDivElement, Props>(
     ref
   ) => {
     return (
-      <div className="h-[500px] w-[380px] flex flex-col bg-white rounded-xl mr-[80px] border-[1px] overflow-hidden shadow-lg">
+      <div className="h-[500px] w-[380px] flex flex-col bg-white rounded-xl border-[1px] overflow-hidden overflow-x-hidden shadow-lg">
         <div className="flex justify-between px-3 pt-3">
           <div className="flex gap-2">
             <Avatar className="w-12 h-12">
@@ -91,19 +91,12 @@ export const BotWindow = forwardRef<HTMLDivElement, Props>(
               )}
             </div>
           </div>
-          <div className="relative w-10 h-10">
-            <Image
-              src="https://ucarecdn.com/019dd17d-b69b-4dea-a16b-60e0f25de1e9/propuser.png"
-              fill
-              alt="users"
-              objectFit="contain"
-            />
-          </div>
         </div>
-        <TabsMenu
-          triggers={BOT_TABS_MENU}
-          className=" bg-transparent border-[1px] border-border m-2"
-        >
+        <div className="p-2">
+          <TabsMenu
+            triggers={BOT_TABS_MENU}
+            className="bg-transparent border-[1px] border-border p-0.5"
+          >
           <TabsContent value="chatbot">
             <Separator orientation="horizontal" />
             <div className="flex flex-col h-full">
@@ -112,7 +105,7 @@ export const BotWindow = forwardRef<HTMLDivElement, Props>(
                   background: theme || '',
                   color: textColor || '',
                 }}
-                className="px-3 flex h-[320px] flex-col py-3 gap-2 chat-window overflow-y-auto"
+                className="px-3 flex h-[320px] flex-col py-3 gap-2 chat-window overflow-y-auto overflow-x-hidden"
                 ref={ref}
               >
                 {chats.map((chat, key) => (
@@ -125,13 +118,13 @@ export const BotWindow = forwardRef<HTMLDivElement, Props>(
               </div>
               <form
                 onSubmit={onChat}
-                className="flex px-3 py-2 flex-col flex-1 bg-porcelain"
+                className="flex px-3 py-2 flex-col "
               >
-                <div className="flex justify-between items-center gap-2">
+                <div className="flex items-center gap-2 w-full">
                   <Input
                     {...register('content')}
                     placeholder="Escribe tu mensaje..."
-                    className="focus-visible:ring-0 flex-1 p-2 focus-visible:ring-offset-0 bg-white rounded-lg outline-none border border-gray-200 text-xs"
+                    className="focus-visible:ring-0 flex-1 px-3 py-1.5 focus-visible:ring-offset-0 bg-white rounded-lg outline-none border border-gray-200 text-xs"
                   />
                   <Button
                     type="submit"
@@ -146,7 +139,7 @@ export const BotWindow = forwardRef<HTMLDivElement, Props>(
           </TabsContent>
 
           <TabsContent value="soporte">
-            <div className="h-[350px] overflow-y-auto overflow-x-hidden p-3 flex flex-col gap-3">
+            <div className="h-[350px] overflow-y-auto overflow-x-hidden p-3 flex flex-col gap-3 w-full">
               <div>
                 <CardTitle className="text-xs">Ayuda</CardTitle>
                 <CardDescription className="text-xs">
@@ -165,6 +158,7 @@ export const BotWindow = forwardRef<HTMLDivElement, Props>(
             </div>
           </TabsContent>
         </TabsMenu>
+        </div>
         <div className="flex justify-center py-1">
           <p className="text-gray-400 text-xs">Powered By Devs</p>
         </div>

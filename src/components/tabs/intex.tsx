@@ -16,15 +16,14 @@ const TabsMenu = ({ triggers, children, className, button }: Props) => {
   return (
     <Tabs
       defaultValue={triggers[0].label}
-      className="w-full"
+      className="w-full overflow-hidden"
     >
-      <div className="overflow-x-auto">
-        <TabsList className={cn('pr-5 gap-1 sm:gap-0 w-full flex-nowrap', className)}>
+      <TabsList className={cn('w-full', className)}>
           {triggers.map((trigger, key) => (
             <TabsTrigger
               key={key}
               value={trigger.label}
-              className="capitalize flex gap-1 sm:gap-2 font-semibold text-xs sm:text-sm px-2 sm:px-3 py-1.5 min-w-0 flex-shrink-0 whitespace-nowrap"
+              className="capitalize flex gap-1 items-center justify-center font-semibold text-xs px-2 py-1.5 flex-1"
             >
               {trigger.icon && trigger.icon}
               <span>{trigger.label}</span>
@@ -32,7 +31,6 @@ const TabsMenu = ({ triggers, children, className, button }: Props) => {
           ))}
           {button}
         </TabsList>
-      </div>
       {children}
     </Tabs>
   )
