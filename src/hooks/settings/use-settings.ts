@@ -7,7 +7,6 @@ import {
 import { AddProductProps, AddProductSchema, DomainSettingsProps, DomainSettingsSchema, FilterQuestionsProps, FilterQuestionsSchema, HelpDeskQuestionsProps, HelpDeskQuestionsSchema } from '@/schemas/settings.schema'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { UploadClient } from '@uploadcare/upload-client'
-import { useTheme } from 'next-themes'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -17,10 +16,9 @@ const upload = new UploadClient({
 })
 
 export const useThemeMode = () => {
-    const { setTheme, theme } = useTheme()
     return {
-        setTheme,
-        theme,
+        setTheme: () => {},
+        theme: 'light',
     }
 }
 
