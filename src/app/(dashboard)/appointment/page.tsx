@@ -1,6 +1,5 @@
 import { onGetAllBookingsForCurrentUser } from '@/action/appointment'
 import AllAppointments from '@/components/appointment/all-appointments'
-import InfoBar from '@/components/infobar'
 import { Section } from '@/components/section-label'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
@@ -42,7 +41,6 @@ const Page = async (props: Props) => {
 
   return (
     <>
-      <InfoBar />
       <div className="grid grid-cols-1 lg:grid-cols-3 flex-1 gap-8 p-6">
         <div className="lg:col-span-2 overflow-y-auto">
           <div className="bg-white rounded-xl shadow-sm border border-porcelain">

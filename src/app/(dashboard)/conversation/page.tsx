@@ -1,7 +1,6 @@
 import { onGetAllAccountDomains } from '@/action/settings'
 import ConversationMenu from '@/components/conversations'
 import Messenger from '@/components/conversations/messenger'
-import InfoBar from '@/components/infobar'
 import { Separator } from '@/components/ui/separator'
 import React from 'react'
 
@@ -23,9 +22,6 @@ const ConversationPage = async (props: Props) => {
       <Separator orientation="vertical" className="hidden lg:block" />
 
       <div className="w-full flex-1 flex flex-col min-h-0 h-1/2 lg:h-full">
-        <div className="px-4 lg:px-5">
-          <InfoBar />
-        </div>
         <Messenger />
       </div>
     </div>
