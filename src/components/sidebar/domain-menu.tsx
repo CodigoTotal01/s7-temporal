@@ -24,7 +24,7 @@ const DomainMenu = ({ domains, min }: Props) => {
     return (
         <div className={cn('flex flex-col gap-3 w-full', min ? 'mt-6' : 'mt-3')}>
             <div className="flex justify-between w-full items-center">
-                {!min && <p className="text-xs text-gray-500">EMPRESAS</p>}
+                {!min && <p className="text-xs text-gray-500">EMPRESA</p>}
                 <AppDrawer
                     description="Añade tu empresa para integrar tu chatbot"
                     title="Añade tu empresa"

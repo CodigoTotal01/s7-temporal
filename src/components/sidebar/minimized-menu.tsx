@@ -49,11 +49,6 @@ const MinMenu = ({ current, domains, onShrink, onSignOut }: MinMenuProps) => {
                         icon={<LogOut />}
                         onSignOut={onSignOut}
                     />
-                    <MenuItem
-                        size="min"
-                        label="Mobile App"
-                        icon={<MonitorSmartphone />}
-                    />
                 </div>
             </div>
         </div>

@@ -37,11 +37,6 @@ Lunari AI es una plataforma completa de chatbots inteligentes que permite a empr
 - **Gestión de Horarios**: Configuración de slots de tiempo disponibles
 - **Confirmaciones**: Notificaciones automáticas de citas
 
-### Procesamiento de Pagos
-- **Múltiples Proveedores**: Integración con MercadoPago y Stripe
-- **Pagos Seguros**: Procesamiento seguro de transacciones
-- **Suscripciones**: Gestión de planes y suscripciones recurrentes
-
 ### Sistema de Notificaciones
 - **Email Automático**: Notificaciones por correo electrónico
 - **Notificaciones Push**: Alertas en tiempo real

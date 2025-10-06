@@ -7,24 +7,6 @@ export const onIntegrateDomain = async (domain: string, icon: string) => {
   const user = await currentUser();
   if (!user) return;
   try {
-    const subscription = await client.user.findUnique({
-      where: {
-        clerkId: user.id
-      },
-      select: {
-        _count: {
-          select: {
-            domains: true,
-          },
-        },
-        subscription: {
-          select: {
-            plan: true
-          },
-        },
-      },
-    });
-
     const domainExists = await client.user.findFirst({
       where: {
         clerkId: user.id,
@@ -37,37 +19,27 @@ export const onIntegrateDomain = async (domain: string, icon: string) => {
     });
 
     if (!domainExists) {
-      if (
-        (subscription?.subscription?.plan == "STANDARD" && subscription._count.domains < 1) ||
-        (subscription?.subscription?.plan == "PRO" && subscription._count.domains < 5) ||
-        (subscription?.subscription?.plan == "ULTIMATE" && subscription._count.domains < 10)
-      ) {
-        const newDomain = await client.user.update({
-          where: {
-            clerkId: user.id,
-          },
-          data: {
-            domains: {
-              create: {
-                name: domain,
-                icon,
-                chatBot: {
-                  create: {
-                    welcomeMessage: "Hola, ¿tienes alguna pregunta? Envíanos un mensaje aquí",
-                  }
+      const newDomain = await client.user.update({
+        where: {
+          clerkId: user.id,
+        },
+        data: {
+          domains: {
+            create: {
+              name: domain,
+              icon,
+              chatBot: {
+                create: {
+                  welcomeMessage: "Hola, ¿tienes alguna pregunta? Envíanos un mensaje aquí",
                 }
               }
             }
           }
-        });
-
-        if (newDomain) {
-          return { status: 200, message: "Empresa agregada exitosamente" };
         }
-      }
-      return {
-        status: 400,
-        message: "Has alcanzado el número máximo de empresas, actualiza tu plan"
+      });
+
+      if (newDomain) {
+        return { status: 200, message: "Empresa agregada exitosamente" };
       }
     }
 
@@ -80,36 +52,6 @@ export const onIntegrateDomain = async (domain: string, icon: string) => {
     console.log("Error in onIntegrateDomain: " + error)
   }
 }
-
-export const ongetSubscriptionPlan = async () => {
-  try {
-    const user = await currentUser();
-    if (!user) {
-      return;
-    }
-
-    const plan = await client.user.findUnique({
-      where: {
-        clerkId: user.id,
-      },
-      select: {
-        subscription: {
-          select: {
-            plan: true,
-          },
-        },
-      },
-    });
-
-
-    if (plan) {
-      return plan.subscription?.plan;
-    }
-  } catch (error) {
-
-    console.log("ongetSubscriptionPlan  - Error fetching subscription plan:", error);
-  }
-};
 
 export const onGetAllAccountDomains = async () => {
   const user = await currentUser();
@@ -187,11 +129,6 @@ export const onGetCurrentDomainInfo = async (domain: string) => {
         clerkId: user.id,
       },
       select: {
-        subscription: {
-          select: {
-            plan: true,
-          },
-        },
         domains: {
           where: {
             id: domain,

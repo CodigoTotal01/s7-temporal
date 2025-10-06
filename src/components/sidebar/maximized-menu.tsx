@@ -62,11 +62,6 @@ const MaxMenu = ({ current, domains, onExpand, onSignOut }: Props) => {
             icon={<LogOut />}
             onSignOut={onSignOut}
           />
-          <MenuItem
-            size="max"
-            label="Mobile App"
-            icon={<MonitorSmartphone />}
-          />
         </div>
       </div>
     </div>

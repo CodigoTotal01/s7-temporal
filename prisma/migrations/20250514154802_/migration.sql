@@ -1,7 +1,4 @@
 -- CreateEnum
-CREATE TYPE "Plans" AS ENUM ('STANDARD', 'PRO', 'ULTIMATE');
-
--- CreateEnum
 CREATE TYPE "Role" AS ENUM ('OWNER', 'CUSTOMER');
 
 -- CreateTable
@@ -44,7 +41,6 @@ CREATE TABLE "ChatBot" (
 -- CreateTable
 CREATE TABLE "Billings" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "plan" "Plans" NOT NULL DEFAULT 'STANDARD',
     "credits" INTEGER NOT NULL DEFAULT 10,
     "userId" UUID,
 

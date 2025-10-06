@@ -1,4 +1,3 @@
-import BillingSettings from '@/components/settings/billing-settings';
 import ChangePassword from '@/components/settings/change-password';
 import React from 'react'
 
@@ -15,10 +14,6 @@ const Page = (props: Props) => {
             <div className="bg-white rounded-2xl shadow-lg border border-platinum p-6 md:p-8">
               <ChangePassword />
             </div>
-            {/* Sección de facturación (comentada por ahora) */}
-            {/* <div className="bg-white rounded-2xl shadow-lg border border-platinum p-6 md:p-8">
-              <BillingSettings />
-            </div> */}
           </div>
         </div>
       </div>
