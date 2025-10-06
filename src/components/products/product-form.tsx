@@ -15,14 +15,29 @@ import { useProducts } from '@/hooks/settings/use-settings'
 
 type CreateProductFormProps = {
   id: string
+  editingProduct?: any
+  onCancel?: () => void
+  onCreateNewProduct: any
+  onUpdateProduct: any
+  register: any
+  errors: any
+  loading: boolean
 }
 
-export const CreateProductForm = ({ id }: CreateProductFormProps) => {
-  const { onCreateNewProduct, register, errors, loading } = useProducts(id)
+export const CreateProductForm = ({ 
+  id, 
+  editingProduct, 
+  onCancel, 
+  onCreateNewProduct, 
+  onUpdateProduct, 
+  register, 
+  errors, 
+  loading 
+}: CreateProductFormProps) => {
   return (
     <form
       className="mt-3 w-full flex flex-col gap-5 py-10"
-      onSubmit={onCreateNewProduct}
+      onSubmit={editingProduct ? onUpdateProduct : onCreateNewProduct}
     >
       <FormGenerator
         inputType="input"
@@ -43,10 +58,19 @@ export const CreateProductForm = ({ id }: CreateProductFormProps) => {
             className="hidden"
             type="file"
             id="upload-product"
+            accept=".jpg,.jpeg,.png,image/jpeg,image/jpg,image/png"
           />
           <UploadIcon />
           Subir imagen
         </Label>
+        <p className="text-xs text-gray-500 mt-1">
+          Solo se aceptan archivos JPG, JPEG y PNG (máx. 2MB)
+        </p>
+        {editingProduct && (
+          <p className="text-xs text-blue-600 mt-1">
+            Imagen actual: {editingProduct.image ? 'Seleccionada' : 'No disponible'}
+          </p>
+        )}
         <ErrorMessage
           errors={errors}
           name="image"
@@ -66,12 +90,26 @@ export const CreateProductForm = ({ id }: CreateProductFormProps) => {
         placeholder="Precio del producto"
         type="text"
       />
-      <Button
-        type="submit"
-        className="w-full"
-      >
-        <Loader loading={loading}>Crear producto</Loader>
-      </Button>
+      <div className="flex gap-3">
+        <Button
+          type="submit"
+          className="flex-1"
+        >
+          <Loader loading={loading}>
+            {editingProduct ? 'Actualizar producto' : 'Crear producto'}
+          </Loader>
+        </Button>
+        {editingProduct && onCancel && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            className="flex-1"
+          >
+            Cancelar
+          </Button>
+        )}
+      </div>
     </form>
   )
 }

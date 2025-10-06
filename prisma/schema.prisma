@@ -161,6 +161,7 @@ model Product {
   name      String
   price     Int
   image     String
+  active    Boolean  @default(true)
   createdAt DateTime @default(now())
   Domain    Domain?  @relation(fields: [domainId], references: [id], onDelete: Cascade)
   domainId  String?  @db.Uuid
