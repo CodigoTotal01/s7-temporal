@@ -82,7 +82,7 @@ export const useSettings = (id: string) => {
                 })
             }
         }
-        if (values.image[0]) {
+        if (values.image && values.image[0]) {
             const uploaded = await upload.uploadFile(values.image[0])
             const image = await onChatBotImageUpdate(id, uploaded.uuid)
             if (image) {
@@ -296,7 +296,7 @@ export const useProducts = (domainId: string) => {
             setLoading(true)
             let imageUuid = editingProduct?.image
             
-            if (values.image[0]) {
+            if (values.image && values.image[0]) {
                 const uploaded = await upload.uploadFile(values.image[0])
                 imageUuid = uploaded.uuid
             }

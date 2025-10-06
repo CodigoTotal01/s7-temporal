@@ -3,11 +3,9 @@ import { Separator } from '@/components/ui/separator'
 import { useSettings } from '@/hooks/settings/use-settings'
 import React from 'react'
 import dynamic from 'next/dynamic'
-import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Loader } from '@/components/loader'
 import { DomainUpdate } from './domain-update'
-import CodeSnippet from './code-snippet'
 import EditChatbotIcon from './edit-chatbot-icon'
 
 const WelcomeMessage = dynamic(
@@ -20,7 +18,6 @@ const WelcomeMessage = dynamic(
 type Props = {
   id: string
   name: string
-  plan: 'STANDARD' | 'PRO' | 'ULTIMATE'
   chatBot: {
     id: string
     icon: string | null
@@ -28,18 +25,16 @@ type Props = {
   } | null
 }
 
-const SettingsForm = ({ id, name, chatBot, plan }: Props) => {
+const SettingsForm = ({ id, name, chatBot }: Props) => {
   const {
     register,
     onUpdateSettings,
     errors,
-    onDeleteDomain,
-    deleting,
     loading,
   } = useSettings(id)
   return (
     <form
-      className="flex flex-col gap-6 md:gap-8 pb-6 md:pb-10 w-full px-4 md:px-8"
+      className="flex flex-col gap-6 md:gap-8 py-6 md:py-10 w-full px-4 md:px-8"
       onSubmit={onUpdateSettings}
     >
       {/* Sección de Configuración de la Empresa */}
@@ -69,7 +64,7 @@ const SettingsForm = ({ id, name, chatBot, plan }: Props) => {
             <h2 className="font-bold text-xl md:text-2xl text-gray-900">Configuración del Chatbot</h2>
           </div>
           <Separator orientation="horizontal" className="bg-gray-100" />
-          
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
             {/* Columna izquierda - Configuraciones */}
             <div className="space-y-6 md:space-y-8 order-2 lg:order-1">
@@ -84,7 +79,7 @@ const SettingsForm = ({ id, name, chatBot, plan }: Props) => {
                 errors={errors}
               />
             </div>
-            
+
             {/* Columna derecha - Preview o información adicional */}
             <div className="bg-gray-50 rounded-lg p-3 md:p-4 border border-gray-100 order-1 lg:order-2">
               <h3 className="font-semibold text-base md:text-lg text-gray-900 mb-3 md:mb-4">Vista Previa</h3>
@@ -113,15 +108,7 @@ const SettingsForm = ({ id, name, chatBot, plan }: Props) => {
       </div>
 
       {/* Botones de acción */}
-      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 pt-4 md:pt-6 border-t border-gray-200">
-        <Button
-          onClick={onDeleteDomain}
-          variant="destructive"
-          type="button"
-          className="px-6 md:px-8 h-11 md:h-12 rounded-lg font-medium order-2 sm:order-1"
-        >
-          <Loader loading={deleting}>Eliminar Empresa</Loader>
-        </Button>
+      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4">
         <Button
           type="submit"
           className="px-6 md:px-8 h-11 md:h-12 rounded-lg font-medium bg-orange hover:bg-orange/90 text-white order-1 sm:order-2"

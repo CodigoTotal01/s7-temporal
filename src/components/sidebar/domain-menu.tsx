@@ -63,7 +63,7 @@ const DomainMenu = ({ domains, min }: Props) => {
             <div className="flex flex-col gap-1 text-ironside font-medium">
                 {domains && domains.map((domain) => (
                     <Link
-                        href={`/settings/${encodeURIComponent(domain.name)}`}
+                        href={`/settings/${domain.id}`}
                         key={domain.id}
                         className={cn(
                             'flex gap-3 items-center justify-center hover:bg-white rounded-lg transition duration-100 ease-in-out cursor-pointer',

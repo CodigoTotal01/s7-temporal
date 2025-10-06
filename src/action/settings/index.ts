@@ -151,14 +151,12 @@ export const onGetAllAccountDomains = async () => {
       return { ...domains }
     }
 
-    // Retornar estructura vacía si no se encuentran dominios
     return {
       id: '',
       domains: [],
     };
   } catch (error: any) {
     console.error("onGetAllAccountDomains - Error fetching account domains:", error);
-    // Retornar estructura vacía en caso de error para evitar fallos en build
     return {
       id: '',
       domains: [],
@@ -184,8 +182,6 @@ export const onGetCurrentDomainInfo = async (domain: string) => {
   const user = await currentUser()
   if (!user) return null
   try {
-    const decodedDomain = decodeURIComponent(domain)
-
     const userDomain = await client.user.findUnique({
       where: {
         clerkId: user.id,
@@ -198,18 +194,7 @@ export const onGetCurrentDomainInfo = async (domain: string) => {
         },
         domains: {
           where: {
-            OR: [
-              {
-                name: {
-                  equals: decodedDomain,
-                },
-              },
-              {
-                name: {
-                  equals: domain,
-                },
-              },
-            ],
+            id: domain,
           },
           select: {
             id: true,
@@ -229,8 +214,6 @@ export const onGetCurrentDomainInfo = async (domain: string) => {
       },
     })
 
-    console.log('Resultado de búsqueda:', userDomain)
-
     if (userDomain) {
       return userDomain
     }
@@ -244,11 +227,13 @@ export const onGetCurrentDomainInfo = async (domain: string) => {
 
 export const onUpdateDomain = async (id: string, name: string) => {
   try {
-    //check if domain with name exists
     const domainExists = await client.domain.findFirst({
       where: {
         name: {
-          contains: name,
+          equals: name,
+        },
+        id: {
+          not: id,
         },
       },
     })
@@ -356,7 +341,6 @@ export const onDeleteUserDomain = async (id: string) => {
   if (!user) return
 
   try {
-    //first verify that domain belongs to user
     const validUser = await client.user.findUnique({
       where: {
         clerkId: user.id,
@@ -367,7 +351,6 @@ export const onDeleteUserDomain = async (id: string) => {
     })
 
     if (validUser) {
-      //check that domain belongs to this user and delete
       const deletedDomain = await client.domain.delete({
         where: {
           userId: validUser.id,
@@ -640,7 +623,6 @@ export const onUpdateDomainProduct = async (
 
 export const onToggleProductStatus = async (productId: string) => {
   try {
-    // Primero obtenemos el producto actual para saber su estado
     const currentProduct = await client.product.findUnique({
       where: { id: productId },
       select: {
@@ -655,7 +637,6 @@ export const onToggleProductStatus = async (productId: string) => {
       }
     }
 
-    // Actualizamos el estado contrario
     const product = await client.product.update({
       where: {
         id: productId,

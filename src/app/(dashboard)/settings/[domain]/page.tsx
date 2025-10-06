@@ -1,7 +1,6 @@
 import { onGetCurrentDomainInfo } from '@/action/settings'
 import BotTrainingForm from '@/components/forms/settings/bot-training'
 import SettingsForm from '@/components/forms/settings/form'
-import InfoBar from '@/components/infobar'
 import ProductTable from '@/components/products'
 import { redirect } from 'next/navigation'
 import React from 'react'
@@ -20,10 +19,8 @@ const DomainSettingsPage = async ({ params }: Props) => {
 
   return (
     <>
-      <InfoBar />
       <div className="overflow-y-auto w-full chat-window flex-1 h-0">
         <SettingsForm
-          plan={domain.subscription?.plan!}
           chatBot={currentDomain.chatBot}
           id={currentDomain.id}
           name={currentDomain.name}
