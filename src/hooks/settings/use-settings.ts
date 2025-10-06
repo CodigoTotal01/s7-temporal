@@ -1,10 +1,11 @@
-import { onChatBotImageUpdate, onCreateFilterQuestions, onCreateHelpDeskQuestion, onCreateNewDomainProduct, onDeleteUserDomain, onGetAllFilterQuestions, onGetAllHelpDeskQuestions, onUpdateDomain, onUpdatePassword, onUpdateWelcomeMessage } from '@/action/settings'
+import { onChatBotImageUpdate, onCreateFilterQuestions, onCreateHelpDeskQuestion, onCreateNewDomainProduct, onDeleteDomainProduct, onUpdateDomainProduct, onToggleProductStatus, onDeleteUserDomain, onGetAllFilterQuestions, onGetAllHelpDeskQuestions, onUpdateDomain, onUpdatePassword, onUpdateWelcomeMessage } from '@/action/settings'
 import { useToast } from '@/components/ui/use-toast'
 import {
     ChangePasswordProps,
     ChangePasswordSchema,
 } from '@/schemas/auth.schema'
 import { AddProductProps, AddProductSchema, DomainSettingsProps, DomainSettingsSchema, FilterQuestionsProps, FilterQuestionsSchema, HelpDeskQuestionsProps, HelpDeskQuestionsSchema } from '@/schemas/settings.schema'
+import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { UploadClient } from '@uploadcare/upload-client'
 import { useRouter } from 'next/navigation'
@@ -238,13 +239,31 @@ export const useFilterQuestions = (id: string) => {
 export const useProducts = (domainId: string) => {
     const { toast } = useToast()
     const [loading, setLoading] = useState<boolean>(false)
+    const [deleting, setDeleting] = useState<string | null>(null)
+    const [editingProduct, setEditingProduct] = useState<any>(null)
+
+    
+    // Esquema condicional para edición
+    const EditProductSchema = z.object({
+        name: z
+            .string()
+            .min(3, { message: 'El nombre debe tener al menos 3 caracteres' }),
+        image: z.any().optional(), // Opcional en edición
+        price: z.string(),
+    })
+
     const {
         register,
         reset,
+        setValue,
         formState: { errors },
         handleSubmit,
     } = useForm<AddProductProps>({
-        resolver: zodResolver(AddProductSchema),
+        resolver: zodResolver(editingProduct ? EditProductSchema : AddProductSchema),
+        defaultValues: {
+            name: '',
+            price: '',
+        }
     })
 
     const onCreateNewProduct = handleSubmit(async (values) => {
@@ -264,11 +283,115 @@ export const useProducts = (domainId: string) => {
                     description: product.message,
                 })
                 setLoading(false)
+                window.location.reload()
+            }
+        } catch (error) {
+            console.log(error)
+            setLoading(false)
+        }
+    })
+
+    const onUpdateProduct = handleSubmit(async (values) => {
+        try {
+            setLoading(true)
+            let imageUuid = editingProduct?.image
+            
+            if (values.image[0]) {
+                const uploaded = await upload.uploadFile(values.image[0])
+                imageUuid = uploaded.uuid
+            }
+
+            const result = await onUpdateDomainProduct(
+                editingProduct.id,
+                values.name,
+                values.price,
+                imageUuid
+            )
+            
+            if (result) {
+                reset()
+                setEditingProduct(null)
+                toast({
+                    title: result.status === 200 ? 'Éxito al actualizar producto' : 'Error al actualizar producto',
+                    description: result.message,
+                })
+                setLoading(false)
+                if (result.status === 200) {
+                    window.location.reload()
+                }
+            }
+        } catch (error) {
+            console.log(error)
+            setLoading(false)
+        }
+    })
+
+    const onDeleteProduct = async (productId: string) => {
+        try {
+            setDeleting(productId)
+            const result = await onDeleteDomainProduct(productId)
+            if (result) {
+                toast({
+                    title: result.status === 200 ? 'Éxito al eliminar producto' : 'Error al eliminar producto',
+                    description: result.message,
+                })
+                setDeleting(null)
+                if (result.status === 200) {
+                    window.location.reload()
+                }
+            }
+        } catch (error) {
+            console.log(error)
+            setDeleting(null)
+        }
+    }
+
+    const startEditing = (product: any) => {
+        setEditingProduct(product)
+        setValue('name', product.name)
+        setValue('price', product.price.toString())
+    }
+
+    useEffect(() => {
+        if (editingProduct) {
+            setValue('name', editingProduct.name)
+            setValue('price', editingProduct.price.toString())
+        }
+    }, [editingProduct, setValue])
+
+    const onToggleProduct = async (productId: string) => {
+        try {
+            const result = await onToggleProductStatus(productId)
+            if (result) {
+                toast({
+                    title: result.status === 200 ? 'Estado actualizado' : 'Error al actualizar estado',
+                    description: result.message,
+                })
+                if (result.status === 200) {
+                    window.location.reload()
+                }
             }
         } catch (error) {
             console.log(error)
         }
-    })
+    }
 
-    return { onCreateNewProduct, register, errors, loading }
+    const cancelEditing = () => {
+        setEditingProduct(null)
+        reset()
+    }
+
+    return { 
+        onCreateNewProduct, 
+        onUpdateProduct,
+        onDeleteProduct,
+        onToggleProduct, 
+        register, 
+        errors, 
+        loading, 
+        deleting,
+        editingProduct,
+        startEditing,
+        cancelEditing
+    }
 }

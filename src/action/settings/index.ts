@@ -150,7 +150,7 @@ export const onGetAllAccountDomains = async () => {
     if (domains) {
       return { ...domains }
     }
-    
+
     // Retornar estructura vacía si no se encuentran dominios
     return {
       id: '',
@@ -185,7 +185,7 @@ export const onGetCurrentDomainInfo = async (domain: string) => {
   if (!user) return null
   try {
     const decodedDomain = decodeURIComponent(domain)
-    
+
     const userDomain = await client.user.findUnique({
       where: {
         clerkId: user.id,
@@ -228,13 +228,13 @@ export const onGetCurrentDomainInfo = async (domain: string) => {
         },
       },
     })
-    
+
     console.log('Resultado de búsqueda:', userDomain)
-    
+
     if (userDomain) {
       return userDomain
     }
-    
+
     return null
   } catch (error) {
     console.log("Error en onGetCurrentDomainInfo:", error)
@@ -574,5 +574,109 @@ export const onCreateNewDomainProduct = async (
     }
   } catch (error) {
     console.log(error)
+  }
+}
+
+export const onDeleteDomainProduct = async (productId: string) => {
+  try {
+    const product = await client.product.delete({
+      where: {
+        id: productId,
+      },
+    })
+
+    if (product) {
+      return {
+        status: 200,
+        message: 'Producto eliminado exitosamente',
+      }
+    }
+  } catch (error) {
+    console.log(error)
+    return {
+      status: 400,
+      message: 'Error al eliminar el producto',
+    }
+  }
+}
+
+export const onUpdateDomainProduct = async (
+  productId: string,
+  name: string,
+  price: string,
+  image?: string
+) => {
+  try {
+    const updateData: any = {
+      name,
+      price: parseInt(price),
+    }
+
+    if (image) {
+      updateData.image = image
+    }
+
+    const product = await client.product.update({
+      where: {
+        id: productId,
+      },
+      data: updateData,
+    })
+
+    if (product) {
+      return {
+        status: 200,
+        message: 'Producto actualizado exitosamente',
+      }
+    }
+  } catch (error) {
+    console.log(error)
+    return {
+      status: 400,
+      message: 'Error al actualizar el producto',
+    }
+  }
+}
+
+export const onToggleProductStatus = async (productId: string) => {
+  try {
+    // Primero obtenemos el producto actual para saber su estado
+    const currentProduct = await client.product.findUnique({
+      where: { id: productId },
+      select: {
+        active: true
+      }
+    })
+
+    if (!currentProduct) {
+      return {
+        status: 404,
+        message: 'Producto no encontrado',
+      }
+    }
+
+    // Actualizamos el estado contrario
+    const product = await client.product.update({
+      where: {
+        id: productId,
+      },
+      data: {
+        active: !currentProduct.active,
+      },
+    })
+
+    if (product) {
+      return {
+        status: 200,
+        message: `Producto ${product.active ? 'activado' : 'desactivado'} exitosamente`,
+        active: product.active,
+      }
+    }
+  } catch (error) {
+    console.log(error)
+    return {
+      status: 400,
+      message: 'Error al cambiar el estado del producto',
+    }
   }
 }
