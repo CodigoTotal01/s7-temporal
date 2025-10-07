@@ -100,22 +100,33 @@ const extractCustomerData = (message: string): CustomerData => {
   
   // Extraer nombre
   let name: string | undefined
-  const namePattern = /(?:me llamo|soy|mi nombre es|llámame)\s+([a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+)/i
+  // Mejorar el patrón para que se detenga antes de palabras clave
+  const namePattern = /(?:me llamo|soy|mi nombre es|llámame)\s+([a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+?)(?:\s+(?:mi|correo|email|celular|teléfono|es|@)|\s*$)/i
   const nameMatch = message.match(namePattern)
   if (nameMatch) {
     name = nameMatch[1].trim()
+    // Limpiar el nombre de caracteres no deseados
+    name = name.replace(/[^\w\sáéíóúÁÉÍÓÚñÑ]/g, '').trim()
+    // Asegurar que no esté vacío y tenga al menos 2 caracteres
+    if (name.length < 2) {
+      name = undefined
+    }
   }
   
   // Extraer teléfono/celular (patrones peruanos)
   let phone: string | undefined
-  const phonePattern = /(?:\+?51\s?)?(?:9\d{8}|9\d{2}\s?\d{3}\s?\d{3}|\d{3}\s?\d{3}\s?\d{3})/g
-  const phoneMatch = message.match(phonePattern)
-  if (phoneMatch) {
-    // Limpiar y formatear el número
-    phone = phoneMatch[0].replace(/\s/g, '').replace(/\+51/, '')
-    // Asegurar que empiece con 9 si es celular peruano
-    if (phone.length === 9 && !phone.startsWith('9')) {
-      phone = '9' + phone
+  // Buscar específicamente después de palabras clave de teléfono
+  const phoneKeywordsPattern = /(?:celular|teléfono|teléfono|phone|móvil)\s*(?:es\s*)?(?:es\s*)?(?:\+?51\s?)?(9\d{8})/i
+  const phoneKeywordsMatch = message.match(phoneKeywordsPattern)
+  
+  if (phoneKeywordsMatch) {
+    phone = phoneKeywordsMatch[1]
+  } else {
+    // Patrón general para números de celular peruanos
+    const phonePattern = /(?:\+?51\s?)?(9\d{8})/g
+    const phoneMatch = message.match(phonePattern)
+    if (phoneMatch) {
+      phone = phoneMatch[0].replace(/\s/g, '').replace(/\+51/, '')
     }
   }
   
@@ -149,8 +160,8 @@ const findOrCreateCustomer = async (domainId: string, customerData: CustomerData
           const newCustomer = await client.domain.update({
       where: { id: domainId },
             data: {
-        customer: {
-          create: {
+              customer: {
+                create: {
             email: customerData.email,
             name: customerData.name,
             phone: customerData.phone,
@@ -362,14 +373,30 @@ ${hasName ? `- Nombre: ${extractedData.name}` : '- Nombre: No disponible'}
 ${hasEmail ? `- Email: ${extractedData.email}` : '- Email: No disponible'}
 ${hasPhone ? `- Teléfono: ${extractedData.phone}` : '- Teléfono: No disponible'}
 
-## INSTRUCCIONES:
-- Da una bienvenida cálida y profesional
+## INSTRUCCIONES CRÍTICAS PARA EL FORMATO:
+- Da una bienvenida cálida y profesional: "¡Hola! Soy Lunari AI, tu asistente virtual."
+- SIEMPRE da un salto de línea después del saludo
+- Luego escribe: "Para brindarte la mejor atención, necesito algunos datos:"
+- SIEMPRE da otro salto de línea después de esta frase
+- Enumera SOLO los datos que faltan, numerados del 1 al 3 máximo
+- CADA PREGUNTA debe estar en una línea separada
+- Los únicos datos a pedir son: nombre, correo electrónico, número de celular
 - Si ya tienes el nombre, úsalo en la conversación
-- Explica brevemente cómo puedes ayudar (consultas, productos, citas)
-- Solicita SOLO la información que falte, de manera natural
-- Si ya tienes email, pasa al siguiente paso
 - Mantén un tono amigable y profesional
-- No seas insistente, sino servicial
+- No pidas otros datos, solo estos 3 específicos
+
+## FORMATO OBLIGATORIO:
+Debes responder EXACTAMENTE en este formato:
+
+¡Hola! Soy Lunari AI, tu asistente virtual.
+
+Para brindarte la mejor atención, necesito algunos datos:
+
+1. ¿Cómo te llamas?
+2. ¿Cuál es tu correo electrónico?
+3. ¿Tu número de celular?
+
+Cada número debe estar en una línea separada. NO pongas todo en una sola línea.
 
 ## FLUJO DE INFORMACIÓN:
 1. **Si no tienes nombre**: Pide el nombre primero
@@ -379,13 +406,28 @@ ${hasPhone ? `- Teléfono: ${extractedData.phone}` : '- Teléfono: No disponible
 ## EJEMPLOS DE RESPUESTAS:
 
 ### Si no tienes nada:
-"¡Hola! Soy Lunari AI, tu asistente virtual. ¿Cómo te llamas? Estoy aquí para ayudarte con consultas sobre nuestros servicios, mostrar nuestros productos o agendar una cita."
+"¡Hola! Soy Lunari AI, tu asistente virtual.
+
+Para brindarte la mejor atención, necesito algunos datos:
+
+1. ¿Cómo te llamas?
+2. ¿Cuál es tu correo electrónico?  
+3. ¿Tu número de celular?"
 
 ### Si ya tienes nombre pero no email:
-"¡Hola ${extractedData.name}! Soy Lunari AI. Para brindarte la mejor atención personalizada, ¿podrías compartir tu dirección de email?"
+"¡Hola ${extractedData.name}! Soy Lunari AI.
+
+Para brindarte la mejor atención, necesito algunos datos:
+
+1. ¿Cuál es tu correo electrónico?
+2. ¿Tu número de celular?"
 
 ### Si ya tienes nombre y email pero no teléfono:
-"¡Perfecto ${extractedData.name}! Ya tengo tu email (${extractedData.email}). ¿Te gustaría compartir tu número de celular para poder contactarte mejor si es necesario?"
+"¡Perfecto ${extractedData.name}! Ya tengo tu email (${extractedData.email}).
+
+Para completar tu perfil, necesito:
+
+1. ¿Tu número de celular?"
 
 ## TONO:
 - Amigable pero profesional
@@ -393,7 +435,18 @@ ${hasPhone ? `- Teléfono: ${extractedData.phone}` : '- Teléfono: No disponible
 - Claro en las instrucciones
 - Personalizado usando la información disponible
 
-RECUERDA: Sé natural, amigable y profesional. Solo pide la información que realmente necesitas.`
+RECUERDA: Sé natural, amigable y profesional. Solo pide la información que realmente necesitas.
+
+IMPORTANTE: Cuando pidas los datos, usa EXACTAMENTE este formato con saltos de línea:
+¡Hola! Soy Lunari AI, tu asistente virtual.
+
+Para brindarte la mejor atención, necesito algunos datos:
+
+1. ¿Cómo te llamas?
+2. ¿Cuál es tu correo electrónico?
+3. ¿Tu número de celular?
+
+NO pongas todo en una sola línea. Cada pregunta debe estar en su propia línea.`
 
   const chatCompletion = await openai.chat.completions.create({
     messages: [
@@ -539,8 +592,10 @@ export const onAiChatBotAssistant = async (
   } catch (error) {
     console.log('Error en onAiChatBotAssistant:', error)
     return {
-      role: 'assistant',
-      content: 'Lo siento, estoy teniendo dificultades técnicas en este momento. ¿Podrías intentar de nuevo en unos momentos?'
+      response: {
+        role: 'assistant',
+        content: 'Lo siento, estoy teniendo dificultades técnicas en este momento. ¿Podrías intentar de nuevo en unos momentos?'
+      }
     }
   }
 }
