@@ -515,7 +515,7 @@ export const onAiChatBotAssistant = async (
       return {
         response: {
           role: 'assistant',
-          content: `¡Bienvenido ${customerData.email.split('@')[0]}! Soy Lunari AI, tu asistente virtual. Estoy aquí para ayudarte con cualquier consulta sobre nuestros servicios, productos o para agendar una cita. ¿En qué puedo ayudarte hoy?`
+          content: `¡Bienvenido ${customerData.name}! Soy Lunari AI, tu asistente virtual. Estoy aquí para ayudarte con cualquier consulta sobre nuestros servicios, productos o para agendar una cita. ¿En qué puedo ayudarte hoy?`
         }
       }
     }
