@@ -9,6 +9,8 @@ type Props = {
   bookings:
   | {
     Customer: {
+      name: string | null
+      email: string | null
       Domain: {
         name: string
       } | null
@@ -29,7 +31,10 @@ const AllAppointments = ({ bookings }: Props) => {
       {bookings ? (
         bookings.map((booking) => (
           <TableRow key={booking.id}>
-            <TableCell className="text-xs">{booking.email}</TableCell>
+            <TableCell className="text-xs">
+              <div className="font-medium">{booking.Customer?.name || 'Sin nombre'}</div>
+              <div className="text-gray-500 text-xs">{booking.email}</div>
+            </TableCell>
             <TableCell className="text-xs">
               <div>
                 {getMonthName(booking.date.getMonth())} {booking.date.getDate()}{' '}

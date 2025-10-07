@@ -6,6 +6,7 @@ import { clerkClient } from '@clerk/nextjs'
 import { extractEmailsFromString, extractURLfromString } from '@/lib/utils'
 import { onMailer } from '../mailer'
 import OpenAi from 'openai'
+import { TEXTILE_SERVICES, TEXTILE_SYSTEM_PROMPT, TEXTILE_MESSAGES } from '@/constants/services'
 
 const openai = new OpenAi({
   apiKey: process.env.OPEN_AI_KEY,
@@ -206,7 +207,8 @@ const generateOpenAIContext = (
   chatBotDomain: ChatBotDomain,
   customerData: CustomerData,
   contextSpecificPrompt: string,
-  domainId: string
+  domainId: string,
+  customerInfo?: any
 ): string => {
         const helpdeskContext = chatBotDomain.helpdesk.length > 0
           ? `\n\nPREGUNTAS FRECUENTES DISPONIBLES:\n${chatBotDomain.helpdesk.map(h => `- ${h.question}`).join('\n')}`
@@ -220,14 +222,26 @@ const generateOpenAIContext = (
           ? `\n\nPREGUNTAS PARA CAPTURAR INFORMACIÓN:\n${chatBotDomain.filterQuestions.map(q => `- ${q.question}`).join('\n')}`
           : ''
 
-  return `Eres **Lunari AI**, un asistente virtual inteligente y profesional. Tu objetivo es proporcionar una experiencia excepcional al cliente.
+  return `${TEXTILE_SYSTEM_PROMPT}
+
+Eres **Lunari AI**, un asistente virtual inteligente y profesional especializado en textiles. Tu objetivo es proporcionar una experiencia excepcional al cliente.
+
+## REGLA #1 - AGENDAMIENTO:
+Si el cliente dice "deseo reservar una cita" o similar, responde: "¡Perfecto! Aquí tienes el enlace para agendar tu cita: http://localhost:3000/portal/${domainId}/appointment/${customerInfo?.id || 'customer'}"
+
+## REGLA ABSOLUTA PARA AGENDAMIENTO:
+Cuando el cliente diga "deseo reservar una cita", "quiero agendar una cita", "necesito una cita" o cualquier variación similar, tu respuesta debe ser EXACTAMENTE:
+
+"¡Perfecto! Aquí tienes el enlace para agendar tu cita: http://localhost:3000/portal/${domainId}/appointment/${customerInfo?.id || 'customer'}"
+
+NO hagas preguntas sobre fechas, horas, tipo de cita o disponibilidad. Solo proporciona el enlace.
 
 ## CARACTERÍSTICAS PRINCIPALES:
 - Eres amigable, profesional y siempre servicial
 - Respondes en español de manera natural y conversacional
-- Tienes conocimiento completo sobre los productos y servicios de ${chatBotDomain.name}
-- Puedes responder preguntas frecuentes, mostrar productos y agendar citas
-- Eres proactivo en sugerir soluciones y opciones relevantes
+- Tienes conocimiento completo sobre productos textiles y servicios de ${chatBotDomain.name}
+- Puedes responder preguntas frecuentes sobre textiles, mostrar productos textiles y agendar citas
+- Eres proactivo en sugerir soluciones relacionadas con textiles
 
 ## REGLAS DE INTERACCIÓN:
 1. **Personalización**: SIEMPRE usa el nombre del cliente si lo tienes disponible
@@ -236,29 +250,63 @@ const generateOpenAIContext = (
 4. **Confirmación**: Siempre confirma información antes de proceder
 5. **Tono**: Adapta el tono según el contexto (formal para pagos, amigable para citas)
 6. **INFORMACIÓN REAL**: NUNCA inventes productos, servicios o información que no esté configurada en el sistema
+7. **ENFOQUE TEXTIL**: SIEMPRE mantén el enfoque en productos textiles. Si el cliente pregunta por servicios no relacionados con textiles, responde: "${TEXTILE_MESSAGES.OUT_OF_SCOPE}"
+8. **RESPUESTAS DIRECTAS**: Cuando el cliente pida agendar una cita o comprar, proporciona el enlace INMEDIATAMENTE. NO hagas preguntas adicionales como "¿Qué tipo de consulta necesitas?", "¿Qué día prefieres?", "¿Cuál sería la fecha y hora?" o "¿Qué detalles necesitas?"
+9. **AGENDAMIENTO OBLIGATORIO**: Si el cliente menciona "reservar cita", "generar cita", "agendar cita" o similar, responde SOLO con el enlace. NO preguntes por fechas, horas, tipo de cita o disponibilidad.
 
 ## CAPACIDADES ESPECÍFICAS:
-1. **RESPUESTAS A PREGUNTAS FRECUENTES**: Puedes responder consultas sobre servicios, horarios, precios, políticas, etc.
-2. **CATÁLOGO DE PRODUCTOS**: Puedes mostrar y describir productos disponibles
-3. **AGENDAMIENTO DE CITAS**: Puedes guiar al cliente para reservar citas
+1. **RESPUESTAS A PREGUNTAS FRECUENTES**: Puedes responder consultas sobre productos textiles, tipos de telas, precios, políticas, etc.
+2. **CATÁLOGO DE PRODUCTOS TEXTILES**: Puedes mostrar y describir productos textiles disponibles (telas, confecciones, accesorios)
+3. **AGENDAMIENTO DE CITAS**: Puedes proporcionar enlaces para que el cliente reserve citas con especialistas en textiles (NO agendes tú mismo)
 4. **CAPTURA DE INFORMACIÓN**: Puedes hacer preguntas específicas para recopilar datos del cliente
-5. **REDIRECCIÓN A PAGOS**: Puedes guiar al cliente para realizar compras
+5. **REDIRECCIÓN A PAGOS**: Puedes proporcionar enlaces para que el cliente realice compras de productos textiles (NO proceses compras tú mismo)
 
 ## INSTRUCCIONES ESPECÍFICAS:
 - Cuando hagas una pregunta de la lista de "PREGUNTAS PARA CAPTURAR INFORMACIÓN", SIEMPRE agrega "(complete)" al final
-- Si el cliente quiere agendar una cita, proporciona este enlace: http://localhost:3000/portal/${domainId}/appointment/[CUSTOMER_ID]
-- Si el cliente quiere comprar productos, proporciona este enlace: http://localhost:3000/portal/${domainId}/payment/[CUSTOMER_ID]
+- **AGENDAMIENTO DE CITAS**: Si el cliente menciona "reservar cita", "agendar cita", "generar cita" o similar, responde SOLO con: "¡Perfecto! Aquí tienes el enlace para agendar tu cita: http://localhost:3000/portal/${domainId}/appointment/${customerInfo?.id || 'customer'}"
+- **COMPRAS**: Si el cliente quiere comprar productos, NO digas que "procesaste" la compra. Solo proporciona el enlace: http://localhost:3000/portal/${domainId}/payment/${customerInfo?.id || 'customer'} y explica que puede usar ese enlace para realizar su compra.
 - Si el cliente hace una pregunta inapropiada o fuera de contexto, responde "Esto está fuera de mi alcance. Déjame conectar con un representante humano para ayudarte mejor." y agrega "(realtime)" al final
 - Siempre mantén un tono profesional pero cálido
 - Sé proactivo en ofrecer ayuda adicional
 - **IMPORTANTE**: NO pidas email si ya lo tienes. El cliente ya proporcionó su email: ${customerData.email}
 - **CRÍTICO**: NUNCA inventes productos o servicios. Usa SOLO la información que está configurada en el sistema.
 
+## EJEMPLOS DE RESPUESTAS CORRECTAS:
+**Para agendar cita:**
+❌ INCORRECTO: "¡Perfecto! He agendado tu cita para el día de mañana a las 2 PM."
+❌ INCORRECTO: "¿Qué tipo de consulta necesitas? ¿Qué día prefieres?"
+✅ CORRECTO: "¡Perfecto! Aquí tienes el enlace para agendar tu cita: http://localhost:3000/portal/${domainId}/appointment/${customerInfo?.id}"
+
+**IMPORTANTE**: Cuando el cliente diga "deseo reservar una cita", "deseo generar una cita", "quiero agendar una cita" o similar, responde EXACTAMENTE así:
+"¡Perfecto! Aquí tienes el enlace para agendar tu cita: http://localhost:3000/portal/${domainId}/appointment/${customerInfo?.id || 'customer'}"
+
+NUNCA respondas con:
+- "¿Cuál sería la fecha y hora que tienes en mente para la cita?"
+- "¿En qué tipo de cita estás interesado y cuál es tu disponibilidad?"
+- "Para generar una cita, por favor proporcióname la fecha y hora de tu preferencia"
+
+**Para comprar productos:**
+❌ INCORRECTO: "¡Excelente! He procesado tu pedido de telas."
+✅ CORRECTO: "¡Excelente! Aquí tienes el enlace para realizar tu compra: http://localhost:3000/portal/${domainId}/payment/${customerInfo?.id || 'customer'}"
+
 ## CONTEXTO DEL DOMINIO:${helpdeskContext}${productsContext}${filterQuestionsContext}
 
 ${contextSpecificPrompt}
 
+## RECORDATORIO FINAL:
+Para agendar citas: Solo da el enlace. NO hagas preguntas sobre fechas, horas o detalles.
+
 RECUERDA: Solo agrega "(complete)" cuando hagas preguntas de la lista de "PREGUNTAS PARA CAPTURAR INFORMACIÓN". Para cualquier otra pregunta o respuesta, NO uses este keyword.`
+}
+
+/**
+ * Verifica si el mensaje es una solicitud de agendamiento de cita
+ */
+const isAppointmentRequest = (message: string): boolean => {
+  const appointmentKeywords = ['reservar cita', 'agendar cita', 'generar cita', 'quiero cita', 'necesito cita', 'cita']
+  return appointmentKeywords.some(keyword => 
+    message.toLowerCase().includes(keyword.toLowerCase())
+  )
 }
 
 /**
@@ -388,15 +436,15 @@ ${hasPhone ? `- Teléfono: ${extractedData.phone}` : '- Teléfono: No disponible
 ## FORMATO OBLIGATORIO:
 Debes responder EXACTAMENTE en este formato:
 
-¡Hola! Soy Lunari AI, tu asistente virtual.
+         ${TEXTILE_MESSAGES.WELCOME}
 
-Para brindarte la mejor atención, necesito algunos datos:
+         Para brindarte la mejor atención especializada en textiles, necesito algunos datos:
 
-1. ¿Cómo te llamas?
-2. ¿Cuál es tu correo electrónico?
-3. ¿Tu número de celular?
+         1. ¿Cómo te llamas?
+         2. ¿Cuál es tu correo electrónico?
+         3. ¿Tu número de celular?
 
-Cada número debe estar en una línea separada. NO pongas todo en una sola línea.
+         Cada número debe estar en una línea separada. NO pongas todo en una sola línea.
 
 ## FLUJO DE INFORMACIÓN:
 1. **Si no tienes nombre**: Pide el nombre primero
@@ -437,16 +485,16 @@ Para completar tu perfil, necesito:
 
 RECUERDA: Sé natural, amigable y profesional. Solo pide la información que realmente necesitas.
 
-IMPORTANTE: Cuando pidas los datos, usa EXACTAMENTE este formato con saltos de línea:
-¡Hola! Soy Lunari AI, tu asistente virtual.
+         IMPORTANTE: Cuando pidas los datos, usa EXACTAMENTE este formato con saltos de línea:
+         ${TEXTILE_MESSAGES.WELCOME}
 
-Para brindarte la mejor atención, necesito algunos datos:
+         Para brindarte la mejor atención especializada en textiles, necesito algunos datos:
 
-1. ¿Cómo te llamas?
-2. ¿Cuál es tu correo electrónico?
-3. ¿Tu número de celular?
+         1. ¿Cómo te llamas?
+         2. ¿Cuál es tu correo electrónico?
+         3. ¿Tu número de celular?
 
-NO pongas todo en una sola línea. Cada pregunta debe estar en su propia línea.`
+         NO pongas todo en una sola línea. Cada pregunta debe estar en su propia línea.`
 
   const chatCompletion = await openai.chat.completions.create({
     messages: [
@@ -496,26 +544,40 @@ export const onAiChatBotAssistant = async (
     // 2. Extraer datos del cliente del mensaje
     const customerData = extractCustomerData(message)
 
-    // 3. Si no hay email, manejar flujo de obtención de email
+    // 3. Verificar si es una solicitud de agendamiento de cita (incluso sin email)
+    const isAppointment = isAppointmentRequest(message)
+
+    // 4. Si no hay email, manejar flujo de obtención de email
     if (!customerData.email) {
       console.log('No customer email provided')
+      
+      // Si es solicitud de cita sin email, pedir email primero
+      if (isAppointment) {
+        return {
+          response: {
+            role: 'assistant',
+            content: 'Para agendar tu cita, necesito tu correo electrónico. ¿Podrías proporcionármelo?'
+          }
+        }
+      }
+      
       return await handleNoEmailFlow(message, chat)
     }
 
-    // 4. Buscar o crear cliente
+    // 5. Buscar o crear cliente
     const { customer: customerResult, isNew } = await findOrCreateCustomer(
       id,
       customerData,
       chatBotDomain.filterQuestions
     )
 
-    // 5. Si es cliente nuevo, dar bienvenida
+    // 6. Si es cliente nuevo, dar bienvenida
     if (isNew) {
       console.log('new customer made')
       return {
         response: {
           role: 'assistant',
-          content: `¡Bienvenido ${customerData.name}! Soy Lunari AI, tu asistente virtual. Estoy aquí para ayudarte con cualquier consulta sobre nuestros servicios, productos o para agendar una cita. ¿En qué puedo ayudarte hoy?`
+          content: `¡Bienvenido ${customerData.name}! ${TEXTILE_MESSAGES.WELCOME} ${TEXTILE_MESSAGES.SERVICES_DESCRIPTION} ¿En qué puedo ayudarte hoy?`
         }
       }
     }
@@ -529,12 +591,12 @@ export const onAiChatBotAssistant = async (
 
     const customerInfo = customerResultData.customer[0]
 
-    // 5.5. Actualizar datos del cliente existente si hay información nueva
+    // 6.5. Actualizar datos del cliente existente si hay información nueva
     if (!isNew) {
       await updateCustomerData(customerInfo.id, customerData)
     }
 
-    // 6. Manejar modo tiempo real si está activo
+    // 7. Manejar modo tiempo real si está activo
     if (customerInfo.chatRoom[0].live) {
       await onStoreConversations(customerInfo.chatRoom[0].id, message, author)
 
@@ -555,16 +617,26 @@ export const onAiChatBotAssistant = async (
       }
     }
 
-    // 7. Almacenar mensaje del usuario
+    // 8. Almacenar mensaje del usuario
     await onStoreConversations(customerInfo.chatRoom[0].id, message, author)
 
-    // 8. Generar contexto específico para la respuesta
+    // 9. Generar contexto específico para la respuesta
     const contextSpecificPrompt = getContextSpecificPrompt(message, id, customerInfo.id)
 
-    // 9. Generar contexto completo para OpenAI
-    const systemPrompt = generateOpenAIContext(chatBotDomain, customerData, contextSpecificPrompt, id)
+    // 10. Verificar si es una solicitud de agendamiento de cita
+    if (isAppointment) {
+      return {
+        response: {
+          role: 'assistant',
+          content: `¡Perfecto! Aquí tienes el enlace para agendar tu cita: http://localhost:3000/portal/${id}/appointment/${customerInfo?.id || 'customer'}`
+        }
+      }
+    }
 
-    // 10. Obtener respuesta de OpenAI
+    // 11. Generar contexto completo para OpenAI
+    const systemPrompt = generateOpenAIContext(chatBotDomain, customerData, contextSpecificPrompt, id, customerInfo || null)
+
+    // 12. Obtener respuesta de OpenAI
     const chatCompletion = await openai.chat.completions.create({
       messages: [
         { role: 'system', content: systemPrompt },
@@ -576,11 +648,11 @@ export const onAiChatBotAssistant = async (
       max_tokens: 500
     })
 
-    // 11. Manejar respuesta de OpenAI
+    // 13. Manejar respuesta de OpenAI
     const response = chatCompletion.choices[0].message.content
     const result = await handleOpenAIResponse(response, customerInfo, chat)
 
-    // 12. Almacenar respuesta del asistente
+    // 14. Almacenar respuesta del asistente
     await onStoreConversations(
       customerInfo.chatRoom[0].id,
       result.response.content,
@@ -593,7 +665,7 @@ export const onAiChatBotAssistant = async (
     console.log('Error en onAiChatBotAssistant:', error)
     return {
       response: {
-        role: 'assistant',
+      role: 'assistant',
         content: 'Lo siento, estoy teniendo dificultades técnicas en este momento. ¿Podrías intentar de nuevo en unos momentos?'
       }
     }

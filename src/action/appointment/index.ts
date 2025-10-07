@@ -133,6 +133,8 @@ export const onGetAllBookingsForCurrentUser = async (clerkId: string) => {
                 domainId: true,
                 Customer: {
                     select: {
+                        name: true,
+                        email: true,
                         Domain: {
                             select: {
                                 name: true,
