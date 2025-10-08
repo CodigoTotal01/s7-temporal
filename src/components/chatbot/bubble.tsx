@@ -15,6 +15,12 @@ type Props = {
 }
 
 const Bubble = ({ message, createdAt }: Props) => {
+  // Validación de seguridad para evitar errores
+  if (!message || !message.content) {
+    console.error('Bubble: message or message.content is undefined', message)
+    return null
+  }
+
   let d = new Date()
   const image = extractUUIDFromString(message.content)
   console.log(message.link)

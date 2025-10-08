@@ -111,10 +111,11 @@ const Page = async (props: Props) => {
 
                           <div className="w-full flex items-center p-4 pt-3 gap-3">
                             <Avatar className="w-10 h-10 border-2 rounded-2">
-                              <AvatarFallback className="bg-peach text-gravel font-semibold">{booking.email[0]}</AvatarFallback>
+                              <AvatarFallback className="bg-peach text-gravel font-semibold">{(booking.Customer?.name || booking.email)?.[0]}</AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
-                              <p className="text-xs font-medium text-gravel truncate">{booking.email}</p>
+                              <p className="text-xs font-medium text-gravel truncate">{booking.Customer?.name || 'Sin nombre'}</p>
+                              <p className="text-xs text-gray-500 truncate">{booking.email}</p>
                               <p className="text-xs text-ironside flex items-center gap-1">
                                 <User className="w-3 h-3" />
                                 Cliente
