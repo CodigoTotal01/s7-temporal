@@ -16,6 +16,7 @@ import { Button } from '../ui/button'
 import { Send } from 'lucide-react'
 import { CardDescription, CardTitle } from '../ui/card'
 import Accordion from '../accordian'
+import SessionIndicator from './session-indicator' // ✅ Nuevo componente
 
 type Props = {
   errors: any
@@ -48,6 +49,15 @@ type Props = {
       }[]
     >
   >
+  // ✅ Nuevos props de sesión
+  sessionData?: {
+    customerId: string
+    email: string
+    name?: string
+    expiresAt: string
+  } | null
+  isAuthenticated?: boolean
+  onClearSession?: () => void
 }
 
 export const BotWindow = forwardRef<HTMLDivElement, Props>(
@@ -64,13 +74,26 @@ export const BotWindow = forwardRef<HTMLDivElement, Props>(
       textColor,
       theme,
       help,
+      // ✅ Nuevos props
+      sessionData,
+      isAuthenticated,
+      onClearSession,
     },
     ref
   ) => {
     return (
       <div className="h-[500px] w-[380px] flex flex-col bg-white rounded-xl border-[1px] overflow-hidden overflow-x-hidden shadow-lg">
+        {/* ✅ Indicador de sesión compacto (si está autenticado) */}
+        {(isAuthenticated && sessionData) && (
+          <SessionIndicator 
+            sessionData={sessionData}
+            isAuthenticated={isAuthenticated}
+            onClearSession={onClearSession}
+          />
+        )}
+        
         <div className="flex justify-between px-3 pt-3">
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-1">
             <Avatar className="w-12 h-12">
               <AvatarImage
                 src="https://github.com/shadcn.png"
@@ -78,11 +101,12 @@ export const BotWindow = forwardRef<HTMLDivElement, Props>(
               />
               <AvatarFallback>CN</AvatarFallback>
             </Avatar>
-            <div className="flex items-start flex-col">
+            <div className="flex items-start flex-col flex-1">
               <h3 className="text-xs font-semibold leading-none">
                 Asistente virtual
               </h3>
               <p className="text-xs text-gray-500">{domainName}</p>
+              
               {realtimeMode?.mode && (
                 <RealTimeMode
                   setChats={setChat}
@@ -105,7 +129,9 @@ export const BotWindow = forwardRef<HTMLDivElement, Props>(
                   background: theme || '',
                   color: textColor || '',
                 }}
-                className="px-3 flex h-[320px] flex-col py-3 gap-2 chat-window overflow-y-auto overflow-x-hidden"
+                className={`px-3 flex flex-col py-3 gap-2 chat-window overflow-y-auto overflow-x-hidden ${
+                  (isAuthenticated && sessionData) ? 'h-[280px]' : 'h-[320px]'
+                }`}
                 ref={ref}
               >
                 {chats.map((chat, key) => (
@@ -139,7 +165,9 @@ export const BotWindow = forwardRef<HTMLDivElement, Props>(
           </TabsContent>
 
           <TabsContent value="soporte">
-            <div className="h-[350px] overflow-y-auto overflow-x-hidden p-3 flex flex-col gap-3 w-full">
+            <div className={`overflow-y-auto overflow-x-hidden p-3 flex flex-col gap-3 w-full ${
+              (isAuthenticated && sessionData) ? 'h-[310px]' : 'h-[350px]'
+            }`}>
               <div>
                 <CardTitle className="text-xs">Ayuda</CardTitle>
                 <CardDescription className="text-xs">

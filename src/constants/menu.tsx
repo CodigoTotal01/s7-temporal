@@ -32,11 +32,6 @@ export const SIDE_BAR_MENU: SIDE_BAR_MENU_PROPS[] = [
         icon: <SquareUser />,
         path: 'appointment',
     },
-    {
-        label: 'Email Marketing',
-        icon: <Mail />,
-        path: 'email-marketing'
-    }
 ]
 
 type TABS_MENU_PROPS = {
@@ -77,13 +72,6 @@ export const APPOINTMENT_TABLE_HEADER = [
     'Nombre',
     'Hora solicitada',
     'Hora añadida',
-    'Empresa',
-]
-
-export const EMAIL_MARKETING_HEADER = [
-    'Id',
-    'Email',
-    'Respuestas',
     'Empresa',
 ]
 

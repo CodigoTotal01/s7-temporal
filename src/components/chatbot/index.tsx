@@ -23,6 +23,10 @@ const AiChatBot = (props: Props) => {
     onRealTime,
     setOnChats,
     errors,
+    // ✅ Datos de sesión
+    sessionData,
+    isAuthenticated,
+    clearSession,
   } = useChatBot()
 
   return (
@@ -42,6 +46,10 @@ const AiChatBot = (props: Props) => {
           register={register}
           onChat={onStartChatting}
           onResponding={onAiTyping}
+          // ✅ Pasar datos de sesión
+          sessionData={sessionData}
+          isAuthenticated={isAuthenticated}
+          onClearSession={clearSession}
         />
       )}
       <div
@@ -51,6 +59,13 @@ const AiChatBot = (props: Props) => {
         )}
         onClick={onOpenChatBot}
       >
+        {/* ✅ Badge de sesión activa */}
+        {isAuthenticated && sessionData && (
+          <div className="absolute -top-2 -right-2 w-5 h-5 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+            <span className="text-white text-xs">✓</span>
+          </div>
+        )}
+        
         {currentBot?.chatBot?.icon ? (
           <Image
             src={`https://ucarecdn.com/${currentBot.chatBot.icon}/`}
