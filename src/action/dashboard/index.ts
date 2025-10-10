@@ -2,6 +2,7 @@
 
 import { client } from "@/lib/prisma"
 import { currentUser } from "@clerk/nextjs"
+import { getQualityMetricsSummary } from "@/action/metrics"
 
 // Obtener información del usuario
 export const onGetUserInfo = async () => {
@@ -436,6 +437,17 @@ export const onGetWeeklyStats = async () => {
         }
     } catch (error) {
         console.log('Error en onGetWeeklyStats:', error)
+        return null
+    }
+}
+
+// Obtener métricas de calidad para la tesis (FR1, FR2, FR3, FR4)
+export const onGetQualityMetrics = async () => {
+    try {
+        const metrics = await getQualityMetricsSummary()
+        return metrics
+    } catch (error) {
+        console.log('Error en onGetQualityMetrics:', error)
         return null
     }
 }

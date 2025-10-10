@@ -7,7 +7,8 @@ import {
   onGetRecentActivity,
   onGetConversationStats,
   onGetWeeklyStats,
-  onGetUserInfo
+  onGetUserInfo,
+  onGetQualityMetrics
 } from '@/action/dashboard'
 import KPICards from '@/components/dashboard/kpi-cards'
 import UrgentChats from '@/components/dashboard/urgent-chats'
@@ -15,6 +16,7 @@ import UpcomingAppointments from '@/components/dashboard/upcoming-appointments'
 import RecentActivity from '@/components/dashboard/recent-activity'
 import ConversationChart from '@/components/dashboard/conversation-chart'
 import WeeklyStats from '@/components/dashboard/weekly-stats'
+import QualityMetrics from '@/components/dashboard/quality-metrics'
 import { Sparkles } from 'lucide-react'
 
 // Forzar SSR para evitar error en build time
@@ -29,7 +31,7 @@ const DashboardPage = async (props: Props) => {
   if (!user) return null
 
   // Obtener todos los datos en paralelo
-  const [userInfo, metrics, urgentChats, appointments, activities, conversationStats, weeklyStats] =
+  const [userInfo, metrics, urgentChats, appointments, activities, conversationStats, weeklyStats, qualityMetrics] =
     await Promise.all([
       onGetUserInfo(),
       onGetDashboardMetrics(),
@@ -37,7 +39,8 @@ const DashboardPage = async (props: Props) => {
       onGetUpcomingAppointments(),
       onGetRecentActivity(),
       onGetConversationStats(),
-      onGetWeeklyStats()
+      onGetWeeklyStats(),
+      onGetQualityMetrics()
     ])
 
   return (
@@ -82,6 +85,9 @@ const DashboardPage = async (props: Props) => {
 
         {/* Estadísticas de la Semana */}
         <WeeklyStats stats={weeklyStats} />
+
+        {/* Métricas de Calidad - Fichas de Registro para Tesis */}
+        <QualityMetrics metrics={qualityMetrics} />
       </div>
     </div>
   )
