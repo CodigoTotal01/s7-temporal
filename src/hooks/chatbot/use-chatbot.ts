@@ -7,8 +7,8 @@ import {
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useRef, useState } from 'react'
 import { UploadClient } from '@uploadcare/upload-client'
-
 import { useForm } from 'react-hook-form'
+import { useChatSession } from './use-chat-session' // ✅ Importar hook de sesión
 
 const upload = new UploadClient({
   publicKey: process.env.NEXT_PUBLIC_UPLOAD_CARE_PUBLIC_KEY as string,
@@ -23,6 +23,16 @@ export const useChatBot = () => {
   } = useForm<ChatBotMessageProps>({
     resolver: zodResolver(ChatBotMessageSchema),
   })
+  
+  // ✅ Hook de sesión
+  const { 
+    token: sessionToken, 
+    sessionData, 
+    isAuthenticated, 
+    saveSession,
+    clearSession 
+  } = useChatSession()
+  
   const [currentBot, setCurrentBot] = useState<
     | {
       name: string
@@ -83,11 +93,19 @@ export const useChatBot = () => {
     setCurrentBotId(idOrName)
     const chatbot = await onGetCurrentChatBot(idOrName)
     if (chatbot) {
+      // ✅ Mensaje personalizado si hay sesión
+      let welcomeMessage = chatbot.chatBot?.welcomeMessage!
+      
+      if (isAuthenticated && sessionData?.name) {
+        welcomeMessage = `¡Hola de nuevo ${sessionData.name}! 👋\n${welcomeMessage}`
+        console.log('👤 Usuario identificado:', sessionData.name)
+      }
+      
       setOnChats((prev) => [
         ...prev,
         {
           role: 'assistant',
-          content: chatbot.chatBot?.welcomeMessage!,
+          content: welcomeMessage,
         },
       ])
       setCurrentBot(chatbot)
@@ -122,15 +140,31 @@ export const useChatBot = () => {
 
       console.log('🟡 RESPONSE FROM UC', uploaded.uuid)
       setOnAiTyping(true)
+      
+      // ✅ Enviar token de sesión si existe
       const response = await onAiChatBotAssistant(
         currentBotId!,
         onChats,
         'user',
-        uploaded.uuid
+        uploaded.uuid,
+        sessionToken || undefined // ✅ Incluir token
       )
 
       if (response) {
         setOnAiTyping(false)
+        
+        // ✅ Guardar token si el backend lo envía (verificación segura)
+        if ('sessionToken' in response && 'sessionData' in response && response.sessionToken && response.sessionData) {
+          const sessionDataToSave = {
+            ...response.sessionData,
+            expiresAt: response.sessionData.expiresAt instanceof Date 
+              ? response.sessionData.expiresAt.toISOString() 
+              : response.sessionData.expiresAt
+          }
+          saveSession(response.sessionToken, sessionDataToSave as any)
+          console.log('💾 Nueva sesión guardada (imagen)')
+        }
+        
         if (response.live) {
           setOnRealTime((prev) => ({
             ...prev,
@@ -157,15 +191,30 @@ export const useChatBot = () => {
 
       setOnAiTyping(true)
 
+      // ✅ Enviar token de sesión si existe
       const response = await onAiChatBotAssistant(
         currentBotId!,
         onChats,
         'user',
-        values.content
+        values.content,
+        sessionToken || undefined // ✅ Incluir token
       )
 
       if (response) {
         setOnAiTyping(false)
+        
+        // ✅ Guardar token si el backend lo envía (verificación segura)
+        if ('sessionToken' in response && 'sessionData' in response && response.sessionToken && response.sessionData) {
+          const sessionDataToSave = {
+            ...response.sessionData,
+            expiresAt: response.sessionData.expiresAt instanceof Date 
+              ? response.sessionData.expiresAt.toISOString() 
+              : response.sessionData.expiresAt
+          }
+          saveSession(response.sessionToken, sessionDataToSave as any)
+          console.log('💾 Nueva sesión guardada (texto)')
+        }
+        
         if (response.live) {
           setOnRealTime((prev) => ({
             ...prev,
@@ -178,6 +227,18 @@ export const useChatBot = () => {
       }
     }
   })
+
+  // ✅ Función para cerrar sesión y limpiar chat
+  const handleLogout = () => {
+    clearSession()
+    setOnChats([
+      {
+        role: 'assistant',
+        content: currentBot?.chatBot?.welcomeMessage || '¡Hola! ¿En qué puedo ayudarte?'
+      }
+    ])
+    console.log('👋 Sesión cerrada y chat reiniciado')
+  }
 
   return {
     botOpened,
@@ -192,6 +253,10 @@ export const useChatBot = () => {
     setOnChats,
     onRealTime,
     errors,
+    // ✅ Exportar datos de sesión
+    sessionData,
+    isAuthenticated,
+    clearSession: handleLogout, // ✅ Usar versión que limpia el chat
   }
 }
 

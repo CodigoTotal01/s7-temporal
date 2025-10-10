@@ -7,6 +7,11 @@ import { extractEmailsFromString, extractURLfromString } from '@/lib/utils'
 import { onMailer } from '../mailer'
 import OpenAi from 'openai'
 import { TEXTILE_SERVICES, TEXTILE_SYSTEM_PROMPT, TEXTILE_MESSAGES } from '@/constants/services'
+import { 
+  generateSessionToken, 
+  validateSessionToken, 
+  getCustomerFromToken 
+} from '@/lib/session'
 
 const openai = new OpenAi({
   apiKey: process.env.OPEN_AI_KEY,
@@ -218,6 +223,151 @@ const getQuickResponse = (
   
   // No hay respuesta rápida
   return null
+}
+
+// ============================================
+// GESTIÓN DE SESIONES AUTENTICADAS
+// ============================================
+
+/**
+ * Maneja la conversación de un usuario con sesión válida
+ * Este usuario ya está identificado, no necesita proporcionar datos
+ */
+const handleAuthenticatedUser = async (
+  customerInfo: any,
+  message: string,
+  author: 'user',
+  chat: { role: 'user' | 'assistant'; content: string }[],
+  domainId: string,
+  chatBotDomain: any,
+  sessionToken: string
+) => {
+  console.log(`👤 Usuario autenticado: ${customerInfo.name || customerInfo.email}`)
+  
+  // 1. FR4: Detectar si el usuario está calificando (1-5)
+  const satisfactionRating = detectSatisfactionRating(message)
+  if (satisfactionRating && !customerInfo.chatRoom[0].satisfactionCollected) {
+    await saveSatisfactionRating(
+      customerInfo.chatRoom[0].id,
+      customerInfo.id,
+      domainId,
+      satisfactionRating,
+      message
+    )
+    
+    return {
+      response: {
+        role: 'assistant',
+        content: `¡Muchas gracias por tu calificación de ${satisfactionRating}/5! Tu opinión es muy importante para nosotros y nos ayuda a mejorar nuestro servicio. 😊`
+      },
+      sessionToken // Mantener token
+    }
+  }
+
+  // 2. Manejar modo tiempo real si está activo
+  if (customerInfo.chatRoom[0].live) {
+    await onStoreConversations(customerInfo.chatRoom[0].id, message, author)
+    
+    return {
+      live: true,
+      chatRoom: customerInfo.chatRoom[0].id,
+      sessionToken // Mantener token
+    }
+  }
+
+  // 3. Almacenar mensaje del usuario
+  await onStoreConversations(customerInfo.chatRoom[0].id, message, author)
+
+  // 4. OPTIMIZACIÓN: Intentar respuesta rápida primero (sin OpenAI)
+  const quickResponse = getQuickResponse(message, customerInfo, domainId)
+  
+  if (quickResponse) {
+    console.log('✅ Respuesta rápida utilizada (sin OpenAI)')
+    
+    await onStoreConversations(
+      customerInfo.chatRoom[0].id,
+      quickResponse.content,
+      'assistant',
+      message
+    )
+    
+    await updateResolutionType(customerInfo.chatRoom[0].id, false)
+    
+    return {
+      response: {
+        role: 'assistant' as const,
+        content: quickResponse.content,
+        link: quickResponse.link
+      },
+      sessionToken // Mantener token
+    }
+  }
+
+  // 5. Generar contexto para OpenAI
+  const contextSpecificPrompt = getContextSpecificPrompt(message, domainId, customerInfo.id)
+  
+  const customerDataForContext = {
+    email: customerInfo.email,
+    name: customerInfo.name,
+    phone: customerInfo.phone
+  }
+
+  const systemPrompt = generateOpenAIContext(
+    chatBotDomain, 
+    customerDataForContext, 
+    contextSpecificPrompt, 
+    domainId, 
+    customerInfo
+  )
+
+  // 6. Usar solo historial relevante (últimos 10 mensajes)
+  const relevantHistory = getRelevantChatHistory(chat, 10)
+
+  // 7. Obtener respuesta de OpenAI
+  const chatCompletion = await openai.chat.completions.create({
+    messages: [
+      { role: 'system', content: systemPrompt },
+      ...relevantHistory,
+      { role: 'user', content: message }
+    ],
+    model: 'gpt-3.5-turbo',
+    temperature: 0.7,
+    max_tokens: 300
+  })
+
+  // 8. Manejar respuesta
+  const response = chatCompletion.choices[0].message.content
+  const result = await handleOpenAIResponse(response, customerInfo, chat)
+
+  // 9. Almacenar respuesta con métricas
+  await onStoreConversations(
+    customerInfo.chatRoom[0].id,
+    result.response.content,
+    'assistant',
+    message
+  )
+
+  // 10. Actualizar tipo de resolución
+  await updateResolutionType(customerInfo.chatRoom[0].id, false)
+
+  // 11. Verificar si solicitar calificación
+  const askSatisfaction = await shouldAskForSatisfaction(customerInfo.chatRoom[0].id)
+  
+  if (askSatisfaction) {
+    return {
+      ...result,
+      response: {
+        ...result.response,
+        content: `${result.response.content}\n\n---\n\n¿Cómo calificarías la atención que recibiste del 1 al 5? (1 = Muy insatisfecho, 5 = Muy satisfecho)`
+      },
+      sessionToken // Mantener token
+    }
+  }
+
+  return {
+    ...result,
+    sessionToken // Mantener token
+  }
 }
 
 // ===== FUNCIONES AUXILIARES =====
@@ -502,22 +652,51 @@ const saveSatisfactionRating = async (
 
 /**
  * Extrae información del cliente (email, nombre y teléfono) del mensaje
+ * OPTIMIZADO: Maneja nombres compuestos correctamente
  */
 const extractCustomerData = (message: string): CustomerData => {
   const email = extractEmailsFromString(message)?.[0]
   
-  // Extraer nombre
+  // Extraer nombre - MEJORADO para nombres compuestos
   let name: string | undefined
-  // Mejorar el patrón para que se detenga antes de palabras clave
-  const namePattern = /(?:me llamo|soy|mi nombre es|llámame)\s+([a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+?)(?:\s+(?:mi|correo|email|celular|teléfono|es|@)|\s*$)/i
-  const nameMatch = message.match(namePattern)
-  if (nameMatch) {
-    name = nameMatch[1].trim()
-    // Limpiar el nombre de caracteres no deseados
-    name = name.replace(/[^\w\sáéíóúÁÉÍÓÚñÑ]/g, '').trim()
-    // Asegurar que no esté vacío y tenga al menos 2 caracteres
-    if (name.length < 2) {
-      name = undefined
+  
+  // Patrón 1: Capturar nombres después de "me llamo", "soy", etc.
+  const namePatterns = [
+    // "Me llamo Juan Pérez" - captura hasta coma, punto, o palabras clave
+    /(?:me llamo|soy|mi nombre es|llámame)\s+([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+){0,5})(?=\s*[,.]|\s+(?:mi|y|correo|email|cel|teléfono|telefono)|$)/i,
+    
+    // "Soy María García López, mi correo..."
+    /(?:me llamo|soy|mi nombre es)\s+([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+){0,5})(?=\s*,)/i,
+    
+    // Nombre al inicio del mensaje: "Juan Pérez, correo..."
+    /^([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+){1,5})(?=\s*[,.]|\s+(?:mi|correo|email))/i
+  ]
+  
+  for (const pattern of namePatterns) {
+    const match = message.match(pattern)
+    if (match) {
+      name = match[1].trim()
+      
+      // Validar que sea un nombre válido (no una palabra clave)
+      const invalidNames = ['correo', 'email', 'celular', 'telefono', 'teléfono', 'cita', 'hola']
+      if (!invalidNames.some(invalid => name?.toLowerCase().includes(invalid))) {
+        // Limpiar y validar
+        name = name.replace(/[^\w\sáéíóúÁÉÍÓÚñÑ]/g, '').trim()
+        
+        // Debe tener al menos 2 caracteres y máximo 60
+        if (name.length >= 2 && name.length <= 60) {
+          break // Nombre válido encontrado
+        }
+      }
+      name = undefined // Resetear si no es válido
+    }
+  }
+  
+  // Fallback: Si no se encontró con patrones, buscar nombre entre comillas
+  if (!name) {
+    const quotedName = message.match(/["']([A-ZÁÉÍÓÚÑ][a-záéíóúñ\s]+)["']/i)
+    if (quotedName && quotedName[1].length >= 2 && quotedName[1].length <= 60) {
+      name = quotedName[1].trim()
     }
   }
   
@@ -543,21 +722,24 @@ const extractCustomerData = (message: string): CustomerData => {
 
 /**
  * Busca o crea un cliente en la base de datos
+ * CORREGIDO: Retorna estructura correcta
  */
 const findOrCreateCustomer = async (domainId: string, customerData: CustomerData, filterQuestions: any[]) => {
   const existingCustomer = await client.domain.findUnique({
     where: { id: domainId },
-          select: {
+    select: {
       User: { select: { clerkId: true } },
-            name: true,
-            customer: {
+      name: true,
+      customer: {
         where: { email: { startsWith: customerData.email } },
-              select: {
-                id: true,
-                email: true,
-                questions: true,
-                chatRoom: {
-            select: { id: true, live: true, mailed: true }
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          phone: true,
+          questions: true,
+          chatRoom: {
+            select: { id: true, live: true, mailed: true, satisfactionCollected: true }
           }
         }
       }
@@ -565,11 +747,12 @@ const findOrCreateCustomer = async (domainId: string, customerData: CustomerData
   })
 
   if (!existingCustomer?.customer.length) {
-          const newCustomer = await client.domain.update({
+    // Crear nuevo cliente
+    await client.domain.update({
       where: { id: domainId },
-            data: {
-              customer: {
-                create: {
+      data: {
+        customer: {
+          create: {
             email: customerData.email,
             name: customerData.name,
             phone: customerData.phone,
@@ -582,7 +765,30 @@ const findOrCreateCustomer = async (domainId: string, customerData: CustomerData
         }
       }
     })
-    return { customer: newCustomer, isNew: true }
+    
+    // ✅ CORREGIDO: Buscar el cliente recién creado con la estructura correcta
+    const createdCustomer = await client.domain.findUnique({
+      where: { id: domainId },
+      select: {
+        User: { select: { clerkId: true } },
+        name: true,
+        customer: {
+          where: { email: { startsWith: customerData.email } },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            phone: true,
+            questions: true,
+            chatRoom: {
+              select: { id: true, live: true, mailed: true, satisfactionCollected: true }
+            }
+          }
+        }
+      }
+    })
+    
+    return { customer: createdCustomer, isNew: true }
   }
 
   return { customer: existingCustomer, isNew: false }
@@ -863,7 +1069,8 @@ export const onAiChatBotAssistant = async (
   id: string,
   chat: { role: 'user' | 'assistant'; content: string }[],
   author: 'user',
-  message: string
+  message: string,
+  sessionToken?: string // ✅ NUEVO: Token de sesión opcional
 ) => {
   try {
     // 1. Obtener datos del dominio del chatbot
@@ -884,7 +1091,36 @@ export const onAiChatBotAssistant = async (
       throw new Error('Chatbot domain not found')
     }
 
-    // 2. PRIMERO: Buscar en todo el historial de chat si ya hay un email
+    // 2. ✅ NUEVA FUNCIONALIDAD: Intentar recuperar sesión desde token
+    if (sessionToken) {
+      console.log('🔐 Token de sesión detectado, validando...')
+      
+      const customerFromToken = await getCustomerFromToken(sessionToken, id)
+      
+      if (customerFromToken && customerFromToken.chatRoom && customerFromToken.chatRoom.length > 0) {
+        console.log(`✅ Sesión recuperada automáticamente: ${customerFromToken.name || customerFromToken.email}`)
+        
+        const customerInfo = {
+          ...customerFromToken,
+          chatRoom: customerFromToken.chatRoom
+        }
+
+        // Usar este flujo directo con el usuario recuperado
+        return await handleAuthenticatedUser(
+          customerInfo,
+          message,
+          author,
+          chat,
+          id,
+          chatBotDomain,
+          sessionToken
+        )
+      } else {
+        console.log('⚠️ Token inválido o expirado, continuando con flujo normal')
+      }
+    }
+
+    // 3. FLUJO NORMAL: Buscar en todo el historial de chat si ya hay un email
     let existingEmail: string | null = null
     for (const msg of chat) {
       const emailInHistory = extractEmailsFromString(msg.content)?.[0]
@@ -901,7 +1137,7 @@ export const onAiChatBotAssistant = async (
     // Usar el email que encontremos (prioridad: mensaje actual > historial)
     const finalEmail = emailFromCurrentMessage || existingEmail
 
-    // 3. Si tenemos email (de cualquier fuente), buscar o crear cliente
+    // 4. Si tenemos email (de cualquier fuente), buscar o crear cliente
     if (finalEmail) {
       console.log('✅ Email encontrado:', finalEmail)
       
@@ -970,12 +1206,46 @@ export const onAiChatBotAssistant = async (
         customerInfo = customerResultData.customer[0]
         isNewCustomer = true
 
-        // Si es nuevo, dar bienvenida
+        // ✅ Generar token de sesión para el nuevo cliente
+        const sessionData = await generateSessionToken(
+          customerInfo.id,
+          customerInfo.email,
+          id,
+          customerInfo.chatRoom[0].id
+        )
+
+        console.log(`🎟️ Token generado para nuevo cliente: ${customerInfo.email}`)
+
+        // Si es nuevo, dar bienvenida CON TOKEN
         return {
           response: {
             role: 'assistant',
             content: `¡Bienvenido ${fullCustomerData.name || 'a Lunari AI'}! ${TEXTILE_MESSAGES.WELCOME} ${TEXTILE_MESSAGES.SERVICES_DESCRIPTION} ¿En qué puedo ayudarte hoy?`
+          },
+          sessionToken: sessionData.token, // ✅ Enviar token al frontend
+          sessionData: {
+            customerId: customerInfo.id,
+            email: customerInfo.email,
+            name: customerInfo.name,
+            expiresAt: sessionData.expiresAt
           }
+        }
+      }
+
+      // ✅ Cliente existente - Generar token si no tiene sesión activa
+      if (!sessionToken && customerInfo) {
+        const sessionData = await generateSessionToken(
+          customerInfo.id,
+          customerInfo.email || finalEmail,
+          id,
+          customerInfo.chatRoom[0].id
+        )
+        
+        console.log(`🎟️ Token generado para cliente existente: ${customerInfo.email}`)
+        
+        // Opcional: Saludar al usuario de regreso
+        if (customerInfo.name && customerInfo.totalInteractions > 1) {
+          console.log(`👋 Cliente recurrente detectado: ${customerInfo.name} (${customerInfo.totalInteractions} visitas)`)
         }
       }
 
