@@ -71,6 +71,9 @@ export const onGetDomainChatRooms = async (id: string) => {
                 id: true,
                 live: true,
                 updatedAt: true,
+                // isFavorite: true,
+                // conversationState: true,
+                // lastUserActivityAt: true,
                 message: {
                   select: {
                     message: true,
@@ -207,5 +210,36 @@ export const onOwnerSendMessage = async (
     }
   } catch (error) {
     console.log(error)
+  }
+}
+
+export const onToggleFavorite = async (chatRoomId: string, isFavorite: boolean) => {
+  try {
+    const chatRoom = await client.chatRoom.update({
+      where: {
+        id: chatRoomId,
+      },
+      data: {
+        // isFavorite,
+      },
+      select: {
+        id: true,
+        // isFavorite: true,
+      },
+    })
+
+    if (chatRoom) {
+      return {
+        status: 200,
+        message: isFavorite ? "Agregado a favoritos" : "Removido de favoritos",
+        chatRoom,
+      }
+    }
+  } catch (error) {
+    console.log('Error al actualizar favorito:', error)
+    return {
+      status: 500,
+      message: "Error al actualizar favorito",
+    }
   }
 }

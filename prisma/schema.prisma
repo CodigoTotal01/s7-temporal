@@ -111,6 +111,9 @@ model ChatRoom {
   updatedAt  DateTime      @updatedAt
   customerId String?       @db.Uuid
   
+  // Sistema de favoritos
+  isFavorite                Boolean               @default(false)
+  
   // Métricas para la tesis - FR3 y FR4
   resolved                    Boolean               @default(false)
   resolvedInFirstInteraction  Boolean?

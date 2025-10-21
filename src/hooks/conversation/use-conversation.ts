@@ -1,4 +1,4 @@
-import { onGetChatMessages, onGetDomainChatRooms, onOwnerSendMessage, onViewUnReadMessages } from '@/action/conversation'
+import { onGetChatMessages, onGetDomainChatRooms, onOwnerSendMessage, onViewUnReadMessages, onToggleFavorite } from '@/action/conversation'
 import { useChatContext } from '@/context/user-chat-context'
 import { getMonthName } from '@/lib/utils'
 import { ChatBotMessageSchema, ConversationSearchSchema } from '@/schemas/conversation.schema'
@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 
 export const useConversation = () => {
-  const { register, watch } = useForm({
+  const { register, watch, setValue } = useForm({
     resolver: zodResolver(ConversationSearchSchema),
     mode: 'onChange',
   })
@@ -17,6 +17,9 @@ export const useConversation = () => {
       chatRoom: {
         id: string
         createdAt: Date
+        // isFavorite: boolean
+        // conversationState: string
+        // lastUserActivityAt: Date
         message: {
           message: string
           createdAt: Date
@@ -27,6 +30,8 @@ export const useConversation = () => {
     }[]
   >([])
   const [loading, setLoading] = useState<boolean>(false)
+  const [activeTab, setActiveTab] = useState<string>('no leidos')
+  
   useEffect(() => {
     const search = watch(async (value) => {
       setLoading(true)
@@ -57,11 +62,72 @@ export const useConversation = () => {
       loadMessages(false)
     }
   }
+
+  // Función para filtrar conversaciones según el tab activo
+  const getFilteredChatRooms = () => {
+    if (!chatRooms.length) return []
+    
+    return chatRooms.filter((room) => {
+      const chatRoom = room.chatRoom[0]
+      if (!chatRoom) return false
+      
+      const lastMessage = chatRoom.message[0]
+      const now = new Date()
+      const createdAt = new Date(chatRoom.createdAt)
+      const hoursSinceCreated = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60)
+      
+      switch (activeTab) {
+        case 'no leidos':
+          return !lastMessage?.seen
+        case 'todos':
+          return true
+        case 'expirados':
+          return hoursSinceCreated > 24 // Conversaciones de más de 24 horas
+        case 'favoritos':
+          return false // Temporalmente deshabilitado hasta resolver tipos
+        default:
+          return true
+      }
+    })
+  }
+
+  // Función para cambiar el tab activo
+  const changeActiveTab = (tab: string) => {
+    setActiveTab(tab)
+  }
+
+  // Función para marcar/desmarcar como favorito
+  const toggleFavorite = async (chatRoomId: string, isFavorite: boolean) => {
+    try {
+      // Temporalmente deshabilitado hasta resolver tipos de Prisma
+      // const result = await onToggleFavorite(chatRoomId, isFavorite)
+      // if (result?.status === 200) {
+      //   // Actualizar el estado local
+      //   setChatRooms(prev => 
+      //     prev.map(room => ({
+      //       ...room,
+      //       chatRoom: room.chatRoom.map(chat => 
+      //         chat.id === chatRoomId 
+      //           ? { ...chat, isFavorite }
+      //           : chat
+      //       )
+      //     }))
+      //   )
+      // }
+    } catch (error) {
+      console.log('Error al actualizar favorito:', error)
+    }
+  }
+
   return {
     register,
-    chatRooms,
+    setValue,
+    chatRooms: getFilteredChatRooms(),
     loading,
+    activeTab,
     onGetActiveChatMessages,
+    changeActiveTab,
+    toggleFavorite,
   }
 }
 
