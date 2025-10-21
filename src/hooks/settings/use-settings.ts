@@ -1,4 +1,4 @@
-import { onChatBotImageUpdate, onCreateFilterQuestions, onCreateHelpDeskQuestion, onCreateNewDomainProduct, onDeleteDomainProduct, onUpdateDomainProduct, onToggleProductStatus, onDeleteUserDomain, onGetAllFilterQuestions, onGetAllHelpDeskQuestions, onUpdateDomain, onUpdatePassword, onUpdateWelcomeMessage } from '@/action/settings'
+import { onChatBotImageUpdate, onCreateFilterQuestions, onUpdateFilterQuestion, onDeleteFilterQuestion, onCreateHelpDeskQuestion, onUpdateHelpDeskQuestion, onDeleteHelpDeskQuestion, onCreateNewDomainProduct, onDeleteDomainProduct, onUpdateDomainProduct, onToggleProductStatus, onDeleteUserDomain, onGetAllFilterQuestions, onGetAllHelpDeskQuestions, onUpdateDomain, onUpdatePassword, onUpdateWelcomeMessage } from '@/action/settings'
 import { useToast } from '@/components/ui/use-toast'
 import {
     ChangePasswordProps,
@@ -18,7 +18,7 @@ const upload = new UploadClient({
 
 export const useThemeMode = () => {
     return {
-        setTheme: () => {},
+        setTheme: () => { },
         theme: 'light',
     }
 }
@@ -135,32 +135,85 @@ export const useHelpDesk = (id: string) => {
         formState: { errors },
         handleSubmit,
         reset,
+        setValue,
     } = useForm<HelpDeskQuestionsProps>({
         resolver: zodResolver(HelpDeskQuestionsSchema),
     })
     const { toast } = useToast()
 
     const [loading, setLoading] = useState<boolean>(false)
+    const [deleting, setDeleting] = useState<string | null>(null)
+    const [editingQuestion, setEditingQuestion] = useState<{ id: string; question: string; answer: string } | null>(null)
     const [isQuestions, setIsQuestions] = useState<
         { id: string; question: string; answer: string }[]
     >([])
+
     const onSubmitQuestion = handleSubmit(async (values) => {
         setLoading(true)
-        const question = await onCreateHelpDeskQuestion(
-            id,
-            values.question,
-            values.answer
-        )
-        if (question) {
-            setIsQuestions(question.questions!)
-            toast({
-                title: question.status == 200 ? 'Éxito al crear pregunta' : 'Error al crear pregunta',
-                description: question.message,
-            })
-            setLoading(false)
-            reset()
+
+        if (editingQuestion) {
+            // Actualizar pregunta existente
+            const result = await onUpdateHelpDeskQuestion(
+                editingQuestion.id,
+                values.question,
+                values.answer
+            )
+            if (result) {
+                toast({
+                    title: result.status == 200 ? 'Éxito al actualizar pregunta' : 'Error al actualizar pregunta',
+                    description: result.message,
+                })
+                if (result.status === 200) {
+                    await onGetQuestions()
+                    setEditingQuestion(null)
+                    reset()
+                }
+                setLoading(false)
+            }
+        } else {
+            // Crear nueva pregunta
+            const question = await onCreateHelpDeskQuestion(
+                id,
+                values.question,
+                values.answer
+            )
+            if (question) {
+                setIsQuestions(question.questions!)
+                toast({
+                    title: question.status == 200 ? 'Éxito al crear pregunta' : 'Error al crear pregunta',
+                    description: question.message,
+                })
+                setLoading(false)
+                reset()
+            }
         }
     })
+
+    const onDeleteQuestion = async (questionId: string) => {
+        setDeleting(questionId)
+        const result = await onDeleteHelpDeskQuestion(questionId)
+        if (result) {
+            toast({
+                title: result.status === 200 ? 'Éxito al eliminar pregunta' : 'Error al eliminar pregunta',
+                description: result.message,
+            })
+            if (result.status === 200) {
+                await onGetQuestions()
+            }
+            setDeleting(null)
+        }
+    }
+
+    const startEditing = (question: { id: string; question: string; answer: string }) => {
+        setEditingQuestion(question)
+        setValue('question', question.question)
+        setValue('answer', question.answer)
+    }
+
+    const cancelEditing = () => {
+        setEditingQuestion(null)
+        reset()
+    }
 
     const onGetQuestions = async () => {
         setLoading(true)
@@ -178,9 +231,14 @@ export const useHelpDesk = (id: string) => {
     return {
         register,
         onSubmitQuestion,
+        onDeleteQuestion,
+        startEditing,
+        cancelEditing,
+        editingQuestion,
         errors,
         isQuestions,
         loading,
+        deleting,
     }
 }
 
@@ -190,28 +248,75 @@ export const useFilterQuestions = (id: string) => {
         handleSubmit,
         formState: { errors },
         reset,
+        setValue,
     } = useForm<FilterQuestionsProps>({
         resolver: zodResolver(FilterQuestionsSchema),
     })
     const { toast } = useToast()
     const [loading, setLoading] = useState<boolean>(false)
+    const [deleting, setDeleting] = useState<string | null>(null)
+    const [editingQuestion, setEditingQuestion] = useState<{ id: string; question: string } | null>(null)
     const [isQuestions, setIsQuestions] = useState<
         { id: string; question: string }[]
     >([])
 
     const onAddFilterQuestions = handleSubmit(async (values) => {
         setLoading(true)
-        const questions = await onCreateFilterQuestions(id, values.question)
-        if (questions) {
-            setIsQuestions(questions.questions!)
-            toast({
-                title: questions.status == 200 ? 'Éxito al crear pregunta' : 'Error al crear pregunta',
-                description: questions.message,
-            })
-            reset()
-            setLoading(false)
+
+        if (editingQuestion) {
+            // Actualizar pregunta existente
+            const result = await onUpdateFilterQuestion(editingQuestion.id, values.question)
+            if (result) {
+                toast({
+                    title: result.status == 200 ? 'Éxito al actualizar pregunta' : 'Error al actualizar pregunta',
+                    description: result.message,
+                })
+                if (result.status === 200) {
+                    await onGetQuestions()
+                    setEditingQuestion(null)
+                    reset()
+                }
+                setLoading(false)
+            }
+        } else {
+            // Crear nueva pregunta
+            const questions = await onCreateFilterQuestions(id, values.question)
+            if (questions) {
+                setIsQuestions(questions.questions!)
+                toast({
+                    title: questions.status == 200 ? 'Éxito al crear pregunta' : 'Error al crear pregunta',
+                    description: questions.message,
+                })
+                reset()
+                setLoading(false)
+            }
         }
     })
+
+    const onDeleteQuestion = async (questionId: string) => {
+        setDeleting(questionId)
+        const result = await onDeleteFilterQuestion(questionId)
+        if (result) {
+            toast({
+                title: result.status === 200 ? 'Éxito al eliminar pregunta' : 'Error al eliminar pregunta',
+                description: result.message,
+            })
+            if (result.status === 200) {
+                await onGetQuestions()
+            }
+            setDeleting(null)
+        }
+    }
+
+    const startEditing = (question: { id: string; question: string }) => {
+        setEditingQuestion(question)
+        setValue('question', question.question)
+    }
+
+    const cancelEditing = () => {
+        setEditingQuestion(null)
+        reset()
+    }
 
     const onGetQuestions = async () => {
         setLoading(true)
@@ -228,7 +333,12 @@ export const useFilterQuestions = (id: string) => {
 
     return {
         loading,
+        deleting,
         onAddFilterQuestions,
+        onDeleteQuestion,
+        startEditing,
+        cancelEditing,
+        editingQuestion,
         register,
         errors,
         isQuestions,
@@ -242,7 +352,7 @@ export const useProducts = (domainId: string) => {
     const [deleting, setDeleting] = useState<string | null>(null)
     const [editingProduct, setEditingProduct] = useState<any>(null)
 
-    
+
     // Esquema condicional para edición
     const EditProductSchema = z.object({
         name: z
@@ -295,7 +405,7 @@ export const useProducts = (domainId: string) => {
         try {
             setLoading(true)
             let imageUuid = editingProduct?.image
-            
+
             if (values.image && values.image[0]) {
                 const uploaded = await upload.uploadFile(values.image[0])
                 imageUuid = uploaded.uuid
@@ -307,7 +417,7 @@ export const useProducts = (domainId: string) => {
                 values.price,
                 imageUuid
             )
-            
+
             if (result) {
                 reset()
                 setEditingProduct(null)
@@ -381,14 +491,14 @@ export const useProducts = (domainId: string) => {
         reset()
     }
 
-    return { 
-        onCreateNewProduct, 
+    return {
+        onCreateNewProduct,
         onUpdateProduct,
         onDeleteProduct,
-        onToggleProduct, 
-        register, 
-        errors, 
-        loading, 
+        onToggleProduct,
+        register,
+        errors,
+        loading,
         deleting,
         editingProduct,
         startEditing,

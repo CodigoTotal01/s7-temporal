@@ -1,6 +1,6 @@
-import { onBookNewAppointment, saveAnswers } from '@/action/appointment'
+import { onBookNewAppointment, onGetAvailableTimeSlotsForDay, saveAnswers } from '@/action/appointment'
 import { useToast } from '@/components/ui/use-toast'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 
 export const usePortal = (
@@ -19,8 +19,28 @@ export const usePortal = (
   const [date, setDate] = useState<Date | undefined>(new Date())
   const [selectedSlot, setSelectedSlot] = useState<string | undefined>('')
   const [loading, setLoading] = useState<boolean>(false)
+  const [availableSlots, setAvailableSlots] = useState<string[]>([])
+  const [loadingSlots, setLoadingSlots] = useState<boolean>(false)
 
   setValue('date', date)
+
+  // Cargar horarios disponibles cuando cambia la fecha
+  useEffect(() => {
+    const loadAvailableSlots = async () => {
+      if (!date) return
+      
+      setLoadingSlots(true)
+      const result = await onGetAvailableTimeSlotsForDay(domainId, date)
+      if (result?.timeSlots) {
+        setAvailableSlots(result.timeSlots)
+      } else {
+        setAvailableSlots([])
+      }
+      setLoadingSlots(false)
+    }
+
+    loadAvailableSlots()
+  }, [date, domainId])
 
   const onNext = () => setStep((prev) => prev + 1)
 
@@ -73,5 +93,7 @@ export const usePortal = (
     setDate,
     onSelectedTimeSlot,
     selectedSlot,
+    availableSlots,
+    loadingSlots,
   }
 }

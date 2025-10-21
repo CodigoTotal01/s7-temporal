@@ -56,12 +56,12 @@ const SettingsForm = ({ id, name, chatBot }: Props) => {
         </div>
       </div>
 
-      {/* Sección de Configuración del Chatbot */}
+      {/* Sección de Configuración del Asistente Virtual */}
       <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 shadow-sm">
         <div className="flex flex-col gap-4 md:gap-6">
           <div className="flex items-center gap-3">
             <div className="w-1 h-6 md:h-8 bg-orange rounded-full"></div>
-            <h2 className="font-bold text-xl md:text-2xl text-gray-900">Configuración del Chatbot</h2>
+            <h2 className="font-bold text-xl md:text-2xl text-gray-900">Configuración del Asistente Virtual</h2>
           </div>
           <Separator orientation="horizontal" className="bg-gray-100" />
 
@@ -84,7 +84,7 @@ const SettingsForm = ({ id, name, chatBot }: Props) => {
             <div className="bg-gray-50 rounded-lg p-3 md:p-4 border border-gray-100 order-1 lg:order-2">
               <h3 className="font-semibold text-base md:text-lg text-gray-900 mb-3 md:mb-4">Vista Previa</h3>
               <p className="text-xs md:text-sm text-gray-600 mb-3 md:mb-4">
-                Aquí puedes ver cómo se verá tu chatbot una vez configurado.
+                Aquí puedes ver cómo se verá tu asistente virtual una vez configurado.
               </p>
               <div className="bg-white rounded-lg p-3 md:p-4 border border-gray-200">
                 <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-3">

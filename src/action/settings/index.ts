@@ -49,8 +49,8 @@ export const onIntegrateDomain = async (domain: string, icon: string) => {
       });
 
       if (newDomain && newDomain.domains.length > 0) {
-        return { 
-          status: 200, 
+        return {
+          status: 200,
           message: "Empresa agregada exitosamente",
           domainId: newDomain.domains[0].id
         };
@@ -393,6 +393,70 @@ export const onGetAllHelpDeskQuestions = async (id: string) => {
   }
 }
 
+export const onUpdateHelpDeskQuestion = async (
+  questionId: string,
+  question: string,
+  answer: string
+) => {
+  try {
+    const updatedQuestion = await client.helpDesk.update({
+      where: {
+        id: questionId,
+      },
+      data: {
+        question,
+        answer,
+      },
+    })
+
+    if (updatedQuestion) {
+      return {
+        status: 200,
+        message: 'Pregunta actualizada exitosamente',
+      }
+    }
+
+    return {
+      status: 400,
+      message: 'Error al actualizar la pregunta',
+    }
+  } catch (error) {
+    console.log(error)
+    return {
+      status: 400,
+      message: 'Error al actualizar la pregunta',
+    }
+  }
+}
+
+export const onDeleteHelpDeskQuestion = async (questionId: string) => {
+  try {
+    const deletedQuestion = await client.helpDesk.delete({
+      where: {
+        id: questionId,
+      },
+    })
+
+    if (deletedQuestion) {
+      return {
+        status: 200,
+        message: 'Pregunta eliminada exitosamente',
+      }
+    }
+
+    return {
+      status: 400,
+      message: 'Error al eliminar la pregunta',
+    }
+  } catch (error) {
+    console.log(error)
+    return {
+      status: 400,
+      message: 'Error al eliminar la pregunta',
+    }
+  }
+}
+
 export const onCreateFilterQuestions = async (id: string, question: string) => {
   try {
     const filterQuestion = await client.domain.update({
@@ -454,6 +518,65 @@ export const onGetAllFilterQuestions = async (id: string) => {
     }
   } catch (error) {
     console.log(error)
+  }
+}
+
+export const onUpdateFilterQuestion = async (questionId: string, question: string) => {
+  try {
+    const updatedQuestion = await client.filterQuestions.update({
+      where: {
+        id: questionId,
+      },
+      data: {
+        question,
+      },
+    })
+
+    if (updatedQuestion) {
+      return {
+        status: 200,
+        message: 'Pregunta actualizada exitosamente',
+      }
+    }
+
+    return {
+      status: 400,
+      message: 'Error al actualizar la pregunta',
+    }
+  } catch (error) {
+    console.log(error)
+    return {
+      status: 400,
+      message: 'Error al actualizar la pregunta',
+    }
+  }
+}
+
+export const onDeleteFilterQuestion = async (questionId: string) => {
+  try {
+    const deletedQuestion = await client.filterQuestions.delete({
+      where: {
+        id: questionId,
+      },
+    })
+
+    if (deletedQuestion) {
+      return {
+        status: 200,
+        message: 'Pregunta eliminada exitosamente',
+      }
+    }
+
+    return {
+      status: 400,
+      message: 'Error al eliminar la pregunta',
+    }
+  } catch (error) {
+    console.log(error)
+    return {
+      status: 400,
+      message: 'Error al eliminar la pregunta',
+    }
   }
 }
 
@@ -609,6 +732,106 @@ export const onToggleProductStatus = async (productId: string) => {
     return {
       status: 400,
       message: 'Error al cambiar el estado del producto',
+    }
+  }
+}
+
+// ===== GESTIÓN DE HORARIOS DISPONIBLES =====
+
+export const onGetAvailabilitySchedule = async (domainId: string) => {
+  try {
+    const schedule = await client.availabilitySchedule.findMany({
+      where: {
+        domainId,
+      },
+      select: {
+        id: true,
+        dayOfWeek: true,
+        timeSlots: true,
+        isActive: true,
+      },
+      orderBy: {
+        dayOfWeek: 'asc',
+      },
+    })
+
+    return {
+      status: 200,
+      schedule,
+    }
+  } catch (error) {
+    console.log(error)
+    return {
+      status: 400,
+      message: 'Error al obtener horarios',
+      schedule: [],
+    }
+  }
+}
+
+export const onUpdateAvailabilitySchedule = async (
+  domainId: string,
+  dayOfWeek: string,
+  timeSlots: string[],
+  isActive: boolean
+) => {
+  try {
+    // Buscar si ya existe un registro para este día
+    const existing = await client.availabilitySchedule.findUnique({
+      where: {
+        domainId_dayOfWeek: {
+          domainId,
+          dayOfWeek: dayOfWeek as any,
+        },
+      },
+    })
+
+    if (existing) {
+      // Actualizar
+      const updated = await client.availabilitySchedule.update({
+        where: {
+          id: existing.id,
+        },
+        data: {
+          timeSlots,
+          isActive,
+        },
+      })
+
+      if (updated) {
+        return {
+          status: 200,
+          message: 'Horario actualizado exitosamente',
+        }
+      }
+    } else {
+      // Crear
+      const created = await client.availabilitySchedule.create({
+        data: {
+          domainId,
+          dayOfWeek: dayOfWeek as any,
+          timeSlots,
+          isActive,
+        },
+      })
+
+      if (created) {
+        return {
+          status: 200,
+          message: 'Horario creado exitosamente',
+        }
+      }
+    }
+
+    return {
+      status: 400,
+      message: 'Error al guardar horario',
+    }
+  } catch (error) {
+    console.log(error)
+    return {
+      status: 400,
+      message: 'Error al guardar horario',
     }
   }
 }
