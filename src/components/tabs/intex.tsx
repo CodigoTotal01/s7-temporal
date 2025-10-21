@@ -17,7 +17,8 @@ type Props = {
 const TabsMenu = ({ triggers, children, className, button, onTabChange, value }: Props) => {
   return (
     <Tabs
-      value={value || triggers[0].label}
+      defaultValue={triggers[0].label}
+      value={value}
       className="w-full overflow-hidden"
       onValueChange={onTabChange}
     >
