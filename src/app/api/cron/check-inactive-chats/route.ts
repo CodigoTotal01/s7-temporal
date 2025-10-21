@@ -103,28 +103,23 @@ export async function GET(request: Request) {
       processed++
     }
 
-    // 4. FR2 + FR4: Solicitar calificación por inactividad
+    // 4. FR2 + FR4: Marcar como IDLE por inactividad (SIN solicitar calificación automática)
+    // ✅ NUEVA LÓGICA: NO cambiar automáticamente a AWAITING_RATING
+    // Esto evita que se oculten las conversaciones
     for (const chat of inactiveChats) {
       // Evitar duplicados (si ya se procesó en FR3)
       if (chatsWithRecentHelp.find(c => c.id === chat.id)) continue
 
+      // Solo marcar como IDLE, NO como AWAITING_RATING
       await client.chatRoom.update({
         where: { id: chat.id },
         data: {
-          conversationState: 'AWAITING_RATING',
-          resolved: true
+          conversationState: 'IDLE', // Cambiar a IDLE en lugar de AWAITING_RATING
+          resolved: false // NO marcar como resuelto automáticamente
         }
       })
 
-      await client.chatMessage.create({
-        data: {
-          chatRoomId: chat.id,
-          message: '⏰ Veo que has estado inactivo. ¿Cómo calificarías la atención que recibiste del 1 al 5? (1 = Muy insatisfecho, 5 = Muy satisfecho)',
-          role: 'assistant'
-        }
-      })
-
-      console.log(`✅ FR2+FR4 - Calificación solicitada: ${chat.id} (${chat.Customer?.email})`)
+      console.log(`✅ FR2+FR4 - Conversación marcada como IDLE: ${chat.id} (${chat.Customer?.email})`)
       processed++
     }
 

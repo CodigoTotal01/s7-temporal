@@ -1,4 +1,4 @@
-import { onGetChatMessages, onGetDomainChatRooms, onOwnerSendMessage, onViewUnReadMessages, onToggleFavorite } from '@/action/conversation'
+import { onGetChatMessages, onGetDomainChatRooms, onGetAllDomainChatRooms, onOwnerSendMessage, onViewUnReadMessages, onToggleFavorite } from '@/action/conversation'
 import { useChatContext } from '@/context/user-chat-context'
 import { getMonthName } from '@/lib/utils'
 import { ChatBotMessageSchema, ConversationSearchSchema } from '@/schemas/conversation.schema'
@@ -36,7 +36,7 @@ export const useConversation = () => {
     const search = watch(async (value) => {
       setLoading(true)
       try {
-        const rooms = await onGetDomainChatRooms(value.domain)
+        const rooms = await onGetAllDomainChatRooms(value.domain)
         if (rooms) {
           setLoading(false)
           setChatRooms((rooms as any).customer)

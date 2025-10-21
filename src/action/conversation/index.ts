@@ -249,3 +249,88 @@ export const onToggleFavorite = async (chatRoomId: string, isFavorite: boolean) 
     }
   }
 }
+
+// ✅ NUEVA FUNCIÓN: Obtener todas las conversaciones agrupadas por cliente
+export const onGetAllDomainChatRooms = async (id: string) => {
+  try {
+    console.log(`🔍 Obteniendo TODAS las conversaciones para dominio: ${id}`)
+    
+    // Obtener todas las conversaciones del dominio
+    const allChatRooms = await client.chatRoom.findMany({
+      where: {
+        Customer: {
+          domainId: id
+        }
+      },
+      select: {
+        id: true,
+        createdAt: true,
+        updatedAt: true,
+        live: true,
+        // @ts-ignore
+        isFavorite: true,
+        // @ts-ignore
+        conversationState: true,
+        // @ts-ignore
+        lastUserActivityAt: true,
+        Customer: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          }
+        },
+        message: {
+          select: {
+            message: true,
+            createdAt: true,
+            seen: true,
+            role: true,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 1,
+        },
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    })
+
+    // Agrupar por cliente (email) y tomar solo la conversación más reciente de cada cliente
+    const groupedByCustomer = new Map()
+    
+    allChatRooms.forEach(chatRoom => {
+      const customerEmail = (chatRoom as any).Customer?.email || 'unknown'
+      
+      if (!groupedByCustomer.has(customerEmail)) {
+        groupedByCustomer.set(customerEmail, {
+          id: (chatRoom as any).Customer?.id,
+          email: (chatRoom as any).Customer?.email,
+          name: (chatRoom as any).Customer?.name,
+          chatRoom: [{
+            id: chatRoom.id,
+            createdAt: chatRoom.createdAt,
+            updatedAt: chatRoom.updatedAt,
+            live: chatRoom.live,
+            isFavorite: (chatRoom as any).isFavorite,
+            conversationState: (chatRoom as any).conversationState,
+            lastUserActivityAt: (chatRoom as any).lastUserActivityAt,
+            message: (chatRoom as any).message
+          }]
+        })
+      }
+    })
+
+    const result = {
+      customer: Array.from(groupedByCustomer.values())
+    }
+
+    console.log(`📊 Encontrados ${result.customer.length} clientes únicos con conversaciones`)
+    return result
+  } catch (error) {
+    console.log('❌ Error en onGetAllDomainChatRooms:', error)
+    return null
+  }
+}
