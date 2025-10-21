@@ -1,4 +1,4 @@
-import { onChatBotImageUpdate, onCreateFilterQuestions, onUpdateFilterQuestion, onDeleteFilterQuestion, onCreateHelpDeskQuestion, onCreateNewDomainProduct, onDeleteDomainProduct, onUpdateDomainProduct, onToggleProductStatus, onDeleteUserDomain, onGetAllFilterQuestions, onGetAllHelpDeskQuestions, onUpdateDomain, onUpdatePassword, onUpdateWelcomeMessage } from '@/action/settings'
+import { onChatBotImageUpdate, onCreateFilterQuestions, onUpdateFilterQuestion, onDeleteFilterQuestion, onCreateHelpDeskQuestion, onUpdateHelpDeskQuestion, onDeleteHelpDeskQuestion, onCreateNewDomainProduct, onDeleteDomainProduct, onUpdateDomainProduct, onToggleProductStatus, onDeleteUserDomain, onGetAllFilterQuestions, onGetAllHelpDeskQuestions, onUpdateDomain, onUpdatePassword, onUpdateWelcomeMessage } from '@/action/settings'
 import { useToast } from '@/components/ui/use-toast'
 import {
     ChangePasswordProps,
@@ -135,32 +135,85 @@ export const useHelpDesk = (id: string) => {
         formState: { errors },
         handleSubmit,
         reset,
+        setValue,
     } = useForm<HelpDeskQuestionsProps>({
         resolver: zodResolver(HelpDeskQuestionsSchema),
     })
     const { toast } = useToast()
 
     const [loading, setLoading] = useState<boolean>(false)
+    const [deleting, setDeleting] = useState<string | null>(null)
+    const [editingQuestion, setEditingQuestion] = useState<{ id: string; question: string; answer: string } | null>(null)
     const [isQuestions, setIsQuestions] = useState<
         { id: string; question: string; answer: string }[]
     >([])
+
     const onSubmitQuestion = handleSubmit(async (values) => {
         setLoading(true)
-        const question = await onCreateHelpDeskQuestion(
-            id,
-            values.question,
-            values.answer
-        )
-        if (question) {
-            setIsQuestions(question.questions!)
-            toast({
-                title: question.status == 200 ? 'Éxito al crear pregunta' : 'Error al crear pregunta',
-                description: question.message,
-            })
-            setLoading(false)
-            reset()
+
+        if (editingQuestion) {
+            // Actualizar pregunta existente
+            const result = await onUpdateHelpDeskQuestion(
+                editingQuestion.id,
+                values.question,
+                values.answer
+            )
+            if (result) {
+                toast({
+                    title: result.status == 200 ? 'Éxito al actualizar pregunta' : 'Error al actualizar pregunta',
+                    description: result.message,
+                })
+                if (result.status === 200) {
+                    await onGetQuestions()
+                    setEditingQuestion(null)
+                    reset()
+                }
+                setLoading(false)
+            }
+        } else {
+            // Crear nueva pregunta
+            const question = await onCreateHelpDeskQuestion(
+                id,
+                values.question,
+                values.answer
+            )
+            if (question) {
+                setIsQuestions(question.questions!)
+                toast({
+                    title: question.status == 200 ? 'Éxito al crear pregunta' : 'Error al crear pregunta',
+                    description: question.message,
+                })
+                setLoading(false)
+                reset()
+            }
         }
     })
+
+    const onDeleteQuestion = async (questionId: string) => {
+        setDeleting(questionId)
+        const result = await onDeleteHelpDeskQuestion(questionId)
+        if (result) {
+            toast({
+                title: result.status === 200 ? 'Éxito al eliminar pregunta' : 'Error al eliminar pregunta',
+                description: result.message,
+            })
+            if (result.status === 200) {
+                await onGetQuestions()
+            }
+            setDeleting(null)
+        }
+    }
+
+    const startEditing = (question: { id: string; question: string; answer: string }) => {
+        setEditingQuestion(question)
+        setValue('question', question.question)
+        setValue('answer', question.answer)
+    }
+
+    const cancelEditing = () => {
+        setEditingQuestion(null)
+        reset()
+    }
 
     const onGetQuestions = async () => {
         setLoading(true)
@@ -178,9 +231,14 @@ export const useHelpDesk = (id: string) => {
     return {
         register,
         onSubmitQuestion,
+        onDeleteQuestion,
+        startEditing,
+        cancelEditing,
+        editingQuestion,
         errors,
         isQuestions,
         loading,
+        deleting,
     }
 }
 

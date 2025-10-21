@@ -393,6 +393,70 @@ export const onGetAllHelpDeskQuestions = async (id: string) => {
   }
 }
 
+export const onUpdateHelpDeskQuestion = async (
+  questionId: string,
+  question: string,
+  answer: string
+) => {
+  try {
+    const updatedQuestion = await client.helpDesk.update({
+      where: {
+        id: questionId,
+      },
+      data: {
+        question,
+        answer,
+      },
+    })
+
+    if (updatedQuestion) {
+      return {
+        status: 200,
+        message: 'Pregunta actualizada exitosamente',
+      }
+    }
+
+    return {
+      status: 400,
+      message: 'Error al actualizar la pregunta',
+    }
+  } catch (error) {
+    console.log(error)
+    return {
+      status: 400,
+      message: 'Error al actualizar la pregunta',
+    }
+  }
+}
+
+export const onDeleteHelpDeskQuestion = async (questionId: string) => {
+  try {
+    const deletedQuestion = await client.helpDesk.delete({
+      where: {
+        id: questionId,
+      },
+    })
+
+    if (deletedQuestion) {
+      return {
+        status: 200,
+        message: 'Pregunta eliminada exitosamente',
+      }
+    }
+
+    return {
+      status: 400,
+      message: 'Error al eliminar la pregunta',
+    }
+  } catch (error) {
+    console.log(error)
+    return {
+      status: 400,
+      message: 'Error al eliminar la pregunta',
+    }
+  }
+}
+
 export const onCreateFilterQuestions = async (id: string, question: string) => {
   try {
     const filterQuestion = await client.domain.update({

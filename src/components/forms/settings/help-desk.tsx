@@ -1,32 +1,39 @@
 'use client'
 import React from 'react'
 import { useHelpDesk } from '@/hooks/settings/use-settings'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardTitle,
-} from '@/components/ui/card'
 import { Section } from '@/components/section-label'
 import FormGenerator from '../form-generator'
 import { Button } from '@/components/ui/button'
 import { Loader } from '@/components/loader'
-import Accordion from '@/components/accordian'
+import { Spinner } from '@/components/spinner'
+import { Edit, Trash2, X } from 'lucide-react'
 
 type Props = {
   id: string
 }
 
 const HelpDesk = ({ id }: Props) => {
-  const { register, errors, onSubmitQuestion, isQuestions, loading } =
-    useHelpDesk(id)
+  const {
+    register,
+    errors,
+    onSubmitQuestion,
+    onDeleteQuestion,
+    startEditing,
+    cancelEditing,
+    editingQuestion,
+    isQuestions,
+    loading,
+    deleting
+  } = useHelpDesk(id)
 
   return (
     <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
       <div className="bg-gray-50 rounded-lg p-4 md:p-6 border border-gray-100">
         <div className="flex items-center gap-3 mb-4 md:mb-6">
           <div className="w-1 h-6 md:h-8 bg-blue-500 rounded-full"></div>
-          <h3 className="font-semibold text-lg md:text-xl text-gray-900">Ayuda</h3>
+          <h3 className="font-semibold text-lg md:text-xl text-gray-900">
+            {editingQuestion ? 'Editar Pregunta' : 'Ayuda'}
+          </h3>
         </div>
         <form
           onSubmit={onSubmitQuestion}
@@ -63,12 +70,24 @@ const HelpDesk = ({ id }: Props) => {
               lines={5}
             />
           </div>
-          <Button
-            type="submit"
-            className="bg-orange hover:bg-orange/90 transition duration-150 ease-in-out text-white font-semibold px-6 py-2 rounded-lg"
-          >
-            Crear
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              type="submit"
+              className="bg-orange hover:bg-orange/90 transition duration-150 ease-in-out text-white font-semibold px-6 py-2 rounded-lg flex-1"
+            >
+              {editingQuestion ? 'Actualizar' : 'Crear'}
+            </Button>
+            {editingQuestion && (
+              <Button
+                type="button"
+                onClick={cancelEditing}
+                variant="outline"
+                className="px-6 py-2 rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
         </form>
       </div>
       <div className="bg-gray-50 rounded-lg p-4 md:p-6 border border-gray-100">
@@ -80,11 +99,49 @@ const HelpDesk = ({ id }: Props) => {
           <Loader loading={loading}>
             {isQuestions.length ? (
               isQuestions.map((question) => (
-                <Accordion
+                <div
                   key={question.id}
-                  trigger={question.question}
-                  content={question.answer}
-                />
+                  className={`bg-white rounded-lg p-3 md:p-4 border transition-all ${editingQuestion?.id === question.id
+                    ? 'border-orange ring-2 ring-orange/20'
+                    : 'border-gray-200'
+                    }`}
+                >
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-900 text-sm md:text-base mb-1">
+                        {question.question}
+                      </p>
+                      <p className="text-gray-600 text-xs md:text-sm">
+                        {question.answer}
+                      </p>
+                    </div>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => startEditing(question)}
+                        className="h-8 w-8 p-0 hover:bg-blue-50 hover:text-blue-600"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => onDeleteQuestion(question.id)}
+                        disabled={deleting === question.id}
+                        className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
+                      >
+                        {deleting === question.id ? (
+                          <Spinner noPadding />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               ))
             ) : (
               <p className="text-gray-500 text-sm">No hay preguntas para mostrar</p>
