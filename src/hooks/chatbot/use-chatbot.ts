@@ -138,17 +138,11 @@ export const useChatBot = () => {
         ])
       }
 
-      console.log('🟡 RESPONSE FROM UC', uploaded.uuid)
       setOnAiTyping(true)
+      console.log('142')
       
       // ✅ Enviar token de sesión si existe
-      const response = await onAiChatBotAssistant(
-        currentBotId!,
-        onChats,
-        'user',
-        uploaded.uuid,
-        sessionToken || undefined // ✅ Incluir token
-      )
+      const response = await onAiChatBotAssistant(currentBotId!, onChats, 'user', uploaded.uuid, sessionToken || undefined)
 
       if (response) {
         setOnAiTyping(false)
@@ -190,14 +184,8 @@ export const useChatBot = () => {
       }
 
       setOnAiTyping(true)
-      
-      const response = await onAiChatBotAssistant(
-        currentBotId!,
-        onChats,
-        'user',
-        values.content,
-        sessionToken || undefined // ✅ Incluir token
-      )
+      console.log('187')
+      const response = await onAiChatBotAssistant(currentBotId!, onChats, 'user', values.content, sessionToken || undefined)
       
       if (response) {
         setOnAiTyping(false)

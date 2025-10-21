@@ -142,7 +142,7 @@ export const onGetCurrentChatBot = async (idOrName: string) => {
 
     if (chatbot) {
       return chatbot
-    } 
+    }
   } catch (error) {
     console.log('Error en onGetCurrentChatBot:', error)
   }
@@ -234,7 +234,44 @@ const handleAuthenticatedUser = async (
   sessionToken: string
 ) => {
 
-  // ✅ La lógica de detección de "no" ahora está en el flujo principal
+  // ✅ NUEVA LÓGICA: Usar IA para detectar si el usuario quiere terminar
+  const shouldEndConversation = await detectConversationEndingWithAI(message, chat)
+  console.log("🚀 ~ shouldEndConversation:", shouldEndConversation)
+
+  if (shouldEndConversation) {
+    // Guardar mensaje del usuario
+    await onStoreConversations(customerInfo.chatRoom[0].id, message, 'user')
+
+    // Solicitar calificación de forma simple
+    const ratingMessage = `¡Perfecto! Me alegra haberte ayudado. 😊
+
+Antes de que te vayas, ¿podrías calificar tu experiencia del 1 al 5?
+
+⭐ 1 = Muy insatisfecho
+⭐ 5 = Muy satisfecho
+
+Tu opinión nos ayuda a mejorar.`
+
+    // Guardar solicitud de feedback
+    await onStoreConversations(customerInfo.chatRoom[0].id, ratingMessage, 'assistant', message)
+
+    // Marcar como esperando calificación
+    await client.chatRoom.update({
+      where: { id: customerInfo.chatRoom[0].id },
+      data: {
+        conversationState: 'AWAITING_RATING',
+        resolved: true
+      }
+    })
+
+    return {
+      response: {
+        role: 'assistant',
+        content: ratingMessage
+      },
+      sessionToken
+    }
+  }
 
   // 0.1 ✅ Actualizar última actividad del usuario
   await updateUserActivity(customerInfo.chatRoom[0].id)
@@ -269,7 +306,7 @@ const handleAuthenticatedUser = async (
 
   // 1. FR4: Detectar si el usuario está calificando (1-5)
   const satisfactionRating = detectSatisfactionRating(message)
-  if (satisfactionRating && !customerInfo.chatRoom[0].satisfactionCollected) {
+  if (satisfactionRating) {
     // ✅ Guardar mensaje de calificación del usuario
     await onStoreConversations(customerInfo.chatRoom[0].id, message, 'user')
 
@@ -895,11 +932,69 @@ const isResponseEffective = async (
 }
 
 /**
+ * ✅ NUEVA FUNCIÓN: Usa IA para detectar si el usuario quiere terminar la conversación
+ */
+const detectConversationEndingWithAI = async (
+  message: string,
+  chatHistory: { role: 'user' | 'assistant'; content: string }[]
+): Promise<boolean> => {
+  try {
+    const systemPrompt = `Eres un analizador de conversaciones. Tu trabajo es determinar si el usuario quiere TERMINAR la conversación.
+
+ANALIZA el mensaje del usuario y el contexto de la conversación para determinar si:
+1. El usuario está diciendo que NO necesita más ayuda
+2. El usuario se está DESPIDIENDO
+3. El usuario está SATISFECHO y quiere terminar
+4. El usuario está AGRADECIENDO y cerrando la conversación
+
+RESPUESTA SOLO: "SI" si el usuario quiere terminar, "NO" si quiere continuar.
+
+EJEMPLOS:
+- "no" → SI
+- "no, gracias" → SI  
+- "ya está" → SI
+- "perfecto" → SI
+- "adiós" → SI
+- "hasta luego" → SI
+- "gracias" → SI
+- "eso es todo" → SI
+- "listo" → SI
+- "quiero más información" → NO
+- "tengo otra pregunta" → NO
+- "necesito ayuda con..." → NO`
+
+    const chatCompletion = await openai.chat.completions.create({
+      messages: [
+        { role: 'system', content: systemPrompt },
+        ...chatHistory.slice(-5), // Últimos 5 mensajes para contexto
+        { role: 'user', content: message }
+      ],
+      model: 'gpt-3.5-turbo',
+      temperature: 0.1, // Baja temperatura para respuestas consistentes
+      max_tokens: 10 // Solo necesitamos "SI" o "NO"
+    })
+
+    const response = chatCompletion.choices[0].message.content?.trim().toUpperCase()
+    return response === 'SI'
+
+  } catch (error) {
+    console.log('Error en detectConversationEndingWithAI:', error)
+  }
+}
+
+/**
  * ✅ NUEVA FUNCIÓN: Agrega "¿Hay algo más en que te pueda ayudar?" a las respuestas
  */
 const addHelpOffer = (content: string): string => {
   // No agregar si ya tiene la pregunta o si es una solicitud de calificación
-  if (content.includes('algo más en que') || content.includes('califica') || content.includes('⭐')) {
+  if (content.includes('algo más en que') ||
+    content.includes('califica') ||
+    content.includes('⭐') ||
+    content.includes('calificación') ||
+    content.includes('calificar') ||
+    content.includes('estrella') ||
+    content.includes('rating') ||
+    content.includes('Muchas gracias por tu calificación')) {
     return content
   }
 
@@ -1446,10 +1541,9 @@ export const onAiChatBotAssistant = async (
   chat: { role: 'user' | 'assistant'; content: string }[],
   author: 'user',
   message: string,
-  sessionToken?: string // ✅ NUEVO: Token de sesión opcional
+  sessionToken?: string
 ) => {
   try {
-    // 1. Obtener datos del dominio del chatbot
     const chatBotDomain = await client.domain.findUnique({
       where: { id },
       select: {
@@ -1467,23 +1561,19 @@ export const onAiChatBotAssistant = async (
       throw new Error('Chatbot domain not found')
     }
 
-    // ✅ PRIORIDAD MÁXIMA: Detectar "no" y despedidas ANTES que cualquier otra lógica
-    const isNegativeResponse = detectNegativeResponse(message)
-    const isSayingGoodbye = /^(adiós|hasta luego|nos vemos|chao|bye|hasta pronto|chau)\.?$/i.test(message.trim())
+    // ✅ NUEVA LÓGICA: Usar IA para detectar si el usuario quiere terminar
+    const shouldEndConversation = await detectConversationEndingWithAI(message, chat)
+    console.log("🚀 ~ shouldEndConversation:", shouldEndConversation)
 
-    // 2. ✅ NUEVA FUNCIONALIDAD: Intentar recuperar sesión desde token
     if (sessionToken) {
-
       const customerFromToken = await getCustomerFromToken(sessionToken, id)
 
       if (customerFromToken && customerFromToken.chatRoom && customerFromToken.chatRoom.length > 0) {
-
         const customerInfo = {
           ...customerFromToken,
           chatRoom: customerFromToken.chatRoom
         }
 
-        // Usar este flujo directo con el usuario recuperado
         return await handleAuthenticatedUser(
           customerInfo,
           message,
@@ -1493,10 +1583,9 @@ export const onAiChatBotAssistant = async (
           chatBotDomain,
           sessionToken
         )
-      } 
+      }
     }
 
-    // 3. FLUJO NORMAL: Buscar en todo el historial de chat si ya hay un email
     let existingEmail: string | null = null
     for (const msg of chat) {
       const emailInHistory = extractEmailsFromString(msg.content)?.[0]
@@ -1506,17 +1595,11 @@ export const onAiChatBotAssistant = async (
       }
     }
 
-    // También buscar en el mensaje actual
     const customerDataFromCurrentMessage = extractCustomerData(message)
     const emailFromCurrentMessage = customerDataFromCurrentMessage.email
-
-    // Usar el email que encontremos (prioridad: mensaje actual > historial)
     const finalEmail = emailFromCurrentMessage || existingEmail
 
-    // 4. Si tenemos email (de cualquier fuente), buscar o crear cliente
     if (finalEmail) {
-
-      // Buscar si ya existe el cliente con este email
       const existingCustomer = await client.domain.findUnique({
         where: { id },
         select: {
@@ -1550,17 +1633,13 @@ export const onAiChatBotAssistant = async (
       let customerInfo: any = null
       let isNewCustomer = false
 
-      // Si el cliente YA existe, usar sus datos
       if (existingCustomer?.customer && existingCustomer.customer.length > 0) {
         customerInfo = existingCustomer.customer[0]
         isNewCustomer = false
 
-        // ✅ NUEVO: Si solo dio email (re-login después de logout)
         const onlyProvidedEmail = finalEmail && !customerDataFromCurrentMessage.name && !customerDataFromCurrentMessage.phone
 
         if (onlyProvidedEmail) {
-
-          // Generar nuevo token de sesión
           const sessionData = await generateSessionToken(
             customerInfo.id,
             customerInfo.email || finalEmail,
@@ -1568,10 +1647,8 @@ export const onAiChatBotAssistant = async (
             customerInfo.chatRoom[0].id
           )
 
-          // Guardar el mensaje del email
           await onStoreConversations(customerInfo.chatRoom[0].id, message, 'user')
 
-          // Mensaje de bienvenida personalizado para re-login
           const welcomeBackMessage = customerInfo.name
             ? `¡Hola de nuevo ${customerInfo.name}! 😊 Me alegra verte otra vez. ¿En qué puedo ayudarte hoy?`
             : `¡Hola de nuevo! 😊 Reconozco tu correo ${customerInfo.email}. ¿En qué puedo ayudarte?`
@@ -1593,15 +1670,10 @@ export const onAiChatBotAssistant = async (
           }
         }
 
-        // Actualizar datos si el mensaje actual tiene información nueva
         if (customerDataFromCurrentMessage.name || customerDataFromCurrentMessage.phone) {
           await updateCustomerData(customerInfo.id, customerDataFromCurrentMessage)
         }
       } else {
-        // Cliente nuevo - crear con todos los datos disponibles
-        console.log('✨ Creando nuevo cliente')
-
-        // Combinar datos del mensaje actual con el email encontrado
         const fullCustomerData = {
           email: finalEmail,
           name: customerDataFromCurrentMessage.name,
@@ -1618,7 +1690,6 @@ export const onAiChatBotAssistant = async (
         customerInfo = customerResultData.customer[0]
         isNewCustomer = true
 
-        // ✅ Generar token de sesión para el nuevo cliente
         const sessionData = await generateSessionToken(
           customerInfo.id,
           customerInfo.email,
@@ -1626,14 +1697,12 @@ export const onAiChatBotAssistant = async (
           customerInfo.chatRoom[0].id
         )
 
-
-        // Si es nuevo, dar bienvenida CON TOKEN
         return {
           response: {
             role: 'assistant',
             content: `¡Bienvenido ${fullCustomerData.name || 'a Lunari AI'}! ${TEXTILE_MESSAGES.WELCOME} ${TEXTILE_MESSAGES.SERVICES_DESCRIPTION} ¿En qué puedo ayudarte hoy?`
           },
-          sessionToken: sessionData.token, // ✅ Enviar token al frontend
+          sessionToken: sessionData.token,
           sessionData: {
             customerId: customerInfo.id,
             email: customerInfo.email,
@@ -1643,27 +1712,20 @@ export const onAiChatBotAssistant = async (
         }
       }
 
-      // ✅ Cliente existente - Generar token si no tiene sesión activa
       if (!sessionToken && customerInfo) {
-        const sessionData = await generateSessionToken(
+        await generateSessionToken(
           customerInfo.id,
           customerInfo.email || finalEmail,
           id,
           customerInfo.chatRoom[0].id
         )
-
-
       }
 
-      // ✅ PRIORIDAD MÁXIMA: Manejar "no" y despedidas si tenemos customerInfo
+      // ✅ PRIORIDAD: Detectar si el usuario quiere terminar usando IA
       if (customerInfo && customerInfo.chatRoom && customerInfo.chatRoom[0]) {
-
-        if (isNegativeResponse && !customerInfo.chatRoom[0].satisfactionCollected) {
-
-          // Guardar mensaje del usuario
+        if (shouldEndConversation) {
           await onStoreConversations(customerInfo.chatRoom[0].id, message, author)
 
-          // Solicitar calificación de forma simple
           const ratingMessage = `¡Perfecto! Me alegra haberte ayudado. 😊
 
                                   Antes de que te vayas, ¿podrías calificar tu experiencia del 1 al 5?
@@ -1673,10 +1735,8 @@ export const onAiChatBotAssistant = async (
 
                                   Tu opinión nos ayuda a mejorar.`
 
-          // Guardar solicitud de feedback
           await onStoreConversations(customerInfo.chatRoom[0].id, ratingMessage, 'assistant', message)
 
-          // Marcar como esperando calificación
           await client.chatRoom.update({
             where: { id: customerInfo.chatRoom[0].id },
             data: {
@@ -1692,43 +1752,10 @@ export const onAiChatBotAssistant = async (
             }
           }
         }
-
-        if (isSayingGoodbye && !customerInfo.chatRoom[0].satisfactionCollected) {
-
-          await onStoreConversations(customerInfo.chatRoom[0].id, message, author)
-
-          const goodbyeRatingMessage = `¡Hasta pronto! 😊
-
-                                        Antes de que te vayas, ¿podrías calificar tu experiencia del 1 al 5?
-
-                                        ⭐ 1 = Muy insatisfecho
-                                        ⭐ 5 = Muy satisfecho`
-
-          await onStoreConversations(customerInfo.chatRoom[0].id, goodbyeRatingMessage, 'assistant', message)
-
-          await client.chatRoom.update({
-            where: { id: customerInfo.chatRoom[0].id },
-            data: {
-              conversationState: 'AWAITING_RATING',
-              resolved: true
-            }
-          })
-
-          return {
-            response: {
-              role: 'assistant',
-              content: goodbyeRatingMessage
-            }
-          }
-        }
       }
 
-      // 4. CLIENTE EXISTE - Verificar si es solicitud de agendamiento
       const isAppointment = isAppointmentRequest(message)
-
       if (isAppointment) {
-
-        // DAR ENLACE DIRECTO - NO PREGUNTAR POR FECHA/HORA
         await onStoreConversations(customerInfo.chatRoom[0].id, message, author)
         await onStoreConversations(
           customerInfo.chatRoom[0].id,
@@ -1748,9 +1775,8 @@ export const onAiChatBotAssistant = async (
         }
       }
 
-      // 5. FR4: Detectar si el usuario está calificando (1-5)
       const satisfactionRating = detectSatisfactionRating(message)
-      if (satisfactionRating && !customerInfo.chatRoom[0].satisfactionCollected) {
+      if (satisfactionRating) {
         await saveSatisfactionRating(
           customerInfo.chatRoom[0].id,
           customerInfo.id,
@@ -1762,18 +1788,17 @@ export const onAiChatBotAssistant = async (
         return {
           response: {
             role: 'assistant',
-            content: `¡Muchas gracias por tu calificación de ${satisfactionRating}/5! Tu opinión es muy importante para nosotros y nos ayuda a mejorar nuestro servicio. 😊`
+            content: `¡Muchas gracias por tu calificación de ${satisfactionRating}/5! Tu opinión es muy importante para nosotros y nos ayuda a mejorar nuestro servicio. 😊
+
+¿Tienes alguna otra consulta o necesitas ayuda con algo más?`
           }
         }
       }
 
-      // 6. Manejar modo tiempo real si está activo
       if (customerInfo.chatRoom[0].live) {
         await onStoreConversations(customerInfo.chatRoom[0].id, message, author)
 
-        // Marcar como mailed si es necesario
         if (!customerInfo.chatRoom[0].mailed) {
-          // Buscar el usuario owner del dominio
           const domainOwner = await client.domain.findUnique({
             where: { id },
             select: {
@@ -1800,84 +1825,12 @@ export const onAiChatBotAssistant = async (
         }
       }
 
-      if (isNegativeResponse && !customerInfo.chatRoom[0].satisfactionCollected) {
-
-        // Guardar mensaje del usuario
-        await onStoreConversations(customerInfo.chatRoom[0].id, message, author)
-
-        // Solicitar calificación de forma simple
-        const ratingMessage = `¡Perfecto! Me alegra haberte ayudado. 😊
-
-                                Antes de que te vayas, ¿podrías calificar tu experiencia del 1 al 5?
-
-                                ⭐ 1 = Muy insatisfecho
-                                ⭐ 5 = Muy satisfecho
-
-                                Tu opinión nos ayuda a mejorar.`
-
-        // Guardar solicitud de feedback
-        await onStoreConversations(customerInfo.chatRoom[0].id, ratingMessage, 'assistant', message)
-
-        // Marcar como esperando calificación
-        await client.chatRoom.update({
-          where: { id: customerInfo.chatRoom[0].id },
-          data: {
-            conversationState: 'AWAITING_RATING',
-            resolved: true
-          }
-        })
-
-        return {
-          response: {
-            role: 'assistant',
-            content: ratingMessage
-          }
-        }
-      }
-
-      // 8. ✅ NUEVO: Detectar despedidas directas
-
-      if (isSayingGoodbye && !customerInfo.chatRoom[0].satisfactionCollected) {
-
-        await onStoreConversations(customerInfo.chatRoom[0].id, message, author)
-
-        const goodbyeRatingMessage = `¡Hasta pronto! 😊
-
-                                        Antes de que te vayas, ¿podrías calificar tu experiencia del 1 al 5?
-
-                                        ⭐ 1 = Muy insatisfecho
-                                        ⭐ 5 = Muy satisfecho`
-
-        await onStoreConversations(customerInfo.chatRoom[0].id, goodbyeRatingMessage, 'assistant', message)
-
-        await client.chatRoom.update({
-          where: { id: customerInfo.chatRoom[0].id },
-          data: {
-            conversationState: 'AWAITING_RATING',
-            resolved: true
-          }
-        })
-
-        return {
-          response: {
-            role: 'assistant',
-            content: goodbyeRatingMessage
-          }
-        }
-      }
-
-      // 9. Almacenar mensaje del usuario
       await onStoreConversations(customerInfo.chatRoom[0].id, message, author)
 
-      // 10. OPTIMIZACIÓN: Intentar respuesta rápida primero (sin OpenAI)
       const quickResponse = getQuickResponse(message, customerInfo, id)
-
       if (quickResponse) {
-
-        // ✅ SIMPLIFICADO: Agregar pregunta de ayuda
         const finalQuickContentMain = addHelpOffer(quickResponse.content)
 
-        // Guardar respuesta rápida
         await onStoreConversations(
           customerInfo.chatRoom[0].id,
           finalQuickContentMain,
@@ -1885,7 +1838,6 @@ export const onAiChatBotAssistant = async (
           message
         )
 
-        // Actualizar métricas
         await updateResolutionType(customerInfo.chatRoom[0].id, false)
 
         return {
@@ -1897,17 +1849,13 @@ export const onAiChatBotAssistant = async (
         }
       }
 
-      // 9. Generar contexto específico para la respuesta
       const contextSpecificPrompt = getContextSpecificPrompt(message, id, customerInfo.id)
-
-      // 10. Crear customerData para el contexto de OpenAI
       const customerDataForContext = {
         email: customerInfo.email,
         name: customerInfo.name,
         phone: customerInfo.phone
       }
 
-      // 11. Generar contexto completo para OpenAI
       const systemPrompt = generateOpenAIContext(
         chatBotDomain,
         customerDataForContext,
@@ -1916,51 +1864,37 @@ export const onAiChatBotAssistant = async (
         customerInfo
       )
 
-      // 12. OPTIMIZACIÓN: Usar solo historial relevante (últimos 10 mensajes)
       const relevantHistory = getRelevantChatHistory(chat, 10)
 
-      // 13. Obtener respuesta de OpenAI
       const chatCompletion = await openai.chat.completions.create({
         messages: [
           { role: 'system', content: systemPrompt },
-          ...relevantHistory, // ✅ Solo últimos 10 mensajes
+          ...relevantHistory,
           { role: 'user', content: message }
         ],
         model: 'gpt-3.5-turbo',
         temperature: 0.7,
-        max_tokens: 800 // ✅ CORREGIDO: Aumentado para respuestas completas
+        max_tokens: 800
       })
 
-      // 14. Manejar respuesta de OpenAI
       const response = chatCompletion.choices[0].message.content
       const result = await handleOpenAIResponse(response, customerInfo, chat)
-
-      // ✅ SIMPLIFICADO: Agregar "¿Hay algo más en que te pueda ayudar?" a todas las respuestas
       const finalContentMain = addHelpOffer(result.response.content)
 
-      // 15. ✅ NUEVO: Preparar y guardar chat completo
-      const messagesToSave: {
-        role: 'user' | 'assistant';
-        content: string;
-        timestamp: Date;
-        responseTime?: number;
-        respondedWithin2Hours?: boolean
-      }[] = [
-          {
-            role: 'user' as const,
-            content: message,
-            timestamp: new Date(),
-            responseTime: undefined,
-            respondedWithin2Hours: undefined
-          },
-          {
-            role: 'assistant' as const,
-            content: finalContentMain,
-            timestamp: new Date(),
-            responseTime: Math.floor((Date.now() - Date.now()) / 1000), // Tiempo de respuesta
-            respondedWithin2Hours: true
-          }
-        ]
+      const messagesToSave = [
+        {
+          role: 'user' as const,
+          content: message,
+          timestamp: new Date()
+        },
+        {
+          role: 'assistant' as const,
+          content: finalContentMain,
+          timestamp: new Date(),
+          responseTime: 0,
+          respondedWithin2Hours: true
+        }
+      ]
 
       await saveCompleteChatSession(
         customerInfo.id,
@@ -1969,7 +1903,6 @@ export const onAiChatBotAssistant = async (
         messagesToSave
       )
 
-      // 16. FR3: Actualizar tipo de resolución
       await updateResolutionType(customerInfo.chatRoom[0].id, false)
 
       return {
@@ -1981,7 +1914,6 @@ export const onAiChatBotAssistant = async (
       }
     }
 
-    // Verificar si es una solicitud de agendamiento sin email
     const isAppointment = isAppointmentRequest(message)
     if (isAppointment) {
       return {
@@ -1992,7 +1924,6 @@ export const onAiChatBotAssistant = async (
       }
     }
 
-    // Flujo normal de pedir datos
     return await handleNoEmailFlow(message, chat)
 
   } catch (error) {
@@ -2004,3 +1935,4 @@ export const onAiChatBotAssistant = async (
     }
   }
 }
+
