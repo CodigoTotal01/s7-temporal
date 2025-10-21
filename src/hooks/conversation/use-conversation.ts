@@ -1,4 +1,4 @@
-import { onGetChatMessages, onGetDomainChatRooms, onOwnerSendMessage, onViewUnReadMessages, onToggleFavorite } from '@/action/conversation'
+import { onGetChatMessages, onGetDomainChatRooms, onGetAllDomainChatRooms, onOwnerSendMessage, onViewUnReadMessages, onToggleFavorite } from '@/action/conversation'
 import { useChatContext } from '@/context/user-chat-context'
 import { getMonthName } from '@/lib/utils'
 import { ChatBotMessageSchema, ConversationSearchSchema } from '@/schemas/conversation.schema'
@@ -17,9 +17,9 @@ export const useConversation = () => {
       chatRoom: {
         id: string
         createdAt: Date
-        // isFavorite: boolean
-        // conversationState: string
-        // lastUserActivityAt: Date
+        isFavorite: boolean
+        conversationState: string
+        lastUserActivityAt: Date
         message: {
           message: string
           createdAt: Date
@@ -36,10 +36,10 @@ export const useConversation = () => {
     const search = watch(async (value) => {
       setLoading(true)
       try {
-        const rooms = await onGetDomainChatRooms(value.domain)
+        const rooms = await onGetAllDomainChatRooms(value.domain)
         if (rooms) {
           setLoading(false)
-          setChatRooms(rooms.customer)
+          setChatRooms((rooms as any).customer)
         }
       } catch (error) {
         console.log(error)
@@ -73,8 +73,8 @@ export const useConversation = () => {
       
       const lastMessage = chatRoom.message[0]
       const now = new Date()
-      const createdAt = new Date(chatRoom.createdAt)
-      const hoursSinceCreated = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60)
+      const lastActivity = new Date(chatRoom.lastUserActivityAt)
+      const hoursSinceLastActivity = (now.getTime() - lastActivity.getTime()) / (1000 * 60 * 60)
       
       switch (activeTab) {
         case 'no leidos':
@@ -82,9 +82,9 @@ export const useConversation = () => {
         case 'todos':
           return true
         case 'expirados':
-          return hoursSinceCreated > 24 // Conversaciones de más de 24 horas
+          return hoursSinceLastActivity > 24 || chatRoom.conversationState === 'EXPIRED'
         case 'favoritos':
-          return false // Temporalmente deshabilitado hasta resolver tipos
+          return chatRoom.isFavorite
         default:
           return true
       }
@@ -99,21 +99,20 @@ export const useConversation = () => {
   // Función para marcar/desmarcar como favorito
   const toggleFavorite = async (chatRoomId: string, isFavorite: boolean) => {
     try {
-      // Temporalmente deshabilitado hasta resolver tipos de Prisma
-      // const result = await onToggleFavorite(chatRoomId, isFavorite)
-      // if (result?.status === 200) {
-      //   // Actualizar el estado local
-      //   setChatRooms(prev => 
-      //     prev.map(room => ({
-      //       ...room,
-      //       chatRoom: room.chatRoom.map(chat => 
-      //         chat.id === chatRoomId 
-      //           ? { ...chat, isFavorite }
-      //           : chat
-      //       )
-      //     }))
-      //   )
-      // }
+      const result = await onToggleFavorite(chatRoomId, isFavorite)
+      if (result?.status === 200) {
+        // Actualizar el estado local
+        setChatRooms(prev => 
+          prev.map(room => ({
+            ...room,
+            chatRoom: room.chatRoom.map(chat => 
+              chat.id === chatRoomId 
+                ? { ...chat, isFavorite }
+                : chat
+            )
+          }))
+        )
+      }
     } catch (error) {
       console.log('Error al actualizar favorito:', error)
     }

@@ -60,6 +60,7 @@ export const onGetDomainChatRooms = async (id: string) => {
         id,
       },
       select: {
+        // @ts-ignore
         customer: {
           select: {
             id: true,
@@ -71,9 +72,12 @@ export const onGetDomainChatRooms = async (id: string) => {
                 id: true,
                 live: true,
                 updatedAt: true,
-                // isFavorite: true,
-                // conversationState: true,
-                // lastUserActivityAt: true,
+                // @ts-ignore
+                isFavorite: true,
+                // @ts-ignore
+                conversationState: true,
+                // @ts-ignore
+                lastUserActivityAt: true,
                 message: {
                   select: {
                     message: true,
@@ -97,7 +101,7 @@ export const onGetDomainChatRooms = async (id: string) => {
     })
 
     if (domains) {
-      console.log(`📊 Encontrados ${domains.customer.length} clientes con chats`)
+      console.log(`📊 Encontrados ${(domains as any).customer.length} clientes con chats`)
       return domains
     }
   } catch (error) {
@@ -220,11 +224,13 @@ export const onToggleFavorite = async (chatRoomId: string, isFavorite: boolean) 
         id: chatRoomId,
       },
       data: {
-        // isFavorite,
+        // @ts-ignore
+        isFavorite,
       },
       select: {
         id: true,
-        // isFavorite: true,
+        // @ts-ignore
+        isFavorite: true,
       },
     })
 
@@ -241,5 +247,90 @@ export const onToggleFavorite = async (chatRoomId: string, isFavorite: boolean) 
       status: 500,
       message: "Error al actualizar favorito",
     }
+  }
+}
+
+// ✅ NUEVA FUNCIÓN: Obtener todas las conversaciones agrupadas por cliente
+export const onGetAllDomainChatRooms = async (id: string) => {
+  try {
+    console.log(`🔍 Obteniendo TODAS las conversaciones para dominio: ${id}`)
+    
+    // Obtener todas las conversaciones del dominio
+    const allChatRooms = await client.chatRoom.findMany({
+      where: {
+        Customer: {
+          domainId: id
+        }
+      },
+      select: {
+        id: true,
+        createdAt: true,
+        updatedAt: true,
+        live: true,
+        // @ts-ignore
+        isFavorite: true,
+        // @ts-ignore
+        conversationState: true,
+        // @ts-ignore
+        lastUserActivityAt: true,
+        Customer: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          }
+        },
+        message: {
+          select: {
+            message: true,
+            createdAt: true,
+            seen: true,
+            role: true,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 1,
+        },
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    })
+
+    // Agrupar por cliente (email) y tomar solo la conversación más reciente de cada cliente
+    const groupedByCustomer = new Map()
+    
+    allChatRooms.forEach(chatRoom => {
+      const customerEmail = (chatRoom as any).Customer?.email || 'unknown'
+      
+      if (!groupedByCustomer.has(customerEmail)) {
+        groupedByCustomer.set(customerEmail, {
+          id: (chatRoom as any).Customer?.id,
+          email: (chatRoom as any).Customer?.email,
+          name: (chatRoom as any).Customer?.name,
+          chatRoom: [{
+            id: chatRoom.id,
+            createdAt: chatRoom.createdAt,
+            updatedAt: chatRoom.updatedAt,
+            live: chatRoom.live,
+            isFavorite: (chatRoom as any).isFavorite,
+            conversationState: (chatRoom as any).conversationState,
+            lastUserActivityAt: (chatRoom as any).lastUserActivityAt,
+            message: (chatRoom as any).message
+          }]
+        })
+      }
+    })
+
+    const result = {
+      customer: Array.from(groupedByCustomer.values())
+    }
+
+    console.log(`📊 Encontrados ${result.customer.length} clientes únicos con conversaciones`)
+    return result
+  } catch (error) {
+    console.log('❌ Error en onGetAllDomainChatRooms:', error)
+    return null
   }
 }

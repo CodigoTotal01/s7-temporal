@@ -52,7 +52,7 @@ const ConversationMenu = ({ domains }: Props) => {
                       key={room.chatRoom[0].id}
                       title={room.email!}
                       description={room.chatRoom[0].message[0]?.message}
-                      isFavorite={false} // Temporalmente deshabilitado
+                      isFavorite={room.chatRoom[0].isFavorite}
                       onToggleFavorite={(isFavorite) => toggleFavorite(room.chatRoom[0].id, isFavorite)}
                     />
                   ))
@@ -92,7 +92,7 @@ const ConversationMenu = ({ domains }: Props) => {
                       key={room.chatRoom[0].id}
                       title={room.email!}
                       description={room.chatRoom[0].message[0]?.message}
-                      isFavorite={false} // Temporalmente deshabilitado
+                      isFavorite={room.chatRoom[0].isFavorite}
                       onToggleFavorite={(isFavorite) => toggleFavorite(room.chatRoom[0].id, isFavorite)}
                     />
                   ))
@@ -132,7 +132,7 @@ const ConversationMenu = ({ domains }: Props) => {
                       key={room.chatRoom[0].id}
                       title={room.email!}
                       description={room.chatRoom[0].message[0]?.message}
-                      isFavorite={false} // Temporalmente deshabilitado
+                      isFavorite={room.chatRoom[0].isFavorite}
                       onToggleFavorite={(isFavorite) => toggleFavorite(room.chatRoom[0].id, isFavorite)}
                     />
                   ))
@@ -172,7 +172,7 @@ const ConversationMenu = ({ domains }: Props) => {
                       key={room.chatRoom[0].id}
                       title={room.email!}
                       description={room.chatRoom[0].message[0]?.message}
-                      isFavorite={false} // Temporalmente deshabilitado
+                      isFavorite={room.chatRoom[0].isFavorite}
                       onToggleFavorite={(isFavorite) => toggleFavorite(room.chatRoom[0].id, isFavorite)}
                     />
                   ))

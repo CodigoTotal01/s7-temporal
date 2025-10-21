@@ -276,31 +276,35 @@ Tu opinión nos ayuda a mejorar.`
   // 0.1 ✅ Actualizar última actividad del usuario
   await updateUserActivity(customerInfo.chatRoom[0].id)
 
-  // 0.2 ✅ Verificar estado de la conversación
+  // 0.2 ✅ Verificar estado de la conversación (SIN crear nuevas conversaciones)
   const conversationState = await handleConversationState(
     customerInfo.chatRoom[0].id,
     customerInfo.id,
     chatBotDomain.chatBot?.welcomeMessage || '¡Hola! ¿En qué puedo ayudarte?'
   )
 
-  // Si debe iniciar nueva conversación (estado ENDED)
-  if (conversationState.shouldStartNew && conversationState.newChatRoomId) {
+  // ✅ NUEVA LÓGICA: NO crear nuevas conversaciones, mantener la misma
+  // Si la conversación está ENDED, simplemente reactivarla
+  if (conversationState.shouldStartNew) {
+    // Reactivar la conversación existente en lugar de crear una nueva
+    await client.chatRoom.update({
+      where: { id: customerInfo.chatRoom[0].id },
+      data: {
+        conversationState: 'ACTIVE',
+        lastUserActivityAt: new Date(),
+        resolved: false
+      }
+    })
 
-    // Guardar el mensaje del usuario en la nueva conversación
-    await onStoreConversations(conversationState.newChatRoomId, message, 'user')
-
-    // Guardar el mensaje de bienvenida
-    await onStoreConversations(conversationState.newChatRoomId, conversationState.message!, 'assistant', message)
-
-    // Actualizar customerInfo con el nuevo chatRoomId
-    customerInfo.chatRoom[0].id = conversationState.newChatRoomId
-
-    return {
-      response: {
-        role: 'assistant',
-        content: conversationState.message!
-      },
-      sessionToken
+    // Si hay mensaje de bienvenida, mostrarlo
+    if (conversationState.message) {
+      return {
+        response: {
+          role: 'assistant',
+          content: conversationState.message
+        },
+        sessionToken
+      }
     }
   }
 
@@ -529,20 +533,21 @@ const endConversation = async (chatRoomId: string, customerId: string): Promise<
 }
 
 /**
- * Marca la conversación como completamente terminada (después de calificar)
+ * Marca la conversación como temporalmente inactiva (NO como ENDED permanente)
+ * Esto permite que se reactive cuando el usuario vuelva a escribir
  */
 const markConversationAsEnded = async (chatRoomId: string): Promise<void> => {
   try {
     await client.chatRoom.update({
       where: { id: chatRoomId },
       data: {
-        conversationState: 'ENDED',
+        conversationState: 'IDLE', // Cambiar a IDLE en lugar de ENDED
         conversationEndedAt: new Date(),
+        resolved: true
       }
     })
-
   } catch (error) {
-    console.log('Error al marcar conversación como ended:', error)
+    console.log('Error al marcar conversación como inactiva:', error)
   }
 }
 
@@ -622,13 +627,11 @@ const handleConversationState = async (
       return { shouldStartNew: false }
     }
 
-    // Si la conversación ya ENDED, iniciar nueva
+    // ✅ NUEVA LÓGICA: Si la conversación está ENDED, reactivarla (NO crear nueva)
     if (chatRoom.conversationState === 'ENDED') {
-      const newConv = await startNewConversation(customerId, '', welcomeMessage)
       return {
         shouldStartNew: true,
-        newChatRoomId: newConv.chatRoomId,
-        message: newConv.welcomeMessage
+        message: `¡Hola de nuevo! 👋 ${welcomeMessage}`
       }
     }
 
