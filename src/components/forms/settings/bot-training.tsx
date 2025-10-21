@@ -16,10 +16,10 @@ const BotTrainingForm = ({ id }: Props) => {
         <div className="flex flex-col gap-4 md:gap-6">
           <div className="flex items-center gap-3">
             <div className="w-1 h-6 md:h-8 bg-orange rounded-full"></div>
-            <h2 className="font-bold text-xl md:text-2xl text-gray-900">Entrenamiento de Bot</h2>
+            <h2 className="font-bold text-xl md:text-2xl text-gray-900">Configuración de Respuestas</h2>
           </div>
           <p className="text-sm md:text-base text-gray-600 font-light">
-            Establece preguntas frecuentes, crea preguntas para capturar información de leads y entrena a tu bot para que actúe como lo deseas.
+            Configura las preguntas frecuentes que tu asistente puede responder y define las preguntas que hará a tus clientes al momento de agendar una cita.
           </p>
           <TabsMenu triggers={HELP_DESK_TABS_MENU}>
             <TabsContent

@@ -163,3 +163,47 @@ export const onGetAllBookingsForCurrentUser = async (clerkId: string) => {
         }
     }
 }
+
+export const onGetAvailableTimeSlotsForDay = async (domainId: string, date: Date) => {
+    try {
+        // Obtener el día de la semana (0 = Domingo, 1 = Lunes, etc)
+        const dayOfWeekNumber = date.getDay()
+        
+        // Mapear a nuestro enum
+        const dayMapping = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY']
+        const dayOfWeek = dayMapping[dayOfWeekNumber]
+        
+        // Obtener el horario configurado para este día
+        const schedule = await client.availabilitySchedule.findUnique({
+            where: {
+                domainId_dayOfWeek: {
+                    domainId,
+                    dayOfWeek: dayOfWeek as any,
+                },
+            },
+            select: {
+                timeSlots: true,
+                isActive: true,
+            },
+        })
+        
+        if (schedule && schedule.isActive) {
+            return {
+                status: 200,
+                timeSlots: schedule.timeSlots,
+            }
+        }
+        
+        // Si no hay horarios configurados, retornar array vacío
+        return {
+            status: 200,
+            timeSlots: [],
+        }
+    } catch (error) {
+        console.log('Error getting time slots:', error)
+        return {
+            status: 400,
+            timeSlots: [],
+        }
+    }
+}

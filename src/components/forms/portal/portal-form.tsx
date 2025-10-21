@@ -55,6 +55,8 @@ const PortalForm = ({
     onSelectedTimeSlot,
     selectedSlot,
     loading,
+    availableSlots,
+    loadingSlots,
   } = usePortal(customerId, domainid, email)
 
   useEffect(() => {
@@ -85,6 +87,8 @@ const PortalForm = ({
         onBack={onPrev}
         amount={amount}
         stripeId={stripeId}
+        availableSlots={availableSlots}
+        loadingSlots={loadingSlots}
       />
       {(step == 1 || step == 2) && (
         <div className="w-full flex justify-center">

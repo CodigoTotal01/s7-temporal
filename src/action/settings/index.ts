@@ -735,3 +735,103 @@ export const onToggleProductStatus = async (productId: string) => {
     }
   }
 }
+
+// ===== GESTIÓN DE HORARIOS DISPONIBLES =====
+
+export const onGetAvailabilitySchedule = async (domainId: string) => {
+  try {
+    const schedule = await client.availabilitySchedule.findMany({
+      where: {
+        domainId,
+      },
+      select: {
+        id: true,
+        dayOfWeek: true,
+        timeSlots: true,
+        isActive: true,
+      },
+      orderBy: {
+        dayOfWeek: 'asc',
+      },
+    })
+
+    return {
+      status: 200,
+      schedule,
+    }
+  } catch (error) {
+    console.log(error)
+    return {
+      status: 400,
+      message: 'Error al obtener horarios',
+      schedule: [],
+    }
+  }
+}
+
+export const onUpdateAvailabilitySchedule = async (
+  domainId: string,
+  dayOfWeek: string,
+  timeSlots: string[],
+  isActive: boolean
+) => {
+  try {
+    // Buscar si ya existe un registro para este día
+    const existing = await client.availabilitySchedule.findUnique({
+      where: {
+        domainId_dayOfWeek: {
+          domainId,
+          dayOfWeek: dayOfWeek as any,
+        },
+      },
+    })
+
+    if (existing) {
+      // Actualizar
+      const updated = await client.availabilitySchedule.update({
+        where: {
+          id: existing.id,
+        },
+        data: {
+          timeSlots,
+          isActive,
+        },
+      })
+
+      if (updated) {
+        return {
+          status: 200,
+          message: 'Horario actualizado exitosamente',
+        }
+      }
+    } else {
+      // Crear
+      const created = await client.availabilitySchedule.create({
+        data: {
+          domainId,
+          dayOfWeek: dayOfWeek as any,
+          timeSlots,
+          isActive,
+        },
+      })
+
+      if (created) {
+        return {
+          status: 200,
+          message: 'Horario creado exitosamente',
+        }
+      }
+    }
+
+    return {
+      status: 400,
+      message: 'Error al guardar horario',
+    }
+  } catch (error) {
+    console.log(error)
+    return {
+      status: 400,
+      message: 'Error al guardar horario',
+    }
+  }
+}

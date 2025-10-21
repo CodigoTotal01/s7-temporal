@@ -192,7 +192,7 @@ El proyecto utiliza PostgreSQL con Prisma como ORM. Los modelos principales incl
 
 - **User**: Usuarios del sistema
 - **Domain**: Empresas/dominios
-- **ChatBot**: Configuración de chatbots
+- **ChatBot**: Configuración de asistentes virtuales
 - **Customer**: Clientes de las empresas
 - **ChatRoom**: Salas de chat
 - **ChatMessage**: Mensajes de conversación
@@ -200,7 +200,7 @@ El proyecto utiliza PostgreSQL con Prisma como ORM. Los modelos principales incl
 - **Bookings**: Citas agendadas
 - **Billings**: Facturación y suscripciones
 
-## Configuración del Chatbot
+## Configuración del Asistente Virtual
 
 ### Personalización Visual
 - Icono personalizado

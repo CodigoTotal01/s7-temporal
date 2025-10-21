@@ -38,6 +38,7 @@ model Domain {
   filterQuestions FilterQuestions[]
   helpdesk        HelpDesk[]
   products        Product[]
+  availability    AvailabilitySchedule[]
 }
 
 model ChatBot {
@@ -182,6 +183,19 @@ model Product {
   Domain    Domain?  @relation(fields: [domainId], references: [id], onDelete: Cascade)
 }
 
+model AvailabilitySchedule {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dayOfWeek DayOfWeek
+  timeSlots String[]  // Array de strings como ["9:00am", "9:30am", "10:00am"]
+  isActive  Boolean  @default(true)
+  domainId  String   @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Domain    Domain   @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  
+  @@unique([domainId, dayOfWeek])
+}
+
 // Nuevos modelos para métricas de tesis
 model ConversationMetrics {
   id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
@@ -246,4 +260,15 @@ enum ConversationState {
   IDLE        // Usuario inactivo (>5 minutos sin responder)
   AWAITING_RATING  // Esperando calificación del usuario
   ENDED       // Conversación finalizada (calificada o despedida)
+}
+
+// Días de la semana para disponibilidad
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
 }

@@ -37,6 +37,8 @@ type Props = {
     | undefined
     amount?: number
     stripeId?: string
+    availableSlots?: string[]
+    loadingSlots?: boolean
 }
 
 const PortalSteps = ({
@@ -56,6 +58,8 @@ const PortalSteps = ({
     bookings,
     amount,
     stripeId,
+    availableSlots = [],
+    loadingSlots = false,
 }: Props) => {
 
     if (step == 1) {
@@ -80,6 +84,8 @@ const PortalSteps = ({
                 onBooking={onBooking}
                 onSlot={onSlot}
                 loading={loading}
+                availableSlots={availableSlots}
+                loadingSlots={loadingSlots}
             />
         )
     }

@@ -1,6 +1,7 @@
 import { onGetCurrentDomainInfo } from '@/action/settings'
 import BotTrainingForm from '@/components/forms/settings/bot-training'
 import SettingsForm from '@/components/forms/settings/form'
+import AvailabilityScheduleForm from '@/components/forms/settings/availability-schedule'
 import ProductTable from '@/components/products'
 import { redirect } from 'next/navigation'
 import React from 'react'
@@ -25,6 +26,7 @@ const DomainSettingsPage = async ({ params }: Props) => {
           id={currentDomain.id}
           name={currentDomain.name}
         />
+        <AvailabilityScheduleForm id={currentDomain.id} />
         <BotTrainingForm id={currentDomain.id} />
         <ProductTable
           id={currentDomain.id}
