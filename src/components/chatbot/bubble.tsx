@@ -23,8 +23,6 @@ const Bubble = ({ message, createdAt }: Props) => {
 
   let d = new Date()
   const image = extractUUIDFromString(message.content)
-  console.log(message.link)
-
   return (
     <div
       className={cn(

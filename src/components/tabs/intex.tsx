@@ -10,13 +10,16 @@ type Props = {
   children: React.ReactNode
   className?: string
   button?: JSX.Element
+  onTabChange?: (value: string) => void
+  value?: string
 }
 
-const TabsMenu = ({ triggers, children, className, button }: Props) => {
+const TabsMenu = ({ triggers, children, className, button, onTabChange, value }: Props) => {
   return (
     <Tabs
-      defaultValue={triggers[0].label}
+      value={value || triggers[0].label}
       className="w-full overflow-hidden"
+      onValueChange={onTabChange}
     >
       <TabsList className={cn('w-full', className)}>
           {triggers.map((trigger, key) => (

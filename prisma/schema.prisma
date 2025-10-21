@@ -97,6 +97,7 @@ model Customer {
   questions CustomerResponses[]
   chatRoom  ChatRoom[]
   booking   Bookings[]
+  satisfactionRecords CustomerSatisfaction[]
 
   Domain   Domain? @relation(fields: [domainId], references: [id], onDelete: Cascade)
   domainId String? @db.Uuid
@@ -109,8 +110,27 @@ model ChatRoom {
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
   customerId String?       @db.Uuid
-  message    ChatMessage[]
-  Customer   Customer?     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  // Sistema de favoritos
+  isFavorite                Boolean               @default(false)
+  
+  // Métricas para la tesis - FR3 y FR4
+  resolved                    Boolean               @default(false)
+  resolvedInFirstInteraction  Boolean?
+  resolutionType              ResolutionType        @default(UNRESOLVED)
+  satisfactionRating          Int?                  // 1-5, null si no ha evaluado
+  satisfactionCollected       Boolean               @default(false)
+  conversationEndedAt         DateTime?
+  
+  // Estado de conversación y gestión de ciclo de vida
+  conversationState           ConversationState     @default(ACTIVE)
+  lastUserActivityAt          DateTime              @default(now())
+  conversationNumber          Int                   @default(1) // Número de conversación con este cliente
+  
+  message              ChatMessage[]
+  metrics              ConversationMetrics[]
+  satisfactionRecords  CustomerSatisfaction[]
+  Customer             Customer?             @relation(fields: [customerId], references: [id], onDelete: Cascade)
 }
 
 model ChatMessage {
@@ -121,6 +141,11 @@ model ChatMessage {
   updatedAt  DateTime  @updatedAt
   chatRoomId String?   @db.Uuid
   seen       Boolean   @default(false)
+  
+  // Métricas para la tesis - FR1 y FR2
+  responseTime           Int?     // Tiempo en segundos desde mensaje user hasta respuesta assistant
+  respondedWithin2Hours  Boolean? // True si fue respondido en menos de 2 horas
+  
   ChatRoom   ChatRoom? @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
 }
 
@@ -157,6 +182,45 @@ model Product {
   Domain    Domain?  @relation(fields: [domainId], references: [id], onDelete: Cascade)
 }
 
+// Nuevos modelos para métricas de tesis
+model ConversationMetrics {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  chatRoomId            String   @db.Uuid
+  domainId              String   @db.Uuid
+  
+  // FR1: Tiempo promedio de respuesta
+  averageResponseTime   Int      // En segundos
+  totalResponseTime     Int      // Suma total para calcular promedio
+  messagesCount         Int      // Total de intercambios
+  
+  // FR2: Porcentaje de mensajes respondidos oportunamente
+  messagesRespondedOnTime Int    // Mensajes respondidos < 2 horas
+  totalMessagesReceived   Int    // Total de mensajes del usuario
+  percentageOnTime        Decimal @db.Decimal(5,2)
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  chatRoom ChatRoom @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
+}
+
+// FR4: Satisfacción del cliente
+model CustomerSatisfaction {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  rating     Int      // 1-5
+  comment    String?  // Comentario opcional del cliente
+  chatRoomId String   @db.Uuid
+  customerId String   @db.Uuid
+  domainId   String   @db.Uuid
+  createdAt  DateTime @default(now())
+  
+  chatRoom ChatRoom @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  @@index([domainId])
+  @@index([createdAt])
+}
+
 enum Role {
   user
   assistant
@@ -166,4 +230,20 @@ enum Plans {
   STANDARD
   PRO
   ULTIMATE
+}
+
+// FR3: Tipo de resolución
+enum ResolutionType {
+  FIRST_INTERACTION  // Resuelto en primera interacción
+  FOLLOW_UP          // Requirió seguimiento
+  ESCALATED          // Escalado a humano
+  UNRESOLVED         // No resuelto aún
+}
+
+// Estado del ciclo de vida de la conversación
+enum ConversationState {
+  ACTIVE      // Conversación activa (usuario interactuando)
+  IDLE        // Usuario inactivo (>5 minutos sin responder)
+  AWAITING_RATING  // Esperando calificación del usuario
+  ENDED       // Conversación finalizada (calificada o despedida)
 }
