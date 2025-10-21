@@ -34,7 +34,7 @@ const FilterQuestions = ({ id }: Props) => {
           <div className="flex flex-col gap-3">
             <Section
               label="Pregunta"
-              message="Añade una pregunta que quieras que tu chatbot haga"
+              message="Añade una pregunta que quieras que tu asistente virtual haga al cliente cuando solicite agendar una cita"
             />
             <FormGenerator
               inputType="input"
@@ -42,24 +42,8 @@ const FilterQuestions = ({ id }: Props) => {
               errors={errors}
               form="filter-questions-form"
               name="question"
-              placeholder="Escribe tu pregunta"
+              placeholder="Ejemplo: ¿Qué tipo de servicio necesitas?"
               type="text"
-            />
-          </div>
-          <div className="flex flex-col gap-3">
-            <Section
-              label="Respuesta"
-              message="La respuesta para la pregunta anterior"
-            />
-            <FormGenerator
-              inputType="textarea"
-              register={register}
-              errors={errors}
-              form="filter-questions-form"
-              name="answer"
-              placeholder="Escribe tu respuesta"
-              type="text"
-              lines={5}
             />
           </div>
           <Button
