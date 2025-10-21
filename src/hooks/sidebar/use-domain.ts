@@ -45,7 +45,12 @@ export const useDomain = () => {
                 title: domain.status === 200 ? 'Success' : 'Error',
                 description: domain.message,
             })
-            router.refresh();
+            
+            if (domain.status === 200 && domain.domainId) {
+                router.push(`/settings/${domain.domainId}`);
+            } else {
+                router.refresh();
+            }
         }
     });
 
@@ -55,5 +60,6 @@ export const useDomain = () => {
         errors,
         loading,
         isDomain,
+        reset,
     }
 };

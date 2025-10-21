@@ -35,11 +35,25 @@ export const onIntegrateDomain = async (domain: string, icon: string) => {
               }
             }
           }
-        }
+        },
+        include: {
+          domains: {
+            where: {
+              name: domain,
+            },
+            select: {
+              id: true,
+            },
+          },
+        },
       });
 
-      if (newDomain) {
-        return { status: 200, message: "Empresa agregada exitosamente" };
+      if (newDomain && newDomain.domains.length > 0) {
+        return { 
+          status: 200, 
+          message: "Empresa agregada exitosamente",
+          domainId: newDomain.domains[0].id
+        };
       }
     }
 
