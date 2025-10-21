@@ -49,8 +49,8 @@ export const onIntegrateDomain = async (domain: string, icon: string) => {
       });
 
       if (newDomain && newDomain.domains.length > 0) {
-        return { 
-          status: 200, 
+        return {
+          status: 200,
           message: "Empresa agregada exitosamente",
           domainId: newDomain.domains[0].id
         };
@@ -454,6 +454,65 @@ export const onGetAllFilterQuestions = async (id: string) => {
     }
   } catch (error) {
     console.log(error)
+  }
+}
+
+export const onUpdateFilterQuestion = async (questionId: string, question: string) => {
+  try {
+    const updatedQuestion = await client.filterQuestions.update({
+      where: {
+        id: questionId,
+      },
+      data: {
+        question,
+      },
+    })
+
+    if (updatedQuestion) {
+      return {
+        status: 200,
+        message: 'Pregunta actualizada exitosamente',
+      }
+    }
+
+    return {
+      status: 400,
+      message: 'Error al actualizar la pregunta',
+    }
+  } catch (error) {
+    console.log(error)
+    return {
+      status: 400,
+      message: 'Error al actualizar la pregunta',
+    }
+  }
+}
+
+export const onDeleteFilterQuestion = async (questionId: string) => {
+  try {
+    const deletedQuestion = await client.filterQuestions.delete({
+      where: {
+        id: questionId,
+      },
+    })
+
+    if (deletedQuestion) {
+      return {
+        status: 200,
+        message: 'Pregunta eliminada exitosamente',
+      }
+    }
+
+    return {
+      status: 400,
+      message: 'Error al eliminar la pregunta',
+    }
+  } catch (error) {
+    console.log(error)
+    return {
+      status: 400,
+      message: 'Error al eliminar la pregunta',
+    }
   }
 }
 
