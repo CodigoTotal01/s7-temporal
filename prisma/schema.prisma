@@ -112,12 +112,17 @@ model ChatRoom {
   customerId String?       @db.Uuid
   
   // Métricas para la tesis - FR3 y FR4
-  resolved                    Boolean          @default(false)
+  resolved                    Boolean               @default(false)
   resolvedInFirstInteraction  Boolean?
-  resolutionType              ResolutionType   @default(UNRESOLVED)
-  satisfactionRating          Int?             // 1-5, null si no ha evaluado
-  satisfactionCollected       Boolean          @default(false)
+  resolutionType              ResolutionType        @default(UNRESOLVED)
+  satisfactionRating          Int?                  // 1-5, null si no ha evaluado
+  satisfactionCollected       Boolean               @default(false)
   conversationEndedAt         DateTime?
+  
+  // Estado de conversación y gestión de ciclo de vida
+  conversationState           ConversationState     @default(ACTIVE)
+  lastUserActivityAt          DateTime              @default(now())
+  conversationNumber          Int                   @default(1) // Número de conversación con este cliente
   
   message              ChatMessage[]
   metrics              ConversationMetrics[]
@@ -230,4 +235,12 @@ enum ResolutionType {
   FOLLOW_UP          // Requirió seguimiento
   ESCALATED          // Escalado a humano
   UNRESOLVED         // No resuelto aún
+}
+
+// Estado del ciclo de vida de la conversación
+enum ConversationState {
+  ACTIVE      // Conversación activa (usuario interactuando)
+  IDLE        // Usuario inactivo (>5 minutos sin responder)
+  AWAITING_RATING  // Esperando calificación del usuario
+  ENDED       // Conversación finalizada (calificada o despedida)
 }

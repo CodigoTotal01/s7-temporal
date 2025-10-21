@@ -50,11 +50,11 @@ export const useConversation = () => {
       if (messages) {
         setChatRoom(id)
         loadMessages(false)
-        //!FIX:Corregir
-        setChats(messages[0].message)
+        setChats(messages.message)
       }
     } catch (error) {
       console.log(error)
+      loadMessages(false)
     }
   }
   return {

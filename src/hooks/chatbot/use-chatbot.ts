@@ -190,8 +190,7 @@ export const useChatBot = () => {
       }
 
       setOnAiTyping(true)
-
-      // ✅ Enviar token de sesión si existe
+      
       const response = await onAiChatBotAssistant(
         currentBotId!,
         onChats,
@@ -199,7 +198,7 @@ export const useChatBot = () => {
         values.content,
         sessionToken || undefined // ✅ Incluir token
       )
-
+      
       if (response) {
         setOnAiTyping(false)
         
@@ -235,6 +234,12 @@ export const useChatBot = () => {
       {
         role: 'assistant',
         content: currentBot?.chatBot?.welcomeMessage || '¡Hola! ¿En qué puedo ayudarte?'
+      },
+      {
+        role: 'assistant',
+        content: `👋 Has cerrado sesión correctamente.
+          📧      **Para volver a iniciar sesión:** Simplemente escribe tu correo electrónico y te reconoceremos automáticamente.
+                  Ejemplo: "tunombre@email.com"`
       }
     ])
     console.log('👋 Sesión cerrada y chat reiniciado')

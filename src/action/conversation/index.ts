@@ -53,6 +53,8 @@ export const onGetConversationMode = async (id: string) => {
 
 export const onGetDomainChatRooms = async (id: string) => {
   try {
+    console.log(`🔍 Obteniendo chatRooms para dominio: ${id}`)
+    
     const domains = await client.domain.findUnique({
       where: {
         id,
@@ -60,22 +62,30 @@ export const onGetDomainChatRooms = async (id: string) => {
       select: {
         customer: {
           select: {
+            id: true,
             email: true,
+            name: true,
             chatRoom: {
               select: {
                 createdAt: true,
                 id: true,
+                live: true,
+                updatedAt: true,
                 message: {
                   select: {
                     message: true,
                     createdAt: true,
                     seen: true,
+                    role: true,
                   },
                   orderBy: {
                     createdAt: 'desc',
                   },
                   take: 1,
                 },
+              },
+              orderBy: {
+                updatedAt: 'desc',
               },
             },
           },
@@ -84,16 +94,17 @@ export const onGetDomainChatRooms = async (id: string) => {
     })
 
     if (domains) {
+      console.log(`📊 Encontrados ${domains.customer.length} clientes con chats`)
       return domains
     }
   } catch (error) {
-    console.log(error)
+    console.log('❌ Error en onGetDomainChatRooms:', error)
   }
 }
 
 export const onGetChatMessages = async (id: string) => {
   try {
-    const messages = await client.chatRoom.findMany({
+    const messages = await client.chatRoom.findUnique({
       where: {
         id,
       },
@@ -107,6 +118,8 @@ export const onGetChatMessages = async (id: string) => {
             message: true,
             createdAt: true,
             seen: true,
+            responseTime: true,
+            respondedWithin2Hours: true,
           },
           orderBy: {
             createdAt: 'asc',
@@ -116,10 +129,11 @@ export const onGetChatMessages = async (id: string) => {
     })
 
     if (messages) {
+      console.log(`📊 Obteniendo mensajes para chatRoom ${id}: ${messages.message.length} mensajes`)
       return messages
     }
   } catch (error) {
-    console.log(error)
+    console.log('❌ Error en onGetChatMessages:', error)
   }
 }
 
