@@ -27,6 +27,7 @@ type CreateProductFormProps = {
   onCreateNewProduct: any
   onUpdateProduct: any
   register: any
+  setValue: any
   errors: any
   loading: boolean
   categories: CatalogItem[]
@@ -44,6 +45,7 @@ export const CreateProductForm = ({
   onCreateNewProduct, 
   onUpdateProduct, 
   register, 
+  setValue,
   errors, 
   loading,
   categories,
@@ -169,7 +171,10 @@ export const CreateProductForm = ({
               Material
             </Label>
             {materials.filter(m => m.active).length > 0 ? (
-              <Select {...register('materialId')} defaultValue={editingProduct?.materialId || 'none'}>
+              <Select 
+                defaultValue={editingProduct?.materialId || 'none'}
+                onValueChange={(value) => setValue('materialId', value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar material" />
                 </SelectTrigger>
@@ -233,7 +238,10 @@ export const CreateProductForm = ({
             Textura
           </Label>
           {textures.filter(t => t.active).length > 0 ? (
-            <Select {...register('textureId')} defaultValue={editingProduct?.textureId || 'none'}>
+            <Select 
+              defaultValue={editingProduct?.textureId || 'none'}
+              onValueChange={(value) => setValue('textureId', value)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Seleccionar textura" />
               </SelectTrigger>
@@ -337,7 +345,10 @@ export const CreateProductForm = ({
                 Categoría
               </Label>
               {categories.filter(c => c.active).length > 0 ? (
-                <Select {...register('categoryId')} defaultValue={editingProduct?.categoryId || 'none'}>
+                <Select 
+                  defaultValue={editingProduct?.categoryId || 'none'}
+                  onValueChange={(value) => setValue('categoryId', value)}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar categoría" />
                   </SelectTrigger>
@@ -369,7 +380,10 @@ export const CreateProductForm = ({
                 Temporada
               </Label>
               {seasons.filter(s => s.active).length > 0 ? (
-                <Select {...register('seasonId')} defaultValue={editingProduct?.seasonId || 'none'}>
+                <Select 
+                  defaultValue={editingProduct?.seasonId || 'none'}
+                  onValueChange={(value) => setValue('seasonId', value)}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar temporada" />
                   </SelectTrigger>

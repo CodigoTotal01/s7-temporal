@@ -39,6 +39,7 @@ const ProductTable = ({ id, products }: Props) => {
     onDeleteProduct,
     onToggleProduct,
     register, 
+    setValue,
     errors, 
     loading, 
     deleting,
@@ -98,6 +99,7 @@ const ProductTable = ({ id, products }: Props) => {
                       onCreateNewProduct={onCreateNewProduct}
                       onUpdateProduct={onUpdateProduct}
                       register={register}
+                      setValue={setValue}
                       errors={errors}
                       loading={loading}
                       categories={categories}
@@ -125,6 +127,7 @@ const ProductTable = ({ id, products }: Props) => {
                         onCreateNewProduct={onCreateNewProduct}
                         onUpdateProduct={onUpdateProduct}
                         register={register}
+                        setValue={setValue}
                         errors={errors}
                         loading={loading}
                         categories={categories}
@@ -239,6 +242,7 @@ const ProductTable = ({ id, products }: Props) => {
                           onCreateNewProduct={onCreateNewProduct}
                           onUpdateProduct={onUpdateProduct}
                           register={register}
+                          setValue={setValue}
                           errors={errors}
                           loading={loading}
                           categories={categories}

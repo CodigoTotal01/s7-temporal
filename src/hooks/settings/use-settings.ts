@@ -621,6 +621,7 @@ export const useProducts = (domainId: string) => {
         onDeleteProduct,
         onToggleProduct, 
         register, 
+        setValue,
         errors, 
         loading, 
         deleting,
