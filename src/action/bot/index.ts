@@ -278,11 +278,20 @@ const handleAuthenticatedUser = async (
 
   // ✅ NUEVA LÓGICA: Usar IA para detectar si el usuario quiere terminar
   const shouldEndConversation = await detectConversationEndingWithAI(message, chat)
-  console.log("🚀 ~ shouldEndConversation:", shouldEndConversation)
 
   if (shouldEndConversation) {
     // Guardar mensaje del usuario
     await onStoreConversations(customerInfo.chatRoom[0].id, message, 'user')
+
+    // ✅ ENVIAR MENSAJE DEL USUARIO A PUSHER SI ESTÁ EN MODO LIVE
+    if (customerInfo.chatRoom[0].live) {
+      await onRealTimeChat(
+        customerInfo.chatRoom[0].id,
+        message,
+        `user-${Date.now()}`,
+        'user'
+      )
+    }
 
     // Solicitar calificación de forma simple
     const ratingMessage = `¡Perfecto! Me alegra haberte ayudado. 😊
@@ -355,6 +364,16 @@ Tu opinión nos ayuda a mejorar.`
   if (satisfactionRating) {
     // ✅ Guardar mensaje de calificación del usuario
     await onStoreConversations(customerInfo.chatRoom[0].id, message, 'user')
+
+    // ✅ ENVIAR MENSAJE DEL USUARIO A PUSHER SI ESTÁ EN MODO LIVE
+    if (customerInfo.chatRoom[0].live) {
+      await onRealTimeChat(
+        customerInfo.chatRoom[0].id,
+        message,
+        `user-${Date.now()}`,
+        'user'
+      )
+    }
 
     await saveSatisfactionRating(
       customerInfo.chatRoom[0].id,
@@ -1990,7 +2009,6 @@ export const onAiChatBotAssistant = async (
 
     // ✅ NUEVA LÓGICA: Usar IA para detectar si el usuario quiere terminar
     const shouldEndConversation = await detectConversationEndingWithAI(message, chat)
-    console.log("🚀 ~ shouldEndConversation:", shouldEndConversation)
 
     if (sessionToken) {
       const customerFromToken = await getCustomerFromToken(sessionToken, id)
@@ -2075,6 +2093,16 @@ export const onAiChatBotAssistant = async (
           )
 
           await onStoreConversations(customerInfo.chatRoom[0].id, message, 'user')
+
+          // ✅ ENVIAR MENSAJE DEL USUARIO A PUSHER SI ESTÁ EN MODO LIVE
+          if (customerInfo.chatRoom[0].live) {
+            await onRealTimeChat(
+              customerInfo.chatRoom[0].id,
+              message,
+              `user-${Date.now()}`,
+              'user'
+            )
+          }
 
           const welcomeBackMessage = customerInfo.name
             ? `¡Hola de nuevo ${customerInfo.name}! 😊 Me alegra verte otra vez. ¿En qué puedo ayudarte hoy?`
@@ -2224,6 +2252,14 @@ export const onAiChatBotAssistant = async (
 
       if (customerInfo.chatRoom[0].live) {
         await onStoreConversations(customerInfo.chatRoom[0].id, message, author)
+
+        // ✅ ENVIAR MENSAJE DEL USUARIO A PUSHER PARA NOTIFICAR AL DASHBOARD
+        await onRealTimeChat(
+          customerInfo.chatRoom[0].id,
+          message,
+          `user-${Date.now()}`, // ID temporal para el mensaje del usuario
+          'user'
+        )
 
         if (!customerInfo.chatRoom[0].mailed) {
           const domainOwner = await client.domain.findUnique({

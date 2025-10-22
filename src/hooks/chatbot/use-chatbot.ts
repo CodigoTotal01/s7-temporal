@@ -8,7 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useRef, useState } from 'react'
 import { UploadClient } from '@uploadcare/upload-client'
 import { useForm } from 'react-hook-form'
-import { useChatSession } from './use-chat-session' // ✅ Importar hook de sesión
+import { useChatSession } from './use-chat-session'
 
 const upload = new UploadClient({
   publicKey: process.env.NEXT_PUBLIC_UPLOAD_CARE_PUBLIC_KEY as string,
@@ -24,7 +24,6 @@ export const useChatBot = () => {
     resolver: zodResolver(ChatBotMessageSchema),
   })
 
-  // ✅ Hook de sesión
   const {
     token: sessionToken,
     sessionData,
@@ -93,7 +92,6 @@ export const useChatBot = () => {
     setCurrentBotId(idOrName)
     const chatbot = await onGetCurrentChatBot(idOrName)
     if (chatbot) {
-      // ✅ Mensaje personalizado si hay sesión
       let welcomeMessage = chatbot.chatBot?.welcomeMessage!
 
       if (isAuthenticated && sessionData?.name) {
@@ -127,26 +125,42 @@ export const useChatBot = () => {
   const onStartChatting = handleSubmit(async (values) => {
     if (values.image && values.image.length) {
       const uploaded = await upload.uploadFile(values.image[0])
+      setOnChats((prev: any) => [
+        ...prev,
+        {
+          role: 'user',
+          content: uploaded.uuid,
+        },
+      ])
+
       if (!onRealTime?.mode) {
-        setOnChats((prev: any) => [
-          ...prev,
-          {
-            role: 'user',
-            content: uploaded.uuid,
-          },
-        ])
+        setOnAiTyping(true)
       }
 
-      setOnAiTyping(true)
       console.log('142')
 
-      // ✅ Enviar token de sesión si existe
       const response = await onAiChatBotAssistant(currentBotId!, onChats, 'user', uploaded.uuid, sessionToken || undefined)
 
-      if (response) {
-        setOnAiTyping(false)
+      // ENVIAR IMAGEN DEL CLIENTE A PUSHER SI ESTÁ EN MODO LIVE
+      if (response?.live && response?.chatRoom) {
+        try {
+          const { onRealTimeChat } = await import('@/action/conversation')
+          await onRealTimeChat(
+            response.chatRoom,
+            uploaded.uuid,
+            `user-${Date.now()}`,
+            'user'
+          )
+        } catch (error) {
+          console.error(`❌ Chatbot: Error al enviar imagen a Pusher:`, error)
+        }
+      }
 
-        // ✅ Guardar token si el backend lo envía (verificación segura)
+      if (response) {
+        if (!onRealTime?.mode) {
+          setOnAiTyping(false)
+        }
+
         if ('sessionToken' in response && 'sessionData' in response && response.sessionToken && response.sessionData) {
           const sessionDataToSave = {
             ...response.sessionData,
@@ -171,24 +185,41 @@ export const useChatBot = () => {
     reset()
 
     if (values.content) {
+      setOnChats((prev: any) => [
+        ...prev,
+        {
+          role: 'user',
+          content: values.content,
+        },
+      ])
+
       if (!onRealTime?.mode) {
-        setOnChats((prev: any) => [
-          ...prev,
-          {
-            role: 'user',
-            content: values.content,
-          },
-        ])
+        setOnAiTyping(true)
       }
 
-      setOnAiTyping(true)
       console.log('187')
       const response = await onAiChatBotAssistant(currentBotId!, onChats, 'user', values.content, sessionToken || undefined)
 
-      if (response) {
-        setOnAiTyping(false)
+      // ENVIAR MENSAJE DEL CLIENTE A PUSHER SI ESTÁ EN MODO LIVE
+      if (response?.live && response?.chatRoom) {
+        try {
+          const { onRealTimeChat } = await import('@/action/conversation')
+          await onRealTimeChat(
+            response.chatRoom,
+            values.content,
+            `user-${Date.now()}`,
+            'user'
+          )
+        } catch (error) {
+          console.error(`❌ Chatbot: Error al enviar a Pusher:`, error)
+        }
+      }
 
-        // ✅ Guardar token si el backend lo envía (verificación segura)
+      if (response) {
+        if (!onRealTime?.mode) {
+          setOnAiTyping(false)
+        }
+
         if ('sessionToken' in response && 'sessionData' in response && response.sessionToken && response.sessionData) {
           const sessionDataToSave = {
             ...response.sessionData,
@@ -212,7 +243,6 @@ export const useChatBot = () => {
     }
   })
 
-  // ✅ Función para cerrar sesión y limpiar chat
   const handleLogout = () => {
     clearSession()
     setOnChats([
@@ -245,7 +275,7 @@ export const useChatBot = () => {
     // ✅ Exportar datos de sesión
     sessionData,
     isAuthenticated,
-    clearSession: handleLogout, // ✅ Usar versión que limpia el chat
+    clearSession: handleLogout, // Usar versión que limpia el chat
   }
 }
 
