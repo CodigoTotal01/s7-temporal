@@ -1,4 +1,4 @@
-import { HeartHandshake, LayoutDashboard, Mail, MessageCircleMore, MessageSquareMore, Settings, Settings2, SquareUser, StarIcon, TimerIcon } from "lucide-react";
+import { HeartHandshake, LayoutDashboard, Mail, MessageCircleMore, MessageSquareMore, Settings, Settings2, SquareUser, StarIcon, TimerIcon, FolderKanban } from "lucide-react";
 
 type SIDE_BAR_MENU_PROPS = {
     label: string;
@@ -26,6 +26,11 @@ export const SIDE_BAR_MENU: SIDE_BAR_MENU_PROPS[] = [
         label: 'Configuraciones',
         icon: <Settings />,
         path: 'settings',
+    },
+    {
+        label: 'Catálogos',
+        icon: <FolderKanban />,
+        path: 'catalogs',
     },
     {
         label: 'Citas',
@@ -83,5 +88,26 @@ export const BOT_TABS_MENU: TABS_MENU_PROPS[] = [
     {
         label: 'soporte',
         icon: <HeartHandshake />
+    }
+]
+
+export const CATALOG_TABS_MENU: TABS_MENU_PROPS[] = [
+    {
+        label: 'categorías',
+    },
+    {
+        label: 'materiales',
+    },
+    {
+        label: 'texturas',
+    },
+    {
+        label: 'temporadas',
+    },
+    {
+        label: 'usos',
+    },
+    {
+        label: 'características',
     }
 ]

@@ -152,7 +152,14 @@ export const onGetCurrentDomainInfo = async (domain: string) => {
             name: true,
             icon: true,
             userId: true,
-            products: true,
+            products: {
+              include: {
+                category: true,
+                material: true,
+                texture: true,
+                season: true,
+              },
+            },
             chatBot: {
               select: {
                 id: true,
@@ -605,7 +612,26 @@ export const onCreateNewDomainProduct = async (
   id: string,
   name: string,
   image: string,
-  price: string
+  price: string,
+  productData?: {
+    materialId?: string
+    width?: string
+    weight?: string
+    color?: string
+    textureId?: string
+    stock?: number
+    unit?: string
+    minStock?: number
+    sku?: string
+    salePrice?: number
+    categoryId?: string
+    featured?: boolean
+    description?: string
+    colors?: string[]
+    images?: string[]
+    seasonId?: string
+    care?: string
+  }
 ) => {
   try {
     const product = await client.domain.update({
@@ -618,6 +644,7 @@ export const onCreateNewDomainProduct = async (
             name,
             image,
             price: parseInt(price),
+            ...productData,
           },
         },
       },
@@ -661,12 +688,32 @@ export const onUpdateDomainProduct = async (
   productId: string,
   name: string,
   price: string,
-  image?: string
+  image?: string,
+  productData?: {
+    materialId?: string
+    width?: string
+    weight?: string
+    color?: string
+    textureId?: string
+    stock?: number
+    unit?: string
+    minStock?: number
+    sku?: string
+    salePrice?: number
+    categoryId?: string
+    featured?: boolean
+    description?: string
+    colors?: string[]
+    images?: string[]
+    seasonId?: string
+    care?: string
+  }
 ) => {
   try {
     const updateData: any = {
       name,
       price: parseInt(price),
+      ...productData,
     }
 
     if (image) {
@@ -833,5 +880,399 @@ export const onUpdateAvailabilitySchedule = async (
       status: 400,
       message: 'Error al guardar horario',
     }
+  }
+}
+
+// ============================================
+// GESTIÓN DE CATÁLOGOS DE PRODUCTOS
+// ============================================
+
+// ===== CATEGORÍAS =====
+export const onGetCategories = async (domainId: string) => {
+  try {
+    const categories = await client.category.findMany({
+      where: { domainId },
+      orderBy: { name: 'asc' },
+    })
+    return categories
+  } catch (error) {
+    console.log(error)
+    return []
+  }
+}
+
+export const onCreateCategory = async (domainId: string, name: string) => {
+  try {
+    const category = await client.category.create({
+      data: { domainId, name },
+    })
+    return { status: 200, message: 'Categoría creada exitosamente', data: category }
+  } catch (error) {
+    console.log(error)
+    return { status: 400, message: 'Error al crear categoría' }
+  }
+}
+
+export const onUpdateCategory = async (id: string, name: string) => {
+  try {
+    const category = await client.category.update({
+      where: { id },
+      data: { name },
+    })
+    return { status: 200, message: 'Categoría actualizada exitosamente', data: category }
+  } catch (error) {
+    console.log(error)
+    return { status: 400, message: 'Error al actualizar categoría' }
+  }
+}
+
+export const onDeleteCategory = async (id: string) => {
+  try {
+    await client.category.delete({ where: { id } })
+    return { status: 200, message: 'Categoría eliminada exitosamente' }
+  } catch (error) {
+    console.log(error)
+    return { status: 400, message: 'Error al eliminar categoría' }
+  }
+}
+
+export const onToggleCategory = async (id: string) => {
+  try {
+    const category = await client.category.findUnique({ where: { id } })
+    if (!category) return { status: 404, message: 'Categoría no encontrada' }
+    
+    const updated = await client.category.update({
+      where: { id },
+      data: { active: !category.active },
+    })
+    return { status: 200, message: 'Estado actualizado exitosamente', data: updated }
+  } catch (error) {
+    console.log(error)
+    return { status: 400, message: 'Error al actualizar estado' }
+  }
+}
+
+// ===== MATERIALES =====
+export const onGetMaterials = async (domainId: string) => {
+  try {
+    const materials = await client.material.findMany({
+      where: { domainId },
+      orderBy: { name: 'asc' },
+    })
+    return materials
+  } catch (error) {
+    console.log(error)
+    return []
+  }
+}
+
+export const onCreateMaterial = async (domainId: string, name: string) => {
+  try {
+    const material = await client.material.create({
+      data: { domainId, name },
+    })
+    return { status: 200, message: 'Material creado exitosamente', data: material }
+  } catch (error) {
+    console.log(error)
+    return { status: 400, message: 'Error al crear material' }
+  }
+}
+
+export const onUpdateMaterial = async (id: string, name: string) => {
+  try {
+    const material = await client.material.update({
+      where: { id },
+      data: { name },
+    })
+    return { status: 200, message: 'Material actualizado exitosamente', data: material }
+  } catch (error) {
+    console.log(error)
+    return { status: 400, message: 'Error al actualizar material' }
+  }
+}
+
+export const onDeleteMaterial = async (id: string) => {
+  try {
+    await client.material.delete({ where: { id } })
+    return { status: 200, message: 'Material eliminado exitosamente' }
+  } catch (error) {
+    console.log(error)
+    return { status: 400, message: 'Error al eliminar material' }
+  }
+}
+
+export const onToggleMaterial = async (id: string) => {
+  try {
+    const material = await client.material.findUnique({ where: { id } })
+    if (!material) return { status: 404, message: 'Material no encontrado' }
+    
+    const updated = await client.material.update({
+      where: { id },
+      data: { active: !material.active },
+    })
+    return { status: 200, message: 'Estado actualizado exitosamente', data: updated }
+  } catch (error) {
+    console.log(error)
+    return { status: 400, message: 'Error al actualizar estado' }
+  }
+}
+
+// ===== TEXTURAS =====
+export const onGetTextures = async (domainId: string) => {
+  try {
+    const textures = await client.texture.findMany({
+      where: { domainId },
+      orderBy: { name: 'asc' },
+    })
+    return textures
+  } catch (error) {
+    console.log(error)
+    return []
+  }
+}
+
+export const onCreateTexture = async (domainId: string, name: string) => {
+  try {
+    const texture = await client.texture.create({
+      data: { domainId, name },
+    })
+    return { status: 200, message: 'Textura creada exitosamente', data: texture }
+  } catch (error) {
+    console.log(error)
+    return { status: 400, message: 'Error al crear textura' }
+  }
+}
+
+export const onUpdateTexture = async (id: string, name: string) => {
+  try {
+    const texture = await client.texture.update({
+      where: { id },
+      data: { name },
+    })
+    return { status: 200, message: 'Textura actualizada exitosamente', data: texture }
+  } catch (error) {
+    console.log(error)
+    return { status: 400, message: 'Error al actualizar textura' }
+  }
+}
+
+export const onDeleteTexture = async (id: string) => {
+  try {
+    await client.texture.delete({ where: { id } })
+    return { status: 200, message: 'Textura eliminada exitosamente' }
+  } catch (error) {
+    console.log(error)
+    return { status: 400, message: 'Error al eliminar textura' }
+  }
+}
+
+export const onToggleTexture = async (id: string) => {
+  try {
+    const texture = await client.texture.findUnique({ where: { id } })
+    if (!texture) return { status: 404, message: 'Textura no encontrada' }
+    
+    const updated = await client.texture.update({
+      where: { id },
+      data: { active: !texture.active },
+    })
+    return { status: 200, message: 'Estado actualizado exitosamente', data: updated }
+  } catch (error) {
+    console.log(error)
+    return { status: 400, message: 'Error al actualizar estado' }
+  }
+}
+
+// ===== TEMPORADAS =====
+export const onGetSeasons = async (domainId: string) => {
+  try {
+    const seasons = await client.season.findMany({
+      where: { domainId },
+      orderBy: { name: 'asc' },
+    })
+    return seasons
+  } catch (error) {
+    console.log(error)
+    return []
+  }
+}
+
+export const onCreateSeason = async (domainId: string, name: string) => {
+  try {
+    const season = await client.season.create({
+      data: { domainId, name },
+    })
+    return { status: 200, message: 'Temporada creada exitosamente', data: season }
+  } catch (error) {
+    console.log(error)
+    return { status: 400, message: 'Error al crear temporada' }
+  }
+}
+
+export const onUpdateSeason = async (id: string, name: string) => {
+  try {
+    const season = await client.season.update({
+      where: { id },
+      data: { name },
+    })
+    return { status: 200, message: 'Temporada actualizada exitosamente', data: season }
+  } catch (error) {
+    console.log(error)
+    return { status: 400, message: 'Error al actualizar temporada' }
+  }
+}
+
+export const onDeleteSeason = async (id: string) => {
+  try {
+    await client.season.delete({ where: { id } })
+    return { status: 200, message: 'Temporada eliminada exitosamente' }
+  } catch (error) {
+    console.log(error)
+    return { status: 400, message: 'Error al eliminar temporada' }
+  }
+}
+
+export const onToggleSeason = async (id: string) => {
+  try {
+    const season = await client.season.findUnique({ where: { id } })
+    if (!season) return { status: 404, message: 'Temporada no encontrada' }
+    
+    const updated = await client.season.update({
+      where: { id },
+      data: { active: !season.active },
+    })
+    return { status: 200, message: 'Estado actualizado exitosamente', data: updated }
+  } catch (error) {
+    console.log(error)
+    return { status: 400, message: 'Error al actualizar estado' }
+  }
+}
+
+// ===== USOS =====
+export const onGetUses = async (domainId: string) => {
+  try {
+    const uses = await client.use.findMany({
+      where: { domainId },
+      orderBy: { name: 'asc' },
+    })
+    return uses
+  } catch (error) {
+    console.log(error)
+    return []
+  }
+}
+
+export const onCreateUse = async (domainId: string, name: string) => {
+  try {
+    const use = await client.use.create({
+      data: { domainId, name },
+    })
+    return { status: 200, message: 'Uso creado exitosamente', data: use }
+  } catch (error) {
+    console.log(error)
+    return { status: 400, message: 'Error al crear uso' }
+  }
+}
+
+export const onUpdateUse = async (id: string, name: string) => {
+  try {
+    const use = await client.use.update({
+      where: { id },
+      data: { name },
+    })
+    return { status: 200, message: 'Uso actualizado exitosamente', data: use }
+  } catch (error) {
+    console.log(error)
+    return { status: 400, message: 'Error al actualizar uso' }
+  }
+}
+
+export const onDeleteUse = async (id: string) => {
+  try {
+    await client.use.delete({ where: { id } })
+    return { status: 200, message: 'Uso eliminado exitosamente' }
+  } catch (error) {
+    console.log(error)
+    return { status: 400, message: 'Error al eliminar uso' }
+  }
+}
+
+export const onToggleUse = async (id: string) => {
+  try {
+    const use = await client.use.findUnique({ where: { id } })
+    if (!use) return { status: 404, message: 'Uso no encontrado' }
+    
+    const updated = await client.use.update({
+      where: { id },
+      data: { active: !use.active },
+    })
+    return { status: 200, message: 'Estado actualizado exitosamente', data: updated }
+  } catch (error) {
+    console.log(error)
+    return { status: 400, message: 'Error al actualizar estado' }
+  }
+}
+
+// ===== CARACTERÍSTICAS =====
+export const onGetFeatures = async (domainId: string) => {
+  try {
+    const features = await client.feature.findMany({
+      where: { domainId },
+      orderBy: { name: 'asc' },
+    })
+    return features
+  } catch (error) {
+    console.log(error)
+    return []
+  }
+}
+
+export const onCreateFeature = async (domainId: string, name: string) => {
+  try {
+    const feature = await client.feature.create({
+      data: { domainId, name },
+    })
+    return { status: 200, message: 'Característica creada exitosamente', data: feature }
+  } catch (error) {
+    console.log(error)
+    return { status: 400, message: 'Error al crear característica' }
+  }
+}
+
+export const onUpdateFeature = async (id: string, name: string) => {
+  try {
+    const feature = await client.feature.update({
+      where: { id },
+      data: { name },
+    })
+    return { status: 200, message: 'Característica actualizada exitosamente', data: feature }
+  } catch (error) {
+    console.log(error)
+    return { status: 400, message: 'Error al actualizar característica' }
+  }
+}
+
+export const onDeleteFeature = async (id: string) => {
+  try {
+    await client.feature.delete({ where: { id } })
+    return { status: 200, message: 'Característica eliminada exitosamente' }
+  } catch (error) {
+    console.log(error)
+    return { status: 400, message: 'Error al eliminar característica' }
+  }
+}
+
+export const onToggleFeature = async (id: string) => {
+  try {
+    const feature = await client.feature.findUnique({ where: { id } })
+    if (!feature) return { status: 404, message: 'Característica no encontrada' }
+    
+    const updated = await client.feature.update({
+      where: { id },
+      data: { active: !feature.active },
+    })
+    return { status: 200, message: 'Estado actualizado exitosamente', data: updated }
+  } catch (error) {
+    console.log(error)
+    return { status: 400, message: 'Error al actualizar estado' }
   }
 }

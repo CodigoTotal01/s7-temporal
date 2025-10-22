@@ -1,6 +1,7 @@
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import React from 'react'
+import { usePathname } from 'next/navigation'
 
 type Props = {
     size: 'max' | 'min'
@@ -12,6 +13,29 @@ type Props = {
 }
 
 const MenuItem = ({ icon, label, size, current, onSignOut, path }: Props) => {
+    const pathname = usePathname()
+    
+    // Extraer domainId de la URL actual (ej: /settings/abc-123 -> abc-123)
+    const getDomainFromPath = () => {
+        const segments = pathname.split('/')
+        if (segments.length >= 3 && (segments[1] === 'settings' || segments[1] === 'catalogs')) {
+            return segments[2]
+        }
+        return null
+    }
+    
+    // Construir ruta dinámica si es necesario (para catalogs)
+    const getHref = () => {
+        if (!path) return '#'
+        
+        if (path === 'catalogs') {
+            const domainId = getDomainFromPath()
+            return domainId ? `/catalogs/${domainId}` : '/catalogs'
+        }
+        
+        return `/${path}`
+    }
+    
     switch (size) {
         case 'max':
             return (
@@ -25,7 +49,7 @@ const MenuItem = ({ icon, label, size, current, onSignOut, path }: Props) => {
                                 ? 'bg-white font-bold text-black'
                                 : 'text-gray-500'
                     )}
-                    href={path ? `/${path}` : '#'}>
+                    href={getHref()}>
                     {icon} {label}
                 </Link>
             )
@@ -42,7 +66,7 @@ const MenuItem = ({ icon, label, size, current, onSignOut, path }: Props) => {
                                 : 'text-gray-500',
                         'rounded-lg p-2 my-1'
                     )}
-                    href={path ? `/${path}` : '#'}>
+                    href={getHref()}>
                     {icon}
                 </Link>
             )
