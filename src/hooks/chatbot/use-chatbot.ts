@@ -23,16 +23,16 @@ export const useChatBot = () => {
   } = useForm<ChatBotMessageProps>({
     resolver: zodResolver(ChatBotMessageSchema),
   })
-  
+
   // ✅ Hook de sesión
-  const { 
-    token: sessionToken, 
-    sessionData, 
-    isAuthenticated, 
+  const {
+    token: sessionToken,
+    sessionData,
+    isAuthenticated,
     saveSession,
-    clearSession 
+    clearSession
   } = useChatSession()
-  
+
   const [currentBot, setCurrentBot] = useState<
     | {
       name: string
@@ -95,12 +95,11 @@ export const useChatBot = () => {
     if (chatbot) {
       // ✅ Mensaje personalizado si hay sesión
       let welcomeMessage = chatbot.chatBot?.welcomeMessage!
-      
+
       if (isAuthenticated && sessionData?.name) {
         welcomeMessage = `¡Hola de nuevo ${sessionData.name}! 👋\n${welcomeMessage}`
-        console.log('👤 Usuario identificado:', sessionData.name)
       }
-      
+
       setOnChats((prev) => [
         ...prev,
         {
@@ -140,25 +139,24 @@ export const useChatBot = () => {
 
       setOnAiTyping(true)
       console.log('142')
-      
+
       // ✅ Enviar token de sesión si existe
       const response = await onAiChatBotAssistant(currentBotId!, onChats, 'user', uploaded.uuid, sessionToken || undefined)
 
       if (response) {
         setOnAiTyping(false)
-        
+
         // ✅ Guardar token si el backend lo envía (verificación segura)
         if ('sessionToken' in response && 'sessionData' in response && response.sessionToken && response.sessionData) {
           const sessionDataToSave = {
             ...response.sessionData,
-            expiresAt: response.sessionData.expiresAt instanceof Date 
-              ? response.sessionData.expiresAt.toISOString() 
+            expiresAt: response.sessionData.expiresAt instanceof Date
+              ? response.sessionData.expiresAt.toISOString()
               : response.sessionData.expiresAt
           }
           saveSession(response.sessionToken, sessionDataToSave as any)
-          console.log('💾 Nueva sesión guardada (imagen)')
         }
-        
+
         if (response.live) {
           setOnRealTime((prev) => ({
             ...prev,
@@ -170,7 +168,7 @@ export const useChatBot = () => {
         }
       }
     }
-   reset()
+    reset()
 
     if (values.content) {
       if (!onRealTime?.mode) {
@@ -186,22 +184,21 @@ export const useChatBot = () => {
       setOnAiTyping(true)
       console.log('187')
       const response = await onAiChatBotAssistant(currentBotId!, onChats, 'user', values.content, sessionToken || undefined)
-      
+
       if (response) {
         setOnAiTyping(false)
-        
+
         // ✅ Guardar token si el backend lo envía (verificación segura)
         if ('sessionToken' in response && 'sessionData' in response && response.sessionToken && response.sessionData) {
           const sessionDataToSave = {
             ...response.sessionData,
-            expiresAt: response.sessionData.expiresAt instanceof Date 
-              ? response.sessionData.expiresAt.toISOString() 
+            expiresAt: response.sessionData.expiresAt instanceof Date
+              ? response.sessionData.expiresAt.toISOString()
               : response.sessionData.expiresAt
           }
           saveSession(response.sessionToken, sessionDataToSave as any)
-          console.log('💾 Nueva sesión guardada (texto)')
         }
-        
+
         if (response.live) {
           setOnRealTime((prev) => ({
             ...prev,
@@ -230,7 +227,6 @@ export const useChatBot = () => {
                   Ejemplo: "tunombre@email.com"`
       }
     ])
-    console.log('👋 Sesión cerrada y chat reiniciado')
   }
 
   return {
@@ -265,30 +261,30 @@ export const useRealTime = (
     >
   >
 ) => {
-  const counterRef = useRef(1)
-
   useEffect(() => {
-    console.log(`🔗 Suscribiéndose a canal Pusher: ${chatRoom}`)
     pusherClient.subscribe(chatRoom)
-    
+
     pusherClient.bind('realtime-mode', (data: any) => {
-      console.log('📨 Mensaje recibido de Pusher:', data)
-      
-      // ✅ Agregar mensaje inmediatamente (sin condiciones extrañas)
-      setChats((prev: any) => [
-        ...prev,
-        {
+
+      const messageId = data.chat.id || Date.now().toString()
+
+      setChats((prev: any) => {
+        const messageExists = prev.some((msg: any) => msg.id === messageId)
+        if (messageExists) {
+          return prev
+        }
+
+        return [...prev, {
+          id: messageId,
           role: data.chat.role,
           content: data.chat.message,
           createdAt: data.chat.createdAt ? new Date(data.chat.createdAt) : new Date(),
-        },
-      ])
-      
-      console.log(`✅ Mensaje agregado al chat: ${data.chat.message}`)
+        }]
+      })
+
     })
-    
+
     return () => {
-      console.log(`🔌 Desuscribiéndose del canal: ${chatRoom}`)
       pusherClient.unbind('realtime-mode')
       pusherClient.unsubscribe(chatRoom)
     }
