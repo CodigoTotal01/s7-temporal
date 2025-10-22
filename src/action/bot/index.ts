@@ -192,6 +192,26 @@ interface CustomerInfo {
 }
 
 // ============================================
+// DETECCIÓN DE ESCALACIÓN A HUMANO
+// ============================================
+/**
+ * ✅ Detecta automáticamente cuando el cliente quiere hablar con un humano
+ */
+const detectHumanTransferRequest = (message: string): boolean => {
+  const humanKeywords = [
+    'humano', 'persona', 'agente', 'operador', 'representante',
+    'hablar con alguien', 'hablar con una persona', 'hablar con un humano',
+    'quiero hablar con', 'necesito hablar con', 'puedo hablar con',
+    'escalar', 'transferir', 'no me ayuda', 'no entiendo',
+    'problema', 'queja', 'reclamo', 'urgente', 'emergencia',
+    'supervisor', 'gerente', 'jefe', 'ayuda humana'
+  ]
+  
+  const lowerMessage = message.toLowerCase()
+  return humanKeywords.some(keyword => lowerMessage.includes(keyword))
+}
+
+// ============================================
 // OPTIMIZACIÓN: Respuestas rápidas sin OpenAI
 // ============================================
 /**
@@ -391,7 +411,44 @@ Tu opinión nos ayuda a mejorar.`
       }
     ]
 
-  // 4. OPTIMIZACIÓN: Intentar respuesta rápida primero (sin OpenAI)
+  // ✅ 4. DETECCIÓN DE TRANSFERENCIA A HUMANO
+  if (detectHumanTransferRequest(message)) {
+    console.log(`🚨 Solicitud de transferencia detectada: "${message}"`)
+    
+    // Guardar mensaje del usuario
+    await client.chatMessage.create({
+      data: {
+        message,
+        role: 'user',
+        chatRoomId: customerInfo.chatRoom[0].id,
+        responseTime: 0,
+        respondedWithin2Hours: true
+      }
+    })
+
+    // Escalar inmediatamente a humano
+    await client.chatRoom.update({
+      where: { id: customerInfo.chatRoom[0].id },
+      data: { 
+        live: true,
+        conversationState: 'ESCALATED' as any // ✅ Marcar como escalado
+      }
+    })
+
+    console.log(`🚨 ESCALACIÓN AUTOMÁTICA: Chat ${customerInfo.chatRoom[0].id} - Cliente: ${customerInfo.email}`)
+
+    return {
+      response: {
+        role: 'assistant' as const,
+        content: `¡Por supuesto! Te estoy conectando con uno de nuestros agentes humanos. Un miembro de nuestro equipo se pondrá en contacto contigo en breve. 👨‍💼`
+      },
+      live: true,
+      chatRoom: customerInfo.chatRoom[0].id,
+      sessionToken
+    }
+  }
+
+  // 5. OPTIMIZACIÓN: Intentar respuesta rápida primero (sin OpenAI)
   const quickResponse = getQuickResponse(message, customerInfo, domainId)
 
   if (quickResponse) {
@@ -1611,7 +1668,9 @@ CLIENTE: ${customerData.name || 'Usuario'} | ${customerData.email} | ${customerD
 5. Si dice "agendar/reservar/cita" → Da SOLO este enlace: http://localhost:3000/portal/${domainId}/appointment/${customerInfo?.id}
 6. NO preguntes fecha/hora para citas, solo da el enlace
 7. Para compras → Enlace: http://localhost:3000/portal/${domainId}/payment/${customerInfo?.id}
-8. Si la consulta es fuera de contexto textil o no puedes ayudar → Responde con "(realtime)" para escalar a humano${helpdeskContext}${productsContext}
+8. Si la consulta es fuera de contexto textil, no puedes ayudar, o el cliente solicita hablar con un humano → Responde con "(realtime)" para escalar a humano
+   Palabras clave para escalación: "humano", "persona", "agente", "operador", "hablar con alguien", "no me ayuda", "quiero hablar con", "escalar"
+${helpdeskContext}${productsContext}
 9. NO preguntes "¿Hay algo más en que pueda ayudarte?" - esto se agrega automáticamente
 
 🎯 ESTRATEGIA PARA RECOMENDAR PRODUCTOS:
@@ -1673,18 +1732,26 @@ const handleOpenAIResponse = async (
   customerInfo: CustomerInfo,
   chatHistory: any[]
 ) => {
-  // Manejar modo tiempo real
+  // ✅ Manejar modo tiempo real (escalado a humano)
   if (response.includes('(realtime)')) {
     await client.chatRoom.update({
       where: { id: customerInfo.chatRoom[0].id },
-      data: { live: true }
+      data: { 
+        live: true,
+        conversationState: 'ESCALATED' as any // ✅ Marcar como escalado as any // ✅ Marcar como escalado
+      }
     })
+
+    // ✅ Notificar al equipo humano sobre la escalación
+    console.log(`🚨 ESCALACIÓN A HUMANO: Chat ${customerInfo.chatRoom[0].id} - Cliente: ${customerInfo.email}`)
 
     return {
       response: {
         role: 'assistant' as const,
         content: response.replace('(realtime)', '')
-      }
+      },
+      live: true, // ✅ Indicar que está en modo live
+      chatRoom: customerInfo.chatRoom[0].id // ✅ ID del chatRoom para Pusher
     }
   }
 

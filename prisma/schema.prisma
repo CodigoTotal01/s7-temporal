@@ -412,6 +412,7 @@ enum ConversationState {
   IDLE        // Usuario inactivo (>5 minutos sin responder)
   AWAITING_RATING  // Esperando calificación del usuario
   ENDED       // Conversación finalizada (calificada o despedida)
+  ESCALATED   // Escalado a humano
 }
 
 // Días de la semana para disponibilidad

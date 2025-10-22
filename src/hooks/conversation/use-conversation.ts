@@ -1,6 +1,6 @@
-import { onGetChatMessages, onGetDomainChatRooms, onGetAllDomainChatRooms, onOwnerSendMessage, onViewUnReadMessages, onToggleFavorite } from '@/action/conversation'
+import { onGetChatMessages, onGetDomainChatRooms, onGetAllDomainChatRooms, onOwnerSendMessage, onViewUnReadMessages, onToggleFavorite, onRealTimeChat } from '@/action/conversation'
 import { useChatContext } from '@/context/user-chat-context'
-import { getMonthName } from '@/lib/utils'
+import { getMonthName, pusherClient } from '@/lib/utils'
 import { ChatBotMessageSchema, ConversationSearchSchema } from '@/schemas/conversation.schema'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useRef, useState } from 'react'
@@ -192,42 +192,78 @@ export const useChatWindow = () => {
     onScrollToBottom()
   }, [chats, messageWindowRef])
 
-  // WIP: setup pusher
-
-  /*   useEffect(() => {
+    useEffect(() => {
       if (chatRoom) {
-        pusherClient.subscribe(chatRoom)
-        pusherClient.bind('realtime-mode', (data: any) => {
-          setChats((prev) => [...prev, data.chat])
-        })
+        console.log(`🔗 Dashboard: Suscribiéndose a canal Pusher: ${chatRoom}`)
+        
+        try {
+          pusherClient.subscribe(chatRoom)
+          
+          pusherClient.bind('realtime-mode', (data: any) => {
+            console.log('📨 Dashboard: Mensaje recibido de Pusher:', data)
+            
+            try {
+              // ✅ Verificar estructura de datos y agregar mensaje seguro
+              if (data && data.chat) {
+                setChats((prev) => [...prev, {
+                  id: data.chat.id || Date.now().toString(),
+                  role: data.chat.role || 'assistant',
+                  message: data.chat.message,
+                  createdAt: data.chat.createdAt ? new Date(data.chat.createdAt) : new Date(),
+                  seen: data.chat.seen || false
+                }])
+                console.log(`✅ Dashboard: Mensaje agregado: ${data.chat.message}`)
+              } else {
+                console.warn('⚠️ Dashboard: Estructura de datos inesperada:', data)
+              }
+            } catch (error) {
+              console.error('❌ Dashboard: Error al procesar mensaje de Pusher:', error)
+            }
+          })
+        } catch (error) {
+          console.error('❌ Dashboard: Error al suscribirse a Pusher:', error)
+        }
   
         return () => {
-          pusherClient.unbind('realtime-mode')
-          pusherClient.unsubscribe(chatRoom)
+          try {
+            console.log(`🔌 Dashboard: Desuscribiéndose del canal: ${chatRoom}`)
+            pusherClient.unbind('realtime-mode')
+            pusherClient.unsubscribe(chatRoom)
+          } catch (error) {
+            console.error('❌ Dashboard: Error al desuscribirse de Pusher:', error)
+          }
         }
       }
-    }, [chatRoom]) */
+    }, [chatRoom, setChats])
 
   const onHandleSentMessage = handleSubmit(async (values) => {
     try {
+      console.log(`📤 Dashboard: Enviando mensaje: "${values.content}"`)
       reset()
+      
       const message = await onOwnerSendMessage(
         chatRoom!,
         values.content,
         'assistant'
       )
-      if (message) {
-        // setChats((prev) => [...prev, message.message[0]])
-        setChats((prev) => [...prev, { ...message.message[0], role: 'assistant' }])
-        /* await onRealTimeChat(
-          chatRoom!,
-          message.message[0].message,
-          message.message[0].id,
-          'assistant'
-        ) */
+      
+      if (message && message.message && message.message[0]) {
+        const newMessage = message.message[0]
+        console.log(`✅ Dashboard: Mensaje guardado en BD:`, newMessage)
+        
+        // ✅ Agregar mensaje al estado local (ya se envía por Pusher automáticamente)
+        setChats((prev) => [...prev, { 
+          ...newMessage, 
+          role: 'assistant' as 'user' | 'assistant' | null
+        }])
+        
+        // ✅ Ya no necesitamos llamar onRealTimeChat porque onOwnerSendMessage ya lo hace
+        console.log(`📤 Dashboard: Mensaje enviado exitosamente`)
+      } else {
+        console.error('❌ Dashboard: Error - mensaje no válido:', message)
       }
     } catch (error) {
-      console.log(error)
+      console.error('❌ Dashboard: Error al enviar mensaje:', error)
     }
   })
 

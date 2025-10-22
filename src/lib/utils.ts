@@ -2,7 +2,6 @@ import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 import PusherClient from 'pusher-js'
 import PusherServer from 'pusher'
-import { Role } from "@prisma/client"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -14,20 +13,20 @@ export const extractUUIDFromString = (url: string) => {
   )
 }
 
-export const pusherServer = {} as any /* new PusherServer({
-  appId: process.env.NEXT_PUBLIC_PUSHER_APP_ID as string,
-  key: process.env.NEXT_PUBLIC_PUSHER_APP_KEY as string,
-  secret: process.env.NEXT_PUBLIC_PUSHER_APP_SECRET as string,
-  cluster: process.env.NEXT_PUBLIC_PUSHER_APP_CLUSTOR as string,
+export const pusherServer = new PusherServer({
+  appId: process.env.NEXT_PUBLIC_PUSHER_APP_ID,
+  key: process.env.NEXT_PUBLIC_PUSHER_APP_KEY,
+  secret: process.env.NEXT_PUBLIC_PUSHER_APP_SECRET,
+  cluster: process.env.NEXT_PUBLIC_PUSHER_APP_CLUSTOR,
   useTLS: true,
-}) */
+})
 
-export const pusherClient = {} as any /* new PusherClient(
-  process.env.NEXT_PUBLIC_PUSHER_APP_KEY as string,
+export const pusherClient = new PusherClient(
+  process.env.NEXT_PUBLIC_PUSHER_APP_KEY,
   {
-    cluster: process.env.NEXT_PUBLIC_PUSHER_APP_CLUSTOR as string,
+    cluster: process.env.NEXT_PUBLIC_PUSHER_APP_CLUSTOR,
   }
-) */
+)
 
 export const postToParent = (message: string) => {
   window.parent.postMessage(message, '*')
@@ -56,19 +55,19 @@ export const getMonthName = (month: number) => {
         ? 'Mar'
         : month == 4
           ? 'Apr'
-        : month == 5
-          ? 'May'
-          : month == 6
-            ? 'Jun'
-            : month == 7
-              ? 'Jul'
-              : month == 8
-                ? 'Aug'
-                : month == 9
-                  ? 'Sep'
-                  : month == 10
-                    ? 'Oct'
-                    : month == 11
-                      ? 'Nov'
-                      : month == 12 && 'Dec'
+          : month == 5
+            ? 'May'
+            : month == 6
+              ? 'Jun'
+              : month == 7
+                ? 'Jul'
+                : month == 8
+                  ? 'Aug'
+                  : month == 9
+                    ? 'Sep'
+                    : month == 10
+                      ? 'Oct'
+                      : month == 11
+                        ? 'Nov'
+                        : month == 12 && 'Dec'
 }

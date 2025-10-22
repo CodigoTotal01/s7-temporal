@@ -253,7 +253,7 @@ export const useChatBot = () => {
   }
 }
 
-/* export const useRealTime = (
+export const useRealTime = (
   chatRoom: string,
   setChats: React.Dispatch<
     React.SetStateAction<
@@ -268,23 +268,29 @@ export const useChatBot = () => {
   const counterRef = useRef(1)
 
   useEffect(() => {
+    console.log(`🔗 Suscribiéndose a canal Pusher: ${chatRoom}`)
     pusherClient.subscribe(chatRoom)
+    
     pusherClient.bind('realtime-mode', (data: any) => {
-      console.log('✅', data)
-      if (counterRef.current !== 1) {
-        setChats((prev: any) => [
-          ...prev,
-          {
-            role: data.chat.role,
-            content: data.chat.message,
-          },
-        ])
-      }
-      counterRef.current += 1
+      console.log('📨 Mensaje recibido de Pusher:', data)
+      
+      // ✅ Agregar mensaje inmediatamente (sin condiciones extrañas)
+      setChats((prev: any) => [
+        ...prev,
+        {
+          role: data.chat.role,
+          content: data.chat.message,
+          createdAt: data.chat.createdAt ? new Date(data.chat.createdAt) : new Date(),
+        },
+      ])
+      
+      console.log(`✅ Mensaje agregado al chat: ${data.chat.message}`)
     })
+    
     return () => {
+      console.log(`🔌 Desuscribiéndose del canal: ${chatRoom}`)
       pusherClient.unbind('realtime-mode')
       pusherClient.unsubscribe(chatRoom)
     }
-  }, [])
-} */
+  }, [chatRoom, setChats])
+}

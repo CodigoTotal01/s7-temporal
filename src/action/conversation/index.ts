@@ -180,11 +180,13 @@ export const onOwnerSendMessage = async (
   role: 'user' | 'assistant'
 ) => {
   try {
+    // ✅ ACTIVAR MODO REAL TIME cuando el agente envía mensaje
     const chat = await client.chatRoom.update({
       where: {
         id: chatroom,
       },
       data: {
+        live: true, // ✅ Activar modo live
         message: {
           create: {
             message,
@@ -210,10 +212,27 @@ export const onOwnerSendMessage = async (
     })
 
     if (chat) {
+      console.log(`🚀 Modo real time activado para chat: ${chatroom}`)
+      
+      // ✅ ENVIAR MENSAJE A TRAVÉS DE PUSHER PARA TIEMPO REAL
+      const newMessage = chat.message[0]
+      if (newMessage) {
+        await pusherServer.trigger(chatroom, 'realtime-mode', {
+          chat: {
+            message: newMessage.message,
+            id: newMessage.id,
+            role: newMessage.role,
+            createdAt: newMessage.createdAt,
+            seen: newMessage.seen
+          }
+        })
+        console.log(`📤 Mensaje enviado a Pusher: ${newMessage.message} (${newMessage.role})`)
+      }
+      
       return chat
     }
   } catch (error) {
-    console.log(error)
+    console.log('❌ Error en onOwnerSendMessage:', error)
   }
 }
 
