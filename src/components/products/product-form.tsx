@@ -57,11 +57,36 @@ export const CreateProductForm = ({
   const [featured, setFeatured] = useState(editingProduct?.featured || false)
 
   return (
+    <div className="w-full">
+      {/* Botón fijo en la parte superior */}
+      <div className="flex gap-3 pb-4 border-b border-gray-200 mb-6">
+        <Button
+          type="submit"
+          className="flex-1 bg-orange hover:bg-orange/90"
+          disabled={loading}
+          onClick={editingProduct ? onUpdateProduct : onCreateNewProduct}
+        >
+          <Loader loading={loading}>
+            {editingProduct ? 'Actualizar producto' : 'Crear producto'}
+          </Loader>
+        </Button>
+        {editingProduct && onCancel && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            className="flex-1"
+          >
+            Cancelar
+          </Button>
+        )}
+      </div>
+
     <form
-      className="mt-3 w-full flex flex-col gap-6 py-6 max-h-[70vh] overflow-y-auto px-2"
+        className="w-full flex flex-col gap-6 py-6 max-h-[60vh] overflow-y-auto px-2"
       onSubmit={editingProduct ? onUpdateProduct : onCreateNewProduct}
     >
-      {/* Información Básica */}
+        {/* Información Básica */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Información Básica</h3>
         
@@ -297,8 +322,8 @@ export const CreateProductForm = ({
           name="sku"
           errors={errors}
           placeholder="TEL-ALG-001"
-          type="text"
-        />
+        type="text"
+      />
       </div>
 
       {/* Sección Avanzada (Colapsable) */}
@@ -405,29 +430,7 @@ export const CreateProductForm = ({
           </div>
         )}
       </div>
-
-      {/* Botones */}
-      <div className="flex gap-3 pt-4 border-t sticky bottom-0 bg-white">
-        <Button
-          type="submit"
-          className="flex-1 bg-orange hover:bg-orange/90"
-          disabled={loading}
-        >
-          <Loader loading={loading}>
-            {editingProduct ? 'Actualizar producto' : 'Crear producto'}
-          </Loader>
-        </Button>
-        {editingProduct && onCancel && (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onCancel}
-            className="flex-1"
-          >
-            Cancelar
-          </Button>
-        )}
-      </div>
     </form>
+    </div>
   )
 }
