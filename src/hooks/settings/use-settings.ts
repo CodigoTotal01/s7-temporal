@@ -129,7 +129,7 @@ export const useSettings = (id: string) => {
     }
 }
 
-export const useHelpDesk = (id: string) => {
+export const useHelpDesk = (id: string, initialData?: Array<{ id: string; question: string; answer: string }>) => {
     const {
         register,
         formState: { errors },
@@ -146,7 +146,7 @@ export const useHelpDesk = (id: string) => {
     const [editingQuestion, setEditingQuestion] = useState<{ id: string; question: string; answer: string } | null>(null)
     const [isQuestions, setIsQuestions] = useState<
         { id: string; question: string; answer: string }[]
-    >([])
+    >(initialData || [])
 
     const onSubmitQuestion = handleSubmit(async (values) => {
         setLoading(true)
@@ -172,19 +172,19 @@ export const useHelpDesk = (id: string) => {
             }
         } else {
             // Crear nueva pregunta
-        const question = await onCreateHelpDeskQuestion(
-            id,
-            values.question,
-            values.answer
-        )
-        if (question) {
-            setIsQuestions(question.questions!)
-            toast({
-                title: question.status == 200 ? 'Éxito al crear pregunta' : 'Error al crear pregunta',
-                description: question.message,
-            })
-            setLoading(false)
-            reset()
+            const question = await onCreateHelpDeskQuestion(
+                id,
+                values.question,
+                values.answer
+            )
+            if (question) {
+                setIsQuestions(question.questions!)
+                toast({
+                    title: question.status == 200 ? 'Éxito al crear pregunta' : 'Error al crear pregunta',
+                    description: question.message,
+                })
+                setLoading(false)
+                reset()
             }
         }
     })
@@ -225,8 +225,24 @@ export const useHelpDesk = (id: string) => {
     }
 
     useEffect(() => {
-        onGetQuestions()
-    }, [])
+        // ✅ OPTIMIZACIÓN: Solo cargar si no hay datos iniciales
+        if (!initialData || initialData.length === 0) {
+            let isMounted = true
+
+            const loadQuestions = async () => {
+                if (isMounted) {
+                    await onGetQuestions()
+                }
+            }
+
+            loadQuestions()
+
+            return () => {
+                isMounted = false
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [id])
 
     return {
         register,
@@ -242,7 +258,7 @@ export const useHelpDesk = (id: string) => {
     }
 }
 
-export const useFilterQuestions = (id: string) => {
+export const useFilterQuestions = (id: string, initialData?: Array<{ id: string; question: string }>) => {
     const {
         register,
         handleSubmit,
@@ -258,7 +274,7 @@ export const useFilterQuestions = (id: string) => {
     const [editingQuestion, setEditingQuestion] = useState<{ id: string; question: string } | null>(null)
     const [isQuestions, setIsQuestions] = useState<
         { id: string; question: string }[]
-    >([])
+    >(initialData || [])
 
     const onAddFilterQuestions = handleSubmit(async (values) => {
         setLoading(true)
@@ -280,15 +296,15 @@ export const useFilterQuestions = (id: string) => {
             }
         } else {
             // Crear nueva pregunta
-        const questions = await onCreateFilterQuestions(id, values.question)
-        if (questions) {
-            setIsQuestions(questions.questions!)
-            toast({
-                title: questions.status == 200 ? 'Éxito al crear pregunta' : 'Error al crear pregunta',
-                description: questions.message,
-            })
-            reset()
-            setLoading(false)
+            const questions = await onCreateFilterQuestions(id, values.question)
+            if (questions) {
+                setIsQuestions(questions.questions!)
+                toast({
+                    title: questions.status == 200 ? 'Éxito al crear pregunta' : 'Error al crear pregunta',
+                    description: questions.message,
+                })
+                reset()
+                setLoading(false)
             }
         }
     })
@@ -328,8 +344,24 @@ export const useFilterQuestions = (id: string) => {
     }
 
     useEffect(() => {
-        onGetQuestions()
-    }, [])
+        // ✅ OPTIMIZACIÓN: Solo cargar si no hay datos iniciales
+        if (!initialData || initialData.length === 0) {
+            let isMounted = true
+
+            const loadQuestions = async () => {
+                if (isMounted) {
+                    await onGetQuestions()
+                }
+            }
+
+            loadQuestions()
+
+            return () => {
+                isMounted = false
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [id])
 
     return {
         loading,
@@ -351,7 +383,7 @@ export const useProducts = (domainId: string) => {
     const [loading, setLoading] = useState<boolean>(false)
     const [deleting, setDeleting] = useState<string | null>(null)
     const [editingProduct, setEditingProduct] = useState<any>(null)
-    
+
     // Estados para catálogos
     const [categories, setCategories] = useState<CatalogItem[]>([])
     const [materials, setMaterials] = useState<CatalogItem[]>([])
@@ -360,7 +392,7 @@ export const useProducts = (domainId: string) => {
     const [uses, setUses] = useState<CatalogItem[]>([])
     const [features, setFeatures] = useState<CatalogItem[]>([])
 
-    
+
     // Esquema condicional para edición
     const EditProductSchema = z.object({
         name: z
@@ -408,7 +440,7 @@ export const useProducts = (domainId: string) => {
         try {
             setLoading(true)
             const uploaded = await upload.uploadFile(values.image[0])
-            
+
             // Preparar datos adicionales del producto (usando IDs, convertir 'none' a undefined)
             const productData = {
                 materialId: values.materialId && values.materialId !== 'none' ? values.materialId : undefined,
@@ -428,7 +460,7 @@ export const useProducts = (domainId: string) => {
                 seasonId: values.seasonId && values.seasonId !== 'none' ? values.seasonId : undefined,
                 care: values.care,
             }
-            
+
             const product = await onCreateNewDomainProduct(
                 domainId,
                 values.name,
@@ -455,7 +487,7 @@ export const useProducts = (domainId: string) => {
         try {
             setLoading(true)
             let imageUuid = editingProduct?.image
-            
+
             if (values.image && values.image[0]) {
                 const uploaded = await upload.uploadFile(values.image[0])
                 imageUuid = uploaded.uuid
@@ -488,7 +520,7 @@ export const useProducts = (domainId: string) => {
                 imageUuid,
                 productData
             )
-            
+
             if (result) {
                 reset()
                 setEditingProduct(null)
@@ -570,7 +602,8 @@ export const useProducts = (domainId: string) => {
             setValue('seasonId', editingProduct.seasonId || 'none')
             setValue('care', editingProduct.care || '')
         }
-    }, [editingProduct, setValue])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [editingProduct])
 
     const onToggleProduct = async (productId: string) => {
         try {
@@ -593,37 +626,52 @@ export const useProducts = (domainId: string) => {
         setEditingProduct(null)
         reset()
     }
-    
-    // Cargar catálogos al montar el componente
+
+    // Cargar catálogos al montar el componente (OPTIMIZADO: solo una vez)
     useEffect(() => {
+        let isMounted = true
+
         const loadCatalogs = async () => {
-            const [cats, mats, texts, seas, us, feats] = await Promise.all([
-                onGetCategories(domainId),
-                onGetMaterials(domainId),
-                onGetTextures(domainId),
-                onGetSeasons(domainId),
-                onGetUses(domainId),
-                onGetFeatures(domainId),
-            ])
-            setCategories(cats || [])
-            setMaterials(mats || [])
-            setTextures(texts || [])
-            setSeasons(seas || [])
-            setUses(us || [])
-            setFeatures(feats || [])
+            try {
+                const [cats, mats, texts, seas, us, feats] = await Promise.all([
+                    onGetCategories(domainId),
+                    onGetMaterials(domainId),
+                    onGetTextures(domainId),
+                    onGetSeasons(domainId),
+                    onGetUses(domainId),
+                    onGetFeatures(domainId),
+                ])
+
+                if (isMounted) {
+                    setCategories(cats || [])
+                    setMaterials(mats || [])
+                    setTextures(texts || [])
+                    setSeasons(seas || [])
+                    setUses(us || [])
+                    setFeatures(feats || [])
+                }
+            } catch (error) {
+                console.error('Error cargando catálogos:', error)
+            }
         }
+
         loadCatalogs()
+
+        return () => {
+            isMounted = false
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [domainId])
 
-    return { 
-        onCreateNewProduct, 
+    return {
+        onCreateNewProduct,
         onUpdateProduct,
         onDeleteProduct,
-        onToggleProduct, 
-        register, 
+        onToggleProduct,
+        register,
         setValue,
-        errors, 
-        loading, 
+        errors,
+        loading,
         deleting,
         editingProduct,
         startEditing,
@@ -645,200 +693,213 @@ export const useProducts = (domainId: string) => {
 type CatalogType = 'category' | 'material' | 'texture' | 'season' | 'use' | 'feature'
 
 type CatalogItem = {
-  id: string
-  name: string
-  active: boolean
+    id: string
+    name: string
+    active: boolean
 }
 
 const catalogActions = {
-  category: {
-    get: onGetCategories,
-    create: onCreateCategory,
-    update: onUpdateCategory,
-    delete: onDeleteCategory,
-    toggle: onToggleCategory,
-  },
-  material: {
-    get: onGetMaterials,
-    create: onCreateMaterial,
-    update: onUpdateMaterial,
-    delete: onDeleteMaterial,
-    toggle: onToggleMaterial,
-  },
-  texture: {
-    get: onGetTextures,
-    create: onCreateTexture,
-    update: onUpdateTexture,
-    delete: onDeleteTexture,
-    toggle: onToggleTexture,
-  },
-  season: {
-    get: onGetSeasons,
-    create: onCreateSeason,
-    update: onUpdateSeason,
-    delete: onDeleteSeason,
-    toggle: onToggleSeason,
-  },
-  use: {
-    get: onGetUses,
-    create: onCreateUse,
-    update: onUpdateUse,
-    delete: onDeleteUse,
-    toggle: onToggleUse,
-  },
-  feature: {
-    get: onGetFeatures,
-    create: onCreateFeature,
-    update: onUpdateFeature,
-    delete: onDeleteFeature,
-    toggle: onToggleFeature,
-  },
+    category: {
+        get: onGetCategories,
+        create: onCreateCategory,
+        update: onUpdateCategory,
+        delete: onDeleteCategory,
+        toggle: onToggleCategory,
+    },
+    material: {
+        get: onGetMaterials,
+        create: onCreateMaterial,
+        update: onUpdateMaterial,
+        delete: onDeleteMaterial,
+        toggle: onToggleMaterial,
+    },
+    texture: {
+        get: onGetTextures,
+        create: onCreateTexture,
+        update: onUpdateTexture,
+        delete: onDeleteTexture,
+        toggle: onToggleTexture,
+    },
+    season: {
+        get: onGetSeasons,
+        create: onCreateSeason,
+        update: onUpdateSeason,
+        delete: onDeleteSeason,
+        toggle: onToggleSeason,
+    },
+    use: {
+        get: onGetUses,
+        create: onCreateUse,
+        update: onUpdateUse,
+        delete: onDeleteUse,
+        toggle: onToggleUse,
+    },
+    feature: {
+        get: onGetFeatures,
+        create: onCreateFeature,
+        update: onUpdateFeature,
+        delete: onDeleteFeature,
+        toggle: onToggleFeature,
+    },
 }
 
 export const useCatalog = (domainId: string, type: CatalogType) => {
-  const { toast } = useToast()
-  const [items, setItems] = useState<CatalogItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [creating, setCreating] = useState(false)
-  const [updating, setUpdating] = useState(false)
-  const [deleting, setDeleting] = useState<string | null>(null)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [newItemName, setNewItemName] = useState('')
-  const [editItemName, setEditItemName] = useState('')
+    const { toast } = useToast()
+    const [items, setItems] = useState<CatalogItem[]>([])
+    const [loading, setLoading] = useState(true)
+    const [creating, setCreating] = useState(false)
+    const [updating, setUpdating] = useState(false)
+    const [deleting, setDeleting] = useState<string | null>(null)
+    const [editingId, setEditingId] = useState<string | null>(null)
+    const [newItemName, setNewItemName] = useState('')
+    const [editItemName, setEditItemName] = useState('')
 
-  const actions = catalogActions[type]
+    const actions = catalogActions[type]
 
-  // Cargar items
-  const loadItems = async () => {
-    setLoading(true)
-    const result = await actions.get(domainId)
-    setItems(result || [])
-    setLoading(false)
-  }
-
-  useEffect(() => {
-    loadItems()
-  }, [domainId, type])
-
-  // Crear nuevo item
-  const handleCreate = async () => {
-    if (!newItemName.trim()) return
-
-    setCreating(true)
-    const result = await actions.create(domainId, newItemName.trim())
-    
-    if (result.status === 200) {
-      toast({
-        title: 'Éxito',
-        description: result.message,
-      })
-      setNewItemName('')
-      await loadItems()
-    } else {
-      toast({
-        title: 'Error',
-        description: result.message,
-        variant: 'destructive',
-      })
+    // Cargar items
+    const loadItems = async () => {
+        setLoading(true)
+        const result = await actions.get(domainId)
+        setItems(result || [])
+        setLoading(false)
     }
-    setCreating(false)
-  }
 
-  // Actualizar item
-  const handleUpdate = async () => {
-    if (!editingId || !editItemName.trim()) return
+    useEffect(() => {
+        let isMounted = true
 
-    setUpdating(true)
-    const result = await actions.update(editingId, editItemName.trim())
-    
-    if (result.status === 200) {
-      toast({
-        title: 'Éxito',
-        description: result.message,
-      })
-      setEditingId(null)
-      setEditItemName('')
-      await loadItems()
-    } else {
-      toast({
-        title: 'Error',
-        description: result.message,
-        variant: 'destructive',
-      })
+        const loadData = async () => {
+            if (isMounted) {
+                await loadItems()
+            }
+        }
+
+        loadData()
+
+        return () => {
+            isMounted = false
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [domainId, type])
+
+    // Crear nuevo item
+    const handleCreate = async () => {
+        if (!newItemName.trim()) return
+
+        setCreating(true)
+        const result = await actions.create(domainId, newItemName.trim())
+
+        if (result.status === 200) {
+            toast({
+                title: 'Éxito',
+                description: result.message,
+            })
+            setNewItemName('')
+            await loadItems()
+        } else {
+            toast({
+                title: 'Error',
+                description: result.message,
+                variant: 'destructive',
+            })
+        }
+        setCreating(false)
     }
-    setUpdating(false)
-  }
 
-  // Eliminar item
-  const handleDelete = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar este elemento?')) return
+    // Actualizar item
+    const handleUpdate = async () => {
+        if (!editingId || !editItemName.trim()) return
 
-    setDeleting(id)
-    const result = await actions.delete(id)
-    
-    if (result.status === 200) {
-      toast({
-        title: 'Éxito',
-        description: result.message,
-      })
-      await loadItems()
-    } else {
-      toast({
-        title: 'Error',
-        description: result.message,
-        variant: 'destructive',
-      })
+        setUpdating(true)
+        const result = await actions.update(editingId, editItemName.trim())
+
+        if (result.status === 200) {
+            toast({
+                title: 'Éxito',
+                description: result.message,
+            })
+            setEditingId(null)
+            setEditItemName('')
+            await loadItems()
+        } else {
+            toast({
+                title: 'Error',
+                description: result.message,
+                variant: 'destructive',
+            })
+        }
+        setUpdating(false)
     }
-    setDeleting(null)
-  }
 
-  // Toggle activo/inactivo
-  const handleToggle = async (id: string) => {
-    const result = await actions.toggle(id)
-    
-    if (result.status === 200) {
-      toast({
-        title: 'Éxito',
-        description: result.message,
-      })
-      await loadItems()
-    } else {
-      toast({
-        title: 'Error',
-        description: result.message,
-        variant: 'destructive',
-      })
+    // Eliminar item
+    const handleDelete = async (id: string) => {
+        if (!confirm('¿Estás seguro de eliminar este elemento?')) return
+
+        setDeleting(id)
+        const result = await actions.delete(id)
+
+        if (result.status === 200) {
+            toast({
+                title: 'Éxito',
+                description: result.message,
+            })
+            await loadItems()
+        } else {
+            toast({
+                title: 'Error',
+                description: result.message,
+                variant: 'destructive',
+            })
+        }
+        setDeleting(null)
     }
-  }
 
-  // Iniciar edición
-  const startEditing = (id: string, name: string) => {
-    setEditingId(id)
-    setEditItemName(name)
-  }
+    // Toggle activo/inactivo
+    const handleToggle = async (id: string) => {
+        const result = await actions.toggle(id)
 
-  // Cancelar edición
-  const cancelEditing = () => {
-    setEditingId(null)
-    setEditItemName('')
-  }
+        if (result.status === 200) {
+            toast({
+                title: 'Éxito',
+                description: result.message,
+            })
+            await loadItems()
+        } else {
+            toast({
+                title: 'Error',
+                description: result.message,
+                variant: 'destructive',
+            })
+        }
+    }
 
-  return {
-    items,
-    loading,
-    creating,
-    updating,
-    deleting,
-    editingId,
-    newItemName,
-    editItemName,
-    setNewItemName,
-    setEditItemName,
-    handleCreate,
-    handleUpdate,
-    handleDelete,
-    handleToggle,
-    startEditing,
-    cancelEditing,
+    // Iniciar edición
+    const startEditing = (id: string, name: string) => {
+        setEditingId(id)
+        setEditItemName(name)
+    }
+
+    // Cancelar edición
+    const cancelEditing = () => {
+        setEditingId(null)
+        setEditItemName('')
+    }
+
+    return {
+        items,
+        loading,
+        creating,
+        updating,
+        deleting,
+        editingId,
+        newItemName,
+        editItemName,
+        setNewItemName,
+        setEditItemName,
+        handleCreate,
+        handleUpdate,
+        handleDelete,
+        handleToggle,
+        startEditing,
+        cancelEditing,
     }
 }

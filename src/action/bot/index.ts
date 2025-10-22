@@ -158,8 +158,30 @@ interface CustomerData {
 interface ChatBotDomain {
   name: string
   helpdesk: Array<{ question: string; answer: string }>
-  products: Array<{ name: string; price: number; image: string }>
+  products: Array<{ 
+    name: string
+    price: number
+    image: string
+    salePrice?: number | null
+    description?: string | null
+    color?: string | null
+    width?: string | null
+    weight?: string | null
+    stock: number
+    material?: { name: string } | null
+    texture?: { name: string } | null
+    category?: { name: string } | null
+    season?: { name: string } | null
+    uses: Array<{ use: { name: string } }>
+    features: Array<{ feature: { name: string } }>
+  }>
   filterQuestions: Array<{ question: string }>
+  categories: Array<{ name: string }>
+  materials: Array<{ name: string }>
+  textures: Array<{ name: string }>
+  seasons: Array<{ name: string }>
+  uses: Array<{ name: string }>
+  features: Array<{ name: string }>
 }
 
 interface CustomerInfo {
@@ -421,7 +443,8 @@ Tu opinión nos ayuda a mejorar.`
     customerDataForContext,
     contextSpecificPrompt,
     domainId,
-    customerInfo
+    customerInfo,
+    message
   )
 
   // 6. Usar solo historial relevante (últimos 10 mensajes)
@@ -1286,6 +1309,276 @@ const updateCustomerData = async (customerId: string, customerData: CustomerData
   })
 }
 
+// ============================================
+// SISTEMA INTELIGENTE DE PRODUCTOS
+// ============================================
+
+/**
+ * Detecta las preferencias del cliente en su mensaje
+ * Busca menciones de materiales, categorías, texturas, temporadas, usos y características
+ */
+const detectProductPreferences = (
+  message: string,
+  chatBotDomain: ChatBotDomain
+): {
+  materials: string[]
+  categories: string[]
+  textures: string[]
+  seasons: string[]
+  uses: string[]
+  features: string[]
+  colors: string[]
+  hasPreferences: boolean
+} => {
+  const lowerMsg = message.toLowerCase()
+  
+  const preferences = {
+    materials: [] as string[],
+    categories: [] as string[],
+    textures: [] as string[],
+    seasons: [] as string[],
+    uses: [] as string[],
+    features: [] as string[],
+    colors: [] as string[],
+    hasPreferences: false
+  }
+
+  // Detectar materiales mencionados
+  chatBotDomain.materials.forEach(mat => {
+    if (lowerMsg.includes(mat.name.toLowerCase())) {
+      preferences.materials.push(mat.name)
+      preferences.hasPreferences = true
+    }
+  })
+
+  // Detectar categorías mencionadas
+  chatBotDomain.categories.forEach(cat => {
+    if (lowerMsg.includes(cat.name.toLowerCase())) {
+      preferences.categories.push(cat.name)
+      preferences.hasPreferences = true
+    }
+  })
+
+  // Detectar texturas mencionadas
+  chatBotDomain.textures.forEach(tex => {
+    if (lowerMsg.includes(tex.name.toLowerCase())) {
+      preferences.textures.push(tex.name)
+      preferences.hasPreferences = true
+    }
+  })
+
+  // Detectar temporadas mencionadas
+  chatBotDomain.seasons.forEach(season => {
+    if (lowerMsg.includes(season.name.toLowerCase())) {
+      preferences.seasons.push(season.name)
+      preferences.hasPreferences = true
+    }
+  })
+
+  // Detectar usos mencionados
+  chatBotDomain.uses.forEach(use => {
+    if (lowerMsg.includes(use.name.toLowerCase())) {
+      preferences.uses.push(use.name)
+      preferences.hasPreferences = true
+    }
+  })
+
+  // Detectar características mencionadas
+  chatBotDomain.features.forEach(feat => {
+    if (lowerMsg.includes(feat.name.toLowerCase())) {
+      preferences.features.push(feat.name)
+      preferences.hasPreferences = true
+    }
+  })
+
+  // Detectar colores comunes mencionados
+  const commonColors = [
+    'rojo', 'azul', 'verde', 'amarillo', 'negro', 'blanco', 'gris', 'rosa',
+    'morado', 'naranja', 'marrón', 'beige', 'celeste', 'turquesa', 'violeta'
+  ]
+  
+  commonColors.forEach(color => {
+    if (lowerMsg.includes(color)) {
+      preferences.colors.push(color)
+      preferences.hasPreferences = true
+    }
+  })
+
+  return preferences
+}
+
+/**
+ * Filtra productos según las preferencias detectadas
+ */
+const filterProductsByPreferences = (
+  products: ChatBotDomain['products'],
+  preferences: ReturnType<typeof detectProductPreferences>
+): ChatBotDomain['products'] => {
+  if (!preferences.hasPreferences) {
+    return products // Si no hay preferencias, devolver todos
+  }
+
+  return products.filter(product => {
+    let matches = false
+
+    // Filtrar por material
+    if (preferences.materials.length > 0 && product.material) {
+      if (preferences.materials.some(mat => 
+        product.material?.name.toLowerCase().includes(mat.toLowerCase())
+      )) {
+        matches = true
+      }
+    }
+
+    // Filtrar por categoría
+    if (preferences.categories.length > 0 && product.category) {
+      if (preferences.categories.some(cat => 
+        product.category?.name.toLowerCase().includes(cat.toLowerCase())
+      )) {
+        matches = true
+      }
+    }
+
+    // Filtrar por textura
+    if (preferences.textures.length > 0 && product.texture) {
+      if (preferences.textures.some(tex => 
+        product.texture?.name.toLowerCase().includes(tex.toLowerCase())
+      )) {
+        matches = true
+      }
+    }
+
+    // Filtrar por temporada
+    if (preferences.seasons.length > 0 && product.season) {
+      if (preferences.seasons.some(season => 
+        product.season?.name.toLowerCase().includes(season.toLowerCase())
+      )) {
+        matches = true
+      }
+    }
+
+    // Filtrar por uso
+    if (preferences.uses.length > 0 && product.uses.length > 0) {
+      if (preferences.uses.some(use => 
+        product.uses.some(pUse => 
+          pUse.use.name.toLowerCase().includes(use.toLowerCase())
+        )
+      )) {
+        matches = true
+      }
+    }
+
+    // Filtrar por características
+    if (preferences.features.length > 0 && product.features.length > 0) {
+      if (preferences.features.some(feat => 
+        product.features.some(pFeat => 
+          pFeat.feature.name.toLowerCase().includes(feat.toLowerCase())
+        )
+      )) {
+        matches = true
+      }
+    }
+
+    // Filtrar por color
+    if (preferences.colors.length > 0 && product.color) {
+      if (preferences.colors.some(color => 
+        product.color?.toLowerCase().includes(color.toLowerCase())
+      )) {
+        matches = true
+      }
+    }
+
+    return matches
+  })
+}
+
+/**
+ * Genera contexto inteligente de productos:
+ * - Si el cliente menciona preferencias específicas, filtra y muestra solo productos relevantes
+ * - Si no hay preferencias, sugiere hacer preguntas antes de mostrar todos los productos
+ */
+const generateProductsContext = (
+  chatBotDomain: ChatBotDomain,
+  message: string
+): string => {
+  if (chatBotDomain.products.length === 0) {
+    return '\n⚠️ NO hay productos disponibles en este momento.'
+  }
+
+  // Detectar si el cliente pregunta por productos
+  const lowerMsg = message.toLowerCase()
+  const asksForProducts = /\b(productos?|telas?|textiles?|catálogo|que\s+tienen|que\s+venden|muestrame|muéstrame|ver\s+productos)\b/i.test(lowerMsg)
+  
+  // Detectar preferencias en el mensaje
+  const preferences = detectProductPreferences(message, chatBotDomain)
+  
+  // Si hay preferencias detectadas, filtrar productos
+  if (preferences.hasPreferences) {
+    const filteredProducts = filterProductsByPreferences(chatBotDomain.products, preferences)
+    
+    if (filteredProducts.length === 0) {
+      return `\n❌ No encontramos productos que coincidan exactamente con: ${
+        [...preferences.materials, ...preferences.categories, ...preferences.textures, 
+         ...preferences.seasons, ...preferences.uses, ...preferences.features, 
+         ...preferences.colors].join(', ')
+      }. Tenemos ${chatBotDomain.products.length} productos disponibles en total.`
+    }
+
+    // Mostrar productos filtrados con información detallada
+    const productDetails = filteredProducts.slice(0, 5).map(p => {
+      const details: string[] = [`${p.name} - S/${p.salePrice || p.price}`]
+      
+      if (p.material) details.push(`Material: ${p.material.name}`)
+      if (p.texture) details.push(`Textura: ${p.texture.name}`)
+      if (p.category) details.push(`Categoría: ${p.category.name}`)
+      if (p.color) details.push(`Color: ${p.color}`)
+      if (p.width) details.push(`Ancho: ${p.width}`)
+      if (p.weight) details.push(`Gramaje: ${p.weight}`)
+      if (p.description) details.push(`${p.description}`)
+      
+      const uses = p.uses.map(u => u.use.name).join(', ')
+      if (uses) details.push(`Usos: ${uses}`)
+      
+      const features = p.features.map(f => f.feature.name).join(', ')
+      if (features) details.push(`Características: ${features}`)
+      
+      return details.join(' | ')
+    }).join('\n')
+
+    return `\n✅ Productos que coinciden con tu búsqueda (${filteredProducts.length} encontrados):\n${productDetails}${
+      filteredProducts.length > 5 ? `\n... y ${filteredProducts.length - 5} productos más` : ''
+    }`
+  }
+
+  // Si pregunta por productos pero no da preferencias, sugerir hacer preguntas
+  if (asksForProducts) {
+    const suggestions: string[] = []
+    
+    if (chatBotDomain.materials.length > 0) {
+      suggestions.push(`Materiales disponibles: ${chatBotDomain.materials.map(m => m.name).join(', ')}`)
+    }
+    if (chatBotDomain.categories.length > 0) {
+      suggestions.push(`Categorías: ${chatBotDomain.categories.map(c => c.name).join(', ')}`)
+    }
+    if (chatBotDomain.textures.length > 0) {
+      suggestions.push(`Texturas: ${chatBotDomain.textures.map(t => t.name).join(', ')}`)
+    }
+    if (chatBotDomain.uses.length > 0) {
+      suggestions.push(`Usos: ${chatBotDomain.uses.map(u => u.name).join(', ')}`)
+    }
+
+    return `\n📋 Tenemos ${chatBotDomain.products.length} productos textiles disponibles.
+
+IMPORTANTE: Para ayudarte mejor, pregunta al cliente sobre sus preferencias:
+${suggestions.length > 0 ? suggestions.join('\n') : ''}
+
+Ejemplo: "¿Qué tipo de material/tela estás buscando?" o "¿Para qué uso necesitas la tela?"`
+  }
+
+  // Si no pregunta por productos, solo dar contexto básico
+  return `\n📦 Tenemos ${chatBotDomain.products.length} productos textiles. Pregunta al cliente qué busca antes de listarlos todos.`
+}
+
 /**
  * OPTIMIZACIÓN: Prompt compacto para reducir tokens
  * Reducción de ~800 tokens a ~300 tokens (62% ahorro)
@@ -1295,31 +1588,43 @@ const generateOpenAIContext = (
   customerData: CustomerData,
   contextSpecificPrompt: string,
   domainId: string,
-  customerInfo?: any
+  customerInfo: any,
+  message: string
 ): string => {
   // Contextos compactos
   const helpdeskContext = chatBotDomain.helpdesk.length > 0
     ? `\nFAQs: ${chatBotDomain.helpdesk.map(h => h.question).join(', ')}`
     : ''
 
-  const productsContext = chatBotDomain.products.length > 0
-    ? `\nProductos: ${chatBotDomain.products.map(p => `${p.name} (S/${p.price})`).join(', ')}`
-    : ''
+  // ✅ NUEVO: Usar sistema inteligente de productos
+  const productsContext = generateProductsContext(chatBotDomain, message)
 
-  return `Eres Lunari AI, asistente de textiles para ${chatBotDomain.name}.
+  return `Eres Lunari AI, asistente virtual especializado en textiles para ${chatBotDomain.name}.
 
 CLIENTE: ${customerData.name || 'Usuario'} | ${customerData.email} | ${customerData.phone || 'Sin teléfono'}
 
-⚠️ REGLAS CRÍTICAS:
-1. NO pidas datos que ya tienes (nombre, email, teléfono arriba)
-2. Si dice "agendar/reservar/cita" → Da SOLO este enlace: http://localhost:3000/portal/${domainId}/appointment/${customerInfo?.id}
-3. NO preguntes fecha/hora para citas, solo da el enlace
-4. Para compras → Enlace: http://localhost:3000/portal/${domainId}/payment/${customerInfo?.id}
-5. Si fuera de contexto textil → "(realtime)" para humano
-6. NUNCA inventes productos/servicios${helpdeskContext}${productsContext}
-7. NO preguntes "¿Hay algo más en que pueda ayudarte?" - esto se agrega automáticamente
+⚠️ REGLAS CRÍTICAS - PROHIBIDO INVENTAR INFORMACIÓN:
+1. SOLO usa los productos y datos proporcionados arriba en el contexto
+2. NUNCA inventes productos, materiales, características o servicios que no están en el contexto
+3. Si no tienes la información exacta, di "No tengo esa información específica"
+4. NO pidas datos del cliente que ya aparecen arriba (nombre, email, teléfono)
+5. Si dice "agendar/reservar/cita" → Da SOLO este enlace: http://localhost:3000/portal/${domainId}/appointment/${customerInfo?.id}
+6. NO preguntes fecha/hora para citas, solo da el enlace
+7. Para compras → Enlace: http://localhost:3000/portal/${domainId}/payment/${customerInfo?.id}
+8. Si la consulta es fuera de contexto textil o no puedes ayudar → Responde con "(realtime)" para escalar a humano${helpdeskContext}${productsContext}
+9. NO preguntes "¿Hay algo más en que pueda ayudarte?" - esto se agrega automáticamente
 
-Responde en español, breve, amigable y directo. Usa el nombre del cliente.`
+🎯 ESTRATEGIA PARA RECOMENDAR PRODUCTOS:
+- Si el cliente pregunta por productos SIN especificar qué busca, NO le des una lista completa
+- En su lugar, haz preguntas inteligentes para conocer sus necesidades:
+  * "¿Qué tipo de material o tela estás buscando?" (si hay materiales disponibles en el contexto)
+  * "¿Para qué uso necesitas la tela?" (si hay usos disponibles en el contexto)
+  * "¿Qué textura prefieres?" (si hay texturas disponibles en el contexto)
+  * "¿Qué categoría te interesa?" (si hay categorías disponibles en el contexto)
+- Una vez que el cliente mencione sus preferencias (material, uso, categoría, color, etc.), muestra SOLO los productos del contexto que coincidan
+- Si el cliente menciona algo que NO está en tu contexto de productos, indícale qué opciones SÍ tienes disponibles
+
+Responde en español, breve, amigable y directo. Usa el nombre del cliente. Sé útil pero NUNCA inventes información.`
 }
 
 /**
@@ -1552,10 +1857,62 @@ export const onAiChatBotAssistant = async (
       select: {
         name: true,
         helpdesk: { select: { question: true, answer: true } },
-        products: { select: { name: true, price: true, image: true } },
+        products: { 
+          where: { active: true }, // Solo productos activos
+          select: { 
+            name: true, 
+            price: true, 
+            image: true,
+            salePrice: true,
+            description: true,
+            color: true,
+            width: true,
+            weight: true,
+            stock: true,
+            material: { select: { name: true } },
+            texture: { select: { name: true } },
+            category: { select: { name: true } },
+            season: { select: { name: true } },
+            uses: { 
+              select: { 
+                use: { select: { name: true } } 
+              } 
+            },
+            features: { 
+              select: { 
+                feature: { select: { name: true } } 
+              } 
+            }
+          } 
+        },
         filterQuestions: {
           where: { answered: null },
           select: { question: true }
+        },
+        // Obtener catálogos disponibles para hacer preguntas inteligentes
+        categories: { 
+          where: { active: true },
+          select: { name: true }
+        },
+        materials: { 
+          where: { active: true },
+          select: { name: true }
+        },
+        textures: { 
+          where: { active: true },
+          select: { name: true }
+        },
+        seasons: { 
+          where: { active: true },
+          select: { name: true }
+        },
+        uses: { 
+          where: { active: true },
+          select: { name: true }
+        },
+        features: { 
+          where: { active: true },
+          select: { name: true }
         }
       }
     })
@@ -1864,7 +2221,8 @@ export const onAiChatBotAssistant = async (
         customerDataForContext,
         contextSpecificPrompt,
         id,
-        customerInfo
+        customerInfo,
+        message
       )
 
       const relevantHistory = getRelevantChatHistory(chat, 10)
