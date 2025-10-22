@@ -172,19 +172,19 @@ export const useHelpDesk = (id: string) => {
             }
         } else {
             // Crear nueva pregunta
-            const question = await onCreateHelpDeskQuestion(
-                id,
-                values.question,
-                values.answer
-            )
-            if (question) {
-                setIsQuestions(question.questions!)
-                toast({
-                    title: question.status == 200 ? 'Éxito al crear pregunta' : 'Error al crear pregunta',
-                    description: question.message,
-                })
-                setLoading(false)
-                reset()
+        const question = await onCreateHelpDeskQuestion(
+            id,
+            values.question,
+            values.answer
+        )
+        if (question) {
+            setIsQuestions(question.questions!)
+            toast({
+                title: question.status == 200 ? 'Éxito al crear pregunta' : 'Error al crear pregunta',
+                description: question.message,
+            })
+            setLoading(false)
+            reset()
             }
         }
     })
@@ -280,15 +280,15 @@ export const useFilterQuestions = (id: string) => {
             }
         } else {
             // Crear nueva pregunta
-            const questions = await onCreateFilterQuestions(id, values.question)
-            if (questions) {
-                setIsQuestions(questions.questions!)
-                toast({
-                    title: questions.status == 200 ? 'Éxito al crear pregunta' : 'Error al crear pregunta',
-                    description: questions.message,
-                })
-                reset()
-                setLoading(false)
+        const questions = await onCreateFilterQuestions(id, values.question)
+        if (questions) {
+            setIsQuestions(questions.questions!)
+            toast({
+                title: questions.status == 200 ? 'Éxito al crear pregunta' : 'Error al crear pregunta',
+                description: questions.message,
+            })
+            reset()
+            setLoading(false)
             }
         }
     })
@@ -360,7 +360,7 @@ export const useProducts = (domainId: string) => {
     const [uses, setUses] = useState<CatalogItem[]>([])
     const [features, setFeatures] = useState<CatalogItem[]>([])
 
-
+    
     // Esquema condicional para edición
     const EditProductSchema = z.object({
         name: z
@@ -455,7 +455,7 @@ export const useProducts = (domainId: string) => {
         try {
             setLoading(true)
             let imageUuid = editingProduct?.image
-
+            
             if (values.image && values.image[0]) {
                 const uploaded = await upload.uploadFile(values.image[0])
                 imageUuid = uploaded.uuid
@@ -488,7 +488,7 @@ export const useProducts = (domainId: string) => {
                 imageUuid,
                 productData
             )
-
+            
             if (result) {
                 reset()
                 setEditingProduct(null)
@@ -615,14 +615,14 @@ export const useProducts = (domainId: string) => {
         loadCatalogs()
     }, [domainId])
 
-    return {
-        onCreateNewProduct,
+    return { 
+        onCreateNewProduct, 
         onUpdateProduct,
         onDeleteProduct,
-        onToggleProduct,
-        register,
-        errors,
-        loading,
+        onToggleProduct, 
+        register, 
+        errors, 
+        loading, 
         deleting,
         editingProduct,
         startEditing,
@@ -839,5 +839,5 @@ export const useCatalog = (domainId: string, type: CatalogType) => {
     handleToggle,
     startEditing,
     cancelEditing,
-  }
+    }
 }

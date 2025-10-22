@@ -58,29 +58,21 @@ export const CreateProductForm = ({
 
   return (
     <div className="w-full">
-      {/* Botón fijo en la parte superior */}
-      <div className="flex gap-3 pb-4 border-b border-gray-200 mb-6">
-        <Button
-          type="submit"
-          className="flex-1 bg-orange hover:bg-orange/90"
-          disabled={loading}
-          onClick={editingProduct ? onUpdateProduct : onCreateNewProduct}
-        >
-          <Loader loading={loading}>
-            {editingProduct ? 'Actualizar producto' : 'Crear producto'}
-          </Loader>
-        </Button>
-        {editingProduct && onCancel && (
+      {/* Botón solo para CREAR producto - NO mostrar cuando esté editando */}
+      {!editingProduct && (
+        <div className="flex gap-3 pb-4 border-b border-gray-200 mb-6">
           <Button
-            type="button"
-            variant="outline"
-            onClick={onCancel}
-            className="flex-1"
+            type="submit"
+            className="flex-1 bg-orange hover:bg-orange/90"
+            disabled={loading}
+            onClick={onCreateNewProduct}
           >
-            Cancelar
+            <Loader loading={loading}>
+              Crear producto
+            </Loader>
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
     <form
         className="w-full flex flex-col gap-6 py-6 max-h-[60vh] overflow-y-auto px-2"
@@ -430,6 +422,32 @@ export const CreateProductForm = ({
           </div>
         )}
       </div>
+
+      {/* Botones solo para EDITAR producto - NO mostrar cuando esté creando */}
+      {editingProduct && (
+        <div className="flex gap-3 pt-4 border-t border-gray-200 mt-6">
+          <Button
+            type="submit"
+            className="flex-1 bg-orange hover:bg-orange/90"
+            disabled={loading}
+            onClick={onUpdateProduct}
+          >
+            <Loader loading={loading}>
+              Actualizar producto
+            </Loader>
+          </Button>
+          {onCancel && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCancel}
+              className="flex-1"
+            >
+              Cancelar
+            </Button>
+          )}
+        </div>
+      )}
     </form>
     </div>
   )
