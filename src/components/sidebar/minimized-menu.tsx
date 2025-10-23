@@ -37,10 +37,10 @@ const MinMenu = ({ current, domains, onShrink, onSignOut }: MinMenuProps) => {
                             current={current}
                         />
                     ))}
-                    <DomainMenu
+                    {/* <DomainMenu
                         min
                         domains={domains}
-                    />
+                    /> */}
                 </div>
                 <div className="flex flex-col">
                     <MenuItem

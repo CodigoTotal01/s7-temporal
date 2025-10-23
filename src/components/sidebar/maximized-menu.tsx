@@ -20,6 +20,58 @@ type Props = {
 };
 
 const MaxMenu = ({ current, domains, onExpand, onSignOut }: Props) => {
+  // Verificar si hay empresa creada
+  const hasCompany = Boolean(domains && domains.length > 0)
+
+  // Función para renderizar los elementos del menú con estructura jerárquica
+  const renderMenuItems = () => {
+    const mainMenus = SIDE_BAR_MENU.filter(menu => !menu.parentPath)
+    const subMenus = SIDE_BAR_MENU.filter(menu => menu.parentPath)
+
+    return mainMenus
+      .filter(menu => {
+        // Verificar visibilidad para configuración
+        if (menu.path === 'settings' && !hasCompany) {
+          return false // No mostrar configuración si NO hay empresa
+        }
+        return true
+      })
+      .map((menu, key) => {
+        if (menu.isSubmenu) {
+          const children = subMenus.filter(submenu => submenu.parentPath === menu.path)
+          return (
+            <MenuItem
+              size="max"
+              {...menu}
+              key={key}
+              current={current}
+              hasCompany={hasCompany}
+              isSubmenu={true}
+              children={children.map((child, childKey) => (
+                <MenuItem
+                  size="max"
+                  {...child}
+                  key={childKey}
+                  current={current}
+                  hasCompany={hasCompany}
+                />
+              ))}
+            />
+          )
+        } else {
+          return (
+            <MenuItem
+              size="max"
+              {...menu}
+              key={key}
+              current={current}
+              hasCompany={hasCompany}
+            />
+          )
+        }
+      })
+  }
+
   return (
     <div className="py-3 px-4 flex flex-col h-full">
       <div className="flex justify-between items-center max-h-12">
@@ -43,16 +95,8 @@ const MaxMenu = ({ current, domains, onExpand, onSignOut }: Props) => {
         className="animate-fade-in opacity-0 delay-300 fill-mode-forwards flex flex-col justify-between h-full pt-5">
 
         <div className="flex flex-col">
-          <p className="text-xs text-gray-500 mb-3">MENU</p>
-          {SIDE_BAR_MENU.map((menu, key) => (
-            <MenuItem
-              size="max"
-              {...menu}
-              key={key}
-              current={current}
-            />
-          ))}
-          <DomainMenu domains={domains} />
+          {renderMenuItems()}
+          {/* <DomainMenu domains={domains} /> */}
         </div>
         <div className="flex flex-col">
           <p className="text-xs text-gray-500 mb-3">OPTIONS</p>
