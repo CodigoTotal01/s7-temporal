@@ -411,7 +411,7 @@ Tu opinión nos ayuda a mejorar.`
       // ✅ ENVIAR EMAIL AL DUEÑO CUANDO SE ESCALA A HUMANO
       try {
         const domainOwner = await client.domain.findFirst({
-          where: { id: customerInfo.domainId },
+          where: { id: domainId }, // ✅ Usar el domainId del parámetro
           select: {
             User: {
               select: {
@@ -531,6 +531,33 @@ Tu opinión me ayuda a mejorar.`
         respondedWithin2Hours: true
       }
     })
+
+    // ✅ ENVIAR EMAIL AL DUEÑO INMEDIATAMENTE CUANDO CLIENTE PIDE HUMANO
+    try {
+      const domainOwner = await client.domain.findFirst({
+        where: { id: domainId }, // ✅ Usar el domainId del parámetro
+        select: {
+          User: {
+            select: {
+              clerkId: true
+            }
+          }
+        }
+      })
+      console.log("🚀 ~ domainOwner:", domainOwner)
+
+      if (domainOwner?.User?.clerkId) {
+        const user = await clerkClient.users.getUser(domainOwner.User.clerkId)
+        console.log("🚀 ~ user:", user)
+        await onMailer(
+          user.emailAddresses[0].emailAddress,
+          customerInfo.name || 'Cliente',
+          customerInfo.email
+        )
+      }
+    } catch (error) {
+      console.error('❌ Error enviando email de solicitud de humano:', error)
+    }
 
     // Marcar como esperando calificación antes de escalar
     await client.chatRoom.update({
@@ -2073,7 +2100,7 @@ export const onAiChatBotAssistant = async (
           message,
           author,
           chat,
-          id,
+          id, // ✅ Pasar el domainId
           chatBotDomain,
           sessionToken
         )
