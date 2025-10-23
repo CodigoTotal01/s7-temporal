@@ -88,7 +88,7 @@ const Bubble = ({ message, createdAt }: Props) => {
             />
           </div>
         ) : (
-          <p className="text-xs leading-relaxed">
+          <div className="text-xs leading-relaxed whitespace-pre-line">
             {message.content.replace('(complete)', ' ')}
             {message.link && (
               <Link
@@ -99,7 +99,7 @@ const Bubble = ({ message, createdAt }: Props) => {
                 Ver enlace
               </Link>
             )}
-          </p>
+          </div>
         )}
       </div>
     </div>
