@@ -14,7 +14,7 @@ import { Button } from '../ui/button'
 import { Send } from 'lucide-react'
 import { CardDescription, CardTitle } from '../ui/card'
 import Accordion from '../accordian'
-import SessionIndicator from './session-indicator' // ✅ Nuevo componente
+import SessionIndicator from './session-indicator'
 
 type Props = {
   errors: any
@@ -116,21 +116,19 @@ export const BotWindow = forwardRef<HTMLDivElement, Props>(
 
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-full">
-                <ChatModeToggle
-                  isHumanMode={isHumanMode}
-                  onToggle={onToggleHumanMode}
-                  disabled={isToggleDisabled}
-                  chatRoomId={realtimeMode?.chatroom}
-                  setChats={setChat}
-                />
-              </div>
-
-              {/* {realtimeMode?.mode && (
-                <div className="text-xs text-green-600 font-medium mt-1">
-                  🔴 Modo Real Time Activo
+              {/* ✅ Solo mostrar toggle cuando hay sesión activa */}
+              {isAuthenticated && (
+                <div className="w-full">
+                  <ChatModeToggle
+                    isHumanMode={isHumanMode}
+                    onToggle={onToggleHumanMode}
+                    disabled={isToggleDisabled}
+                    chatRoomId={realtimeMode?.chatroom}
+                    setChats={setChat}
+                  />
                 </div>
-              )} */}
+              )}
+
             </div>
           </div>
         </div>
