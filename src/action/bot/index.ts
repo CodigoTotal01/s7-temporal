@@ -1059,7 +1059,7 @@ const isResponseEffective = async (
 
     // Criterio 2: Si el usuario pide una acción específica y el bot la ejecuta → Efectivo
     const actionRequests = [
-      /(?:quiero|deseo|necesito|puedo)\s+(?:agendar|reservar|comprar|adquirir)/i,
+      /(?:quiero|deseo|necesito|puedo)\s+(?:agendar|reservar)/i,
       /(?:dame|muestra|enséñame)\s+(?:productos|servicios|precios)/i,
     ]
 
@@ -1736,8 +1736,7 @@ CLIENTE: ${customerData.name || 'Usuario'} | ${customerData.email} | ${customerD
 4. NO pidas datos del cliente que ya aparecen arriba (nombre, email, teléfono)
 5. Si dice "agendar/reservar/cita" → Da SOLO este enlace: http://localhost:3000/portal/${domainId}/appointment/${customerInfo?.id}
 6. NO preguntes fecha/hora para citas, solo da el enlace
-7. Para compras → Enlace: http://localhost:3000/portal/${domainId}/payment/${customerInfo?.id}
-8. Si la consulta es fuera de contexto textil, no puedes ayudar, o el cliente solicita hablar con un humano → Responde con "(realtime)" para escalar a humano
+7. Si la consulta es fuera de contexto textil, no puedes ayudar, o el cliente solicita hablar con un humano → Responde con "(realtime)" para escalar a humano
    Palabras clave para escalación: "humano", "persona", "agente", "operador", "hablar con alguien", "no me ayuda", "quiero hablar con", "escalar"
 ${helpdeskContext}${productsContext}
 9. NO preguntes "¿Hay algo más en que pueda ayudarte?" - esto se agrega automáticamente
@@ -1769,16 +1768,10 @@ const isAppointmentRequest = (message: string): boolean => {
  * Determina el contexto específico basado en el tipo de solicitud
  */
 const getContextSpecificPrompt = (message: string, domainId: string, customerId: string): string => {
-  const isPaymentRequest = /pago|pagar|comprar|adquirir|producto/i.test(message)
   const isAppointmentRequest = /cita|agendar|consulta|reunión|visita/i.test(message)
   const isGeneralQuery = /ayuda|información|consulta|pregunta/i.test(message)
 
-  if (isPaymentRequest) {
-    return `
-CONTEXTO ACTUAL: El cliente está solicitando ayuda con un pago o compra.
-RESPUESTA ESPERADA: Debes ayudarlo con el proceso de pago, mostrar productos disponibles si es necesario, y proporcionar el enlace de pago: http://localhost:3000/portal/${domainId}/payment/${customerId}
-NO pidas email nuevamente, ya lo tienes.`
-  } else if (isAppointmentRequest) {
+  if (isAppointmentRequest) {
     return `
 CONTEXTO ACTUAL: El cliente está solicitando agendar una cita o consulta.
 RESPUESTA ESPERADA: Debes ayudarlo con el proceso de agendamiento y proporcionar el enlace de citas: http://localhost:3000/portal/${domainId}/appointment/${customerId}
