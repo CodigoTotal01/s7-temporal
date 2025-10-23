@@ -137,6 +137,22 @@ export const onGetCurrentChatBot = async (idOrName: string) => {
             helpdesk: true,
           },
         },
+        // ✅ AGREGAR INFORMACIÓN DE CHATROOM PARA EL TOGGLE
+        customer: {
+          select: {
+            chatRoom: {
+              select: {
+                id: true,
+                conversationState: true,
+                live: true,
+              },
+              orderBy: {
+                createdAt: 'desc'
+              },
+              take: 1
+            }
+          }
+        }
       },
     })
 

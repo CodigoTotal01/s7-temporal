@@ -72,6 +72,9 @@ export const useChatBot = () => {
 
   // ✅ Estado para el toggle de modo humano
   const [isHumanMode, setIsHumanMode] = useState<boolean>(false)
+  
+  // ✅ Almacenar chatroom actual para el toggle
+  const [currentChatRoom, setCurrentChatRoom] = useState<string | undefined>(undefined)
 
   const onScrollToBottom = () => {
     messageWindowRef.current?.scroll({
@@ -115,6 +118,29 @@ export const useChatBot = () => {
       ])
       setCurrentBot(chatbot)
       setLoading(false)
+
+      // ✅ CARGAR ESTADO INICIAL DE LA CONVERSACIÓN
+      if (chatbot.customer && chatbot.customer.length > 0) {
+        const customer = chatbot.customer[0]
+        if (customer.chatRoom && customer.chatRoom.length > 0) {
+          const chatRoom = customer.chatRoom[0]
+          
+          // ✅ Almacenar chatroom actual
+          setCurrentChatRoom(chatRoom.id)
+          
+          // ✅ Determinar modo inicial basado en conversationState
+          const isInitiallyHumanMode = chatRoom.conversationState === 'ESCALATED'
+          setIsHumanMode(isInitiallyHumanMode)
+          
+          // ✅ Configurar tiempo real si está en modo humano
+          if (isInitiallyHumanMode) {
+            setOnRealTime({
+              chatroom: chatRoom.id,
+              mode: true
+            })
+          }
+        }
+      }
     } else {
       console.error('No se pudo encontrar el chatbot para:', idOrName)
     }
@@ -187,6 +213,12 @@ export const useChatBot = () => {
             chatroom: response.chatRoom,
             mode: response.live,
           }))
+          
+          // ✅ ALMACENAR CHATROOM ACTUAL
+          setCurrentChatRoom(response.chatRoom)
+          
+          // ✅ ACTUALIZAR MODO DEL TOGGLE CUANDO SE ESCALA A HUMANO
+          setIsHumanMode(true)
         } else if ('response' in response && response.response) {
           setOnChats((prev: any) => [...prev, response.response])
         }
@@ -248,6 +280,12 @@ export const useChatBot = () => {
             chatroom: response.chatRoom,
             mode: response.live,
           }))
+          
+          // ✅ ALMACENAR CHATROOM ACTUAL
+          setCurrentChatRoom(response.chatRoom)
+          
+          // ✅ ACTUALIZAR MODO DEL TOGGLE CUANDO SE ESCALA A HUMANO
+          setIsHumanMode(true)
         } else if ('response' in response && response.response) {
           setOnChats((prev: any) => [...prev, response.response])
         }
@@ -275,28 +313,28 @@ export const useChatBot = () => {
     setIsHumanMode(newIsHumanMode)
 
     // ✅ Actualizar el estado de la conversación y el modo live en la base de datos
-    if (onRealTime?.chatroom) {
+    if (currentChatRoom) {
       try {
         const newState = newIsHumanMode ? ConversationState.ESCALATED : ConversationState.ACTIVE
         const newLiveMode = newIsHumanMode // true para humano, false para bot
 
         // Actualizar conversationState
-        await onUpdateConversationState(onRealTime.chatroom, newState)
+        await onUpdateConversationState(currentChatRoom, newState)
 
         // Actualizar live mode
-        await onToggleRealtime(onRealTime.chatroom, newLiveMode)
+        await onToggleRealtime(currentChatRoom, newLiveMode)
+
+        // ✅ Actualizar estado local para mantener sincronización
+        setOnRealTime({
+          chatroom: currentChatRoom,
+          mode: newIsHumanMode
+        })
 
       } catch (error) {
         console.error('❌ Error al actualizar el estado de la conversación:', error)
       }
-    }
-
-    // ✅ Actualizar estado local para mantener sincronización
-    if (onRealTime?.chatroom) {
-      setOnRealTime(prev => prev ? {
-        ...prev,
-        mode: newIsHumanMode
-      } : undefined)
+    } else {
+      console.error('❌ No hay chatroom disponible para el toggle')
     }
   }
 
@@ -320,7 +358,7 @@ export const useChatBot = () => {
     // ✅ Exportar props del toggle
     isHumanMode,
     onToggleHumanMode: handleToggleHumanMode,
-    isToggleDisabled: loading || !onRealTime?.chatroom
+    isToggleDisabled: loading // ✅ Solo deshabilitar durante carga inicial
   }
 }
 
