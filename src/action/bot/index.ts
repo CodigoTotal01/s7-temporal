@@ -6,10 +6,9 @@ import { clerkClient } from '@clerk/nextjs'
 import { extractEmailsFromString, extractURLfromString } from '@/lib/utils'
 import { onMailer } from '../mailer'
 import OpenAi from 'openai'
-import { TEXTILE_SERVICES, TEXTILE_SYSTEM_PROMPT, TEXTILE_MESSAGES } from '@/constants/services'
+import { TEXTILE_MESSAGES } from '@/constants/services'
 import {
   generateSessionToken,
-  validateSessionToken,
   getCustomerFromToken
 } from '@/lib/session'
 
@@ -68,7 +67,6 @@ export const onStoreConversations = async (
       const responseTimeInSeconds = Math.floor(
         (now.getTime() - lastUserMessage.createdAt.getTime()) / 1000
       )
-      const respondedWithin2Hours = responseTimeInSeconds < 7200 // 2 horas = 7200 segundos
 
       // FR2: Evaluar efectividad de la respuesta
       const isEffective = await isResponseEffective(
