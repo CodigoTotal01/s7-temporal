@@ -15,9 +15,6 @@ export const onCompleteUserRegistration = async (
         fullname,
         clerkId,
         type,
-        subscription: {
-          create: {},
-        },
       },
       select: {
         fullname: true,
