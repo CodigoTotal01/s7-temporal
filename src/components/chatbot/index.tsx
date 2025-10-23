@@ -27,6 +27,10 @@ const AiChatBot = (props: Props) => {
     sessionData,
     isAuthenticated,
     clearSession,
+    // ✅ Props del toggle
+    isHumanMode,
+    onToggleHumanMode,
+    isToggleDisabled,
   } = useChatBot()
 
   return (
@@ -50,6 +54,10 @@ const AiChatBot = (props: Props) => {
           sessionData={sessionData}
           isAuthenticated={isAuthenticated}
           onClearSession={clearSession}
+          // ✅ Pasar props del toggle
+          isHumanMode={isHumanMode}
+          onToggleHumanMode={onToggleHumanMode}
+          isToggleDisabled={isToggleDisabled}
         />
       )}
       <div
@@ -65,7 +73,7 @@ const AiChatBot = (props: Props) => {
             <span className="text-white text-xs">✓</span>
           </div>
         )}
-        
+
         {currentBot?.chatBot?.icon ? (
           <Image
             src={`https://ucarecdn.com/${currentBot.chatBot.icon}/`}

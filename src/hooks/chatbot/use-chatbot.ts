@@ -1,10 +1,12 @@
 import { onAiChatBotAssistant, onGetCurrentChatBot } from '@/action/bot'
+import { onUpdateConversationState, onToggleRealtime } from '@/action/conversation'
 import { postToParent, pusherClient } from '@/lib/utils'
 import {
   ChatBotMessageProps,
   ChatBotMessageSchema,
 } from '@/schemas/conversation.schema'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { ConversationState } from '@prisma/client'
 import { useEffect, useRef, useState } from 'react'
 import { UploadClient } from '@uploadcare/upload-client'
 import { useForm } from 'react-hook-form'
@@ -64,6 +66,9 @@ export const useChatBot = () => {
   const [onRealTime, setOnRealTime] = useState<
     { chatroom: string; mode: boolean } | undefined
   >(undefined)
+
+  // ✅ Estado para el toggle de modo humano
+  const [isHumanMode, setIsHumanMode] = useState<boolean>(false)
 
   const onScrollToBottom = () => {
     messageWindowRef.current?.scroll({
@@ -259,6 +264,35 @@ export const useChatBot = () => {
     ])
   }
 
+  const handleToggleHumanMode = async (newIsHumanMode: boolean) => {
+    setIsHumanMode(newIsHumanMode)
+    
+    // ✅ Actualizar el estado de la conversación y el modo live en la base de datos
+    if (onRealTime?.chatroom) {
+      try {
+        const newState = newIsHumanMode ? ConversationState.ESCALATED : ConversationState.ACTIVE
+        const newLiveMode = newIsHumanMode // true para humano, false para bot
+        
+        // Actualizar conversationState
+        await onUpdateConversationState(onRealTime.chatroom, newState)
+        
+        // Actualizar live mode
+        await onToggleRealtime(onRealTime.chatroom, newLiveMode)
+        
+      } catch (error) {
+        console.error('❌ Error al actualizar el estado de la conversación:', error)
+      }
+    }
+    
+    // ✅ Actualizar estado local para mantener sincronización
+    if (onRealTime?.chatroom) {
+      setOnRealTime(prev => prev ? { 
+        ...prev, 
+        mode: newIsHumanMode 
+      } : undefined)
+    }
+  }
+
   return {
     botOpened,
     onOpenChatBot,
@@ -276,6 +310,10 @@ export const useChatBot = () => {
     sessionData,
     isAuthenticated,
     clearSession: handleLogout, // Usar versión que limpia el chat
+    // ✅ Exportar props del toggle
+    isHumanMode,
+    onToggleHumanMode: handleToggleHumanMode,
+    isToggleDisabled: loading || !onRealTime?.chatroom
   }
 }
 

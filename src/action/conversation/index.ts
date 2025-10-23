@@ -2,7 +2,7 @@
 
 import { client } from "@/lib/prisma";
 import { pusherServer } from "@/lib/utils";
-import { Role } from "@prisma/client";
+import { ConversationState } from "@prisma/client";
 
 export const onToggleRealtime = async (id: string, state: boolean) => {
   try {
@@ -30,6 +30,38 @@ export const onToggleRealtime = async (id: string, state: boolean) => {
     }
   } catch (error) {
     console.log(error);
+  }
+};
+
+// Nueva función para actualizar el estado de la conversación
+export const onUpdateConversationState = async (chatRoomId: string, state: ConversationState) => {
+  try {
+    const chatRoom = await client.chatRoom.update({
+      where: {
+        id: chatRoomId,
+      },
+      data: {
+        conversationState: state,
+      },
+      select: {
+        id: true,
+        conversationState: true,
+      },
+    });
+
+    if (chatRoom) {
+      return {
+        status: 200,
+        message: `Conversation state updated to ${state}`,
+        chatRoom,
+      };
+    }
+  } catch (error) {
+    console.log("Error updating conversation state:", error);
+    return {
+      status: 500,
+      message: "Error updating conversation state",
+    };
   }
 };
 
