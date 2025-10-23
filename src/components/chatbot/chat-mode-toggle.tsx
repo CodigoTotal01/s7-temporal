@@ -16,10 +16,8 @@ type Props = {
 }
 
 const ChatModeToggle = ({ isHumanMode, onToggle, disabled = false, chatRoomId, setChats }: Props) => {
-    // ✅ Activar tiempo real cuando hay chatRoomId
-    if (chatRoomId && setChats) {
-        useRealTime(chatRoomId, setChats)
-    }
+    // ✅ Siempre llamar el hook, pero solo activar si hay chatRoomId
+    useRealTime(chatRoomId || '', setChats || (() => {}))
 
     return (
         <div className="flex bg-gray-100 rounded-lg p-0.5 w-fit">

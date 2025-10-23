@@ -2476,6 +2476,22 @@ export const onAiChatBotAssistant = async (
       }
     }
 
+    // ✅ VERIFICAR SI PIDE HABLAR CON HUMANO SIN ESTAR AUTENTICADO
+    if (detectHumanTransferRequest(message)) {
+      return {
+        response: {
+          role: 'assistant',
+          content: `Para conectarte con un humano, necesito algunos datos primero:
+
+1. ¿Cómo te llamas?
+2. ¿Cuál es tu correo electrónico?
+3. ¿Tu número de celular?
+
+Una vez que proporciones esta información, te conectaré inmediatamente con nuestro equipo humano.`
+        }
+      }
+    }
+
     return await handleNoEmailFlow(message, chat)
 
   } catch (error) {

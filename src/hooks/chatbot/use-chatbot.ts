@@ -375,6 +375,11 @@ export const useRealTime = (
   >
 ) => {
   useEffect(() => {
+    // ✅ Solo activar si hay chatRoom válido
+    if (!chatRoom || chatRoom.trim() === '') {
+      return
+    }
+
     // ✅ COMENTADO: Pusher Client (plan agotado)
     // pusherClient.subscribe(chatRoom)
     // pusherClient.bind('realtime-mode', (data: any) => {
