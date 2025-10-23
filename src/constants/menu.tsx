@@ -117,7 +117,7 @@ export const APPOINTMENT_TABLE_HEADER = [
 
 export const BOT_TABS_MENU: TABS_MENU_PROPS[] = [
     {
-        label: 'chatbot',
+        label: 'asistente',
         icon: <MessageCircleMore />
     },
     {

@@ -31,7 +31,7 @@ const ChatModeToggle = ({ isHumanMode, onToggle, disabled = false, chatRoomId, s
                     : 'text-gray-600 hover:text-gray-800'
                     } ${disabled ? 'opacity-50' : ''}`}
             >
-                🤖 Bot
+                Asistente
             </button>
 
             <button
@@ -44,7 +44,7 @@ const ChatModeToggle = ({ isHumanMode, onToggle, disabled = false, chatRoomId, s
                     : 'text-gray-600 hover:text-gray-800'
                     } ${disabled ? 'opacity-50' : ''}`}
             >
-                👤 Humano
+                Humano
             </button>
         </div>
     )
