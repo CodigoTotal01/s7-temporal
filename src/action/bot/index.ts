@@ -283,7 +283,7 @@ const handleAuthenticatedUser = async (
     // Guardar mensaje del usuario
     await onStoreConversations(customerInfo.chatRoom[0].id, message, 'user')
 
-    // ✅ ENVIAR MENSAJE DEL USUARIO A PUSHER SI ESTÁ EN MODO LIVE
+    // ✅ ENVIAR MENSAJE DEL USUARIO INMEDIATAMENTE (ANTES DEL PROCESAMIENTO)
     if (customerInfo.chatRoom[0].live) {
       await onRealTimeChat(
         customerInfo.chatRoom[0].id,
@@ -365,7 +365,7 @@ Tu opinión nos ayuda a mejorar.`
     // ✅ Guardar mensaje de calificación del usuario
     await onStoreConversations(customerInfo.chatRoom[0].id, message, 'user')
 
-    // ✅ ENVIAR MENSAJE DEL USUARIO A PUSHER SI ESTÁ EN MODO LIVE
+    // ✅ ENVIAR MENSAJE DEL USUARIO INMEDIATAMENTE (ANTES DEL PROCESAMIENTO)
     if (customerInfo.chatRoom[0].live) {
       await onRealTimeChat(
         customerInfo.chatRoom[0].id,
@@ -540,6 +540,12 @@ Tu opinión nos ayuda a mejorar.`
 
   // 8. Manejar respuesta
   const response = chatCompletion.choices[0].message.content
+  
+  // ✅ Validar que la respuesta no sea null
+  if (!response) {
+    throw new Error('OpenAI no retornó una respuesta válida')
+  }
+  
   const result = await handleOpenAIResponse(response, customerInfo, chat)
 
   // ✅ SIMPLIFICADO: Agregar "¿Hay algo más en que te pueda ayudar?" a todas las respuestas
@@ -1081,6 +1087,7 @@ EJEMPLOS:
 
   } catch (error) {
     console.log('Error en detectConversationEndingWithAI:', error)
+    return false // ✅ Retornar false en caso de error
   }
 }
 
@@ -2094,7 +2101,7 @@ export const onAiChatBotAssistant = async (
 
           await onStoreConversations(customerInfo.chatRoom[0].id, message, 'user')
 
-          // ✅ ENVIAR MENSAJE DEL USUARIO A PUSHER SI ESTÁ EN MODO LIVE
+          // ✅ ENVIAR MENSAJE DEL USUARIO INMEDIATAMENTE (ANTES DEL PROCESAMIENTO)
           if (customerInfo.chatRoom[0].live) {
             await onRealTimeChat(
               customerInfo.chatRoom[0].id,
@@ -2253,7 +2260,7 @@ export const onAiChatBotAssistant = async (
       if (customerInfo.chatRoom[0].live) {
         await onStoreConversations(customerInfo.chatRoom[0].id, message, author)
 
-        // ✅ ENVIAR MENSAJE DEL USUARIO A PUSHER PARA NOTIFICAR AL DASHBOARD
+        // ✅ ENVIAR MENSAJE DEL USUARIO INMEDIATAMENTE (ANTES DEL PROCESAMIENTO)
         await onRealTimeChat(
           customerInfo.chatRoom[0].id,
           message,
@@ -2342,6 +2349,12 @@ export const onAiChatBotAssistant = async (
       })
 
       const response = chatCompletion.choices[0].message.content
+      
+      // ✅ Validar que la respuesta no sea null
+      if (!response) {
+        throw new Error('OpenAI no retornó una respuesta válida')
+      }
+      
       const result = await handleOpenAIResponse(response, customerInfo, chat)
       const finalContentMain = addHelpOffer(result.response.content)
 

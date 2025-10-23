@@ -48,7 +48,7 @@ type Props = {
     >
   >
   // ✅ Nuevos props para el toggle de modo
-  onToggleHumanMode?: (isHumanMode: boolean) => void
+  onToggleHumanMode: (isHumanMode: boolean) => void
   isHumanMode?: boolean
   isToggleDisabled?: boolean
   // ✅ Props de sesión
@@ -121,14 +121,16 @@ export const BotWindow = forwardRef<HTMLDivElement, Props>(
                   isHumanMode={isHumanMode}
                   onToggle={onToggleHumanMode}
                   disabled={isToggleDisabled}
+                  chatRoomId={realtimeMode?.chatroom}
+                  setChats={setChat}
                 />
               </div>
 
-              {realtimeMode?.mode && (
+              {/* {realtimeMode?.mode && (
                 <div className="text-xs text-green-600 font-medium mt-1">
                   🔴 Modo Real Time Activo
                 </div>
-              )}
+              )} */}
             </div>
           </div>
         </div>

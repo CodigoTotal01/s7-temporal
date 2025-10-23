@@ -1,7 +1,10 @@
 "use server";
 
 import { client } from "@/lib/prisma";
-import { pusherServer } from "@/lib/utils";
+// ✅ COMENTADO: Pusher Server (plan agotado)
+// import { pusherServer } from "@/lib/utils";
+// ✅ NUEVO: Socket.io Server
+import { socketServer } from "@/lib/utils";
 import { ConversationState } from "@prisma/client";
 
 export const onToggleRealtime = async (id: string, state: boolean) => {
@@ -189,7 +192,17 @@ export const onRealTimeChat = async (
   id: string,
   role: 'user' | 'assistant'
 ) => {
-  pusherServer.trigger(chatroomId, 'realtime-mode', {
+  // ✅ COMENTADO: Pusher Server (plan agotado)
+  // pusherServer.trigger(chatroomId, 'realtime-mode', {
+  //   chat: {
+  //     message,
+  //     id,
+  //     role,
+  //   },
+  // })
+
+  // ✅ NUEVO: Socket.io Server
+  await socketServer.trigger(chatroomId, 'realtime-mode', {
     chat: {
       message,
       id,
@@ -240,7 +253,19 @@ export const onOwnerSendMessage = async (
       // ENVIAR MENSAJE A TRAVÉS DE PUSHER PARA TIEMPO REAL
       const newMessage = chat.message[0]
       if (newMessage) {
-        await pusherServer.trigger(chatroom, 'realtime-mode', {
+        // ✅ COMENTADO: Pusher Server (plan agotado)
+        // await pusherServer.trigger(chatroom, 'realtime-mode', {
+        //   chat: {
+        //     message: newMessage.message,
+        //     id: newMessage.id,
+        //     role: newMessage.role,
+        //     createdAt: newMessage.createdAt,
+        //     seen: newMessage.seen
+        //   }
+        // })
+
+        // ✅ NUEVO: Socket.io Server
+        await socketServer.trigger(chatroom, 'realtime-mode', {
           chat: {
             message: newMessage.message,
             id: newMessage.id,
