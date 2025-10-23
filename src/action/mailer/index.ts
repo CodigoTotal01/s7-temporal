@@ -3,62 +3,62 @@ import nodemailer from 'nodemailer'
 
 //Función mejorada para envío de emails con templates HTML
 export const sendEmail = async (
-    to: string | string[],
-    subject: string,
-    htmlContent: string,
-    textContent?: string
+  to: string | string[],
+  subject: string,
+  htmlContent: string,
+  textContent?: string
 ) => {
 
-    const transporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
-        auth: {
-            user: process.env.NODE_MAILER_EMAIL,
-            pass: process.env.NODE_MAILER_GMAIL_APP_PASSWORD,
-        },
+  const transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
+    auth: {
+      user: process.env.NODE_MAILER_EMAIL,
+      pass: process.env.NODE_MAILER_GMAIL_APP_PASSWORD,
+    },
+  })
+
+  const mailOptions = {
+    from: `"Lunari AI - Sistema de Citas" <${process.env.NODE_MAILER_EMAIL}>`, // Nombre más específico
+    to: Array.isArray(to) ? to.join(', ') : to,
+    subject,
+    html: htmlContent,
+    text: textContent || htmlContent.replace(/<[^>]*>/g, ''), // Fallback a texto plano
+    // Headers para mejorar la entrega
+    headers: {
+      'X-Priority': '1', // Alta prioridad
+      'X-MSMail-Priority': 'High',
+      'Importance': 'high',
+      'X-Mailer': 'Lunari AI System',
+      'Reply-To': process.env.NODE_MAILER_EMAIL
+    }
+  }
+
+  try {
+    const info = await transporter.sendMail(mailOptions)
+    return { success: true, messageId: info.messageId, response: info.response }
+  } catch (error) {
+    console.error('❌ Error al enviar email:', error)
+    console.error('❌ Detalles del error:', {
+      code: error.code,
+      command: error.command,
+      message: error.message
     })
-
-    const mailOptions = {
-        from: `"Lunari AI - Sistema de Citas" <${process.env.NODE_MAILER_EMAIL}>`, // Nombre más específico
-        to: Array.isArray(to) ? to.join(', ') : to,
-        subject,
-        html: htmlContent,
-        text: textContent || htmlContent.replace(/<[^>]*>/g, ''), // Fallback a texto plano
-        // Headers para mejorar la entrega
-        headers: {
-            'X-Priority': '1', // Alta prioridad
-            'X-MSMail-Priority': 'High',
-            'Importance': 'high',
-            'X-Mailer': 'Lunari AI System',
-            'Reply-To': process.env.NODE_MAILER_EMAIL
-        }
-    }
-
-    try {
-        const info = await transporter.sendMail(mailOptions)
-        return { success: true, messageId: info.messageId, response: info.response }
-    } catch (error) {
-        console.error('❌ Error al enviar email:', error)
-        console.error('❌ Detalles del error:', {
-            code: error.code,
-            command: error.command,
-            message: error.message
-        })
-        return { success: false, error }
-    }
+    return { success: false, error }
+  }
 }
 
 // Template para confirmación de cita
 export const sendAppointmentConfirmation = async (
-    customerEmail: string,
-    customerName: string,
-    appointmentDate: string,
-    appointmentTime: string,
-    domainName: string,
-    domainOwnerEmail?: string
+  customerEmail: string,
+  customerName: string,
+  appointmentDate: string,
+  appointmentTime: string,
+  domainName: string,
+  domainOwnerEmail?: string
 ) => {
-    const htmlContent = `
+  const htmlContent = `
     <div style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="background: linear-gradient(135deg, #FFA947 0%, #FFC989 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
         <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 600;">📅 Cita Confirmada</h1>
@@ -98,7 +98,7 @@ export const sendAppointmentConfirmation = async (
     </div>
   `
 
-    const textContent = `
+  const textContent = `
     Cita Confirmada - ${domainName}
     
     ¡Hola ${customerName}!
@@ -117,17 +117,17 @@ export const sendAppointmentConfirmation = async (
     Este email fue enviado automáticamente por el sistema de Lunari AI
   `
 
-    // Enviar al cliente
-    const clientResult = await sendEmail(
-        customerEmail,
-        `📅 Cita Confirmada - ${domainName}`,
-        htmlContent,
-        textContent
-    )
+  // Enviar al cliente
+  const clientResult = await sendEmail(
+    customerEmail,
+    `📅 Cita Confirmada - ${domainName}`,
+    htmlContent,
+    textContent
+  )
 
-    // Si hay email del propietario, enviar notificación también
-    if (domainOwnerEmail) {
-        const ownerHtmlContent = `
+  // Si hay email del propietario, enviar notificación también
+  if (domainOwnerEmail) {
+    const ownerHtmlContent = `
       <div style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background: linear-gradient(135deg, #4E4E4E 0%, #636363 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
           <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 600;">🔔 Nueva Cita Agendada</h1>
@@ -160,7 +160,7 @@ export const sendAppointmentConfirmation = async (
       </div>
     `
 
-        const ownerTextContent = `
+    const ownerTextContent = `
       Nueva Cita Agendada - ${domainName}
       
       Nueva Reserva de Cita:
@@ -173,40 +173,85 @@ export const sendAppointmentConfirmation = async (
       El cliente ha recibido una confirmación automática de su cita.
     `
 
-        await sendEmail(
-            domainOwnerEmail,
-            `[IMPORTANTE] Nueva Cita Reservada - ${customerName}`, // Asunto más directo
-            ownerHtmlContent,
-            ownerTextContent
-        )
+    await sendEmail(
+      domainOwnerEmail,
+      `[IMPORTANTE] Nueva Cita Reservada - ${customerName}`, // Asunto más directo
+      ownerHtmlContent,
+      ownerTextContent
+    )
 
-    }
+  }
 
-    return clientResult
+  return clientResult
 }
 
-export const onMailer = (email: string) => {
-    const transporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
-        auth: {
-            user: process.env.NODE_MAILER_EMAIL,
-            pass: process.env.NODE_MAILER_GMAIL_APP_PASSWORD,
-        },
-    })
+export const onMailer = async (email: string, customerName?: string, customerEmail?: string) => {
+  const transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
+    auth: {
+      user: process.env.NODE_MAILER_EMAIL,
+      pass: process.env.NODE_MAILER_GMAIL_APP_PASSWORD,
+    },
+  })
 
-    const mailOptions = {
-        to: email,
-        subject: 'Realtime Support',
-        text: 'One of your customers on Lunari, just switched to realtime mode',
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">🚨 Cliente Solicita Atención Humana</h1>
+        </div>
+        
+        <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e9ecef;">
+            <p style="color: #333; font-size: 16px; margin-bottom: 20px;">
+                <strong>¡Atención!</strong> Uno de tus clientes ha solicitado hablar contigo directamente.
+            </p>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; border-left: 4px solid #28a745; margin: 20px 0;">
+                <h3 style="color: #28a745; margin-top: 0;">📋 Información del Cliente:</h3>
+                <p style="margin: 5px 0;"><strong>Nombre:</strong> ${customerName || 'No proporcionado'}</p>
+                <p style="margin: 5px 0;"><strong>Email:</strong> ${customerEmail || 'No proporcionado'}</p>
+                <p style="margin: 5px 0;"><strong>Estado:</strong> <span style="color: #dc3545; font-weight: bold;">Esperando atención humana</span></p>
+            </div>
+            
+            <div style="background: #fff3cd; padding: 15px; border-radius: 8px; border: 1px solid #ffeaa7; margin: 20px 0;">
+                <p style="color: #856404; margin: 0; font-size: 14px;">
+                    <strong>💡 Acción requerida:</strong> Ve a tu panel de Lunari para atender a este cliente en tiempo real.
+                </p>
+            </div>
+            
+            <div style="text-align: center; margin-top: 30px;">
+                <a href="${process.env.NEXT_PUBLIC_APP_URL}/conversation" 
+                   style="background: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+                    Ir al Panel de Conversaciones
+                </a>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 20px; color: #6c757d; font-size: 12px;">
+            <p>Este email fue enviado automáticamente por Lunari AI</p>
+        </div>
+    </div>
+    `
+
+  const mailOptions = {
+    from: `"Lunari AI - Sistema de Soporte" <${process.env.NODE_MAILER_EMAIL}>`,
+    to: email,
+    subject: '🚨 Cliente Solicita Atención Humana - Lunari AI',
+    html: htmlContent,
+    text: `Cliente ${customerName || 'desconocido'} (${customerEmail || 'sin email'}) ha solicitado atención humana. Ve a tu panel de Lunari para atenderlo.`,
+    headers: {
+      'X-Priority': '1',
+      'Importance': 'high',
+      'Reply-To': process.env.NODE_MAILER_EMAIL
     }
+  }
 
-    transporter.sendMail(mailOptions, function (error, info) {
-        if (error) {
-            console.log(error)
-        } else {
-            console.log('Email sent: ' + info.response)
-        }
-    })
+  try {
+    const info = await transporter.sendMail(mailOptions)
+    return { success: true, messageId: info.messageId }
+  } catch (error) {
+    console.error('❌ Error enviando email de escalación:', error)
+    return { success: false, error: error }
+  }
 }

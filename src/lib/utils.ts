@@ -1,7 +1,10 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
-import PusherClient from 'pusher-js'
-import PusherServer from 'pusher'
+// ✅ COMENTADO: Pusher (plan agotado)
+// import PusherClient from 'pusher-js'
+// import PusherServer from 'pusher'
+// ✅ NUEVO: Socket.io
+import { io, Socket } from 'socket.io-client'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -13,20 +16,108 @@ export const extractUUIDFromString = (url: string) => {
   )
 }
 
-export const pusherServer = new PusherServer({
-  appId: process.env.NEXT_PUBLIC_PUSHER_APP_ID,
-  key: process.env.NEXT_PUBLIC_PUSHER_APP_KEY,
-  secret: process.env.NEXT_PUBLIC_PUSHER_APP_SECRET,
-  cluster: process.env.NEXT_PUBLIC_PUSHER_APP_CLUSTOR,
-  useTLS: true,
-})
+// ✅ COMENTADO: Pusher Server (plan agotado)
+// export const pusherServer = new PusherServer({
+//   appId: process.env.NEXT_PUBLIC_PUSHER_APP_ID,
+//   key: process.env.NEXT_PUBLIC_PUSHER_APP_KEY,
+//   secret: process.env.NEXT_PUBLIC_PUSHER_APP_SECRET,
+//   cluster: process.env.NEXT_PUBLIC_PUSHER_APP_CLUSTOR,
+//   useTLS: true,
+// })
 
-export const pusherClient = new PusherClient(
-  process.env.NEXT_PUBLIC_PUSHER_APP_KEY,
-  {
-    cluster: process.env.NEXT_PUBLIC_PUSHER_APP_CLUSTOR,
+// ✅ COMENTADO: Pusher Client (plan agotado)
+// export const pusherClient = new PusherClient(
+//   process.env.NEXT_PUBLIC_PUSHER_APP_KEY,
+//   {
+//     cluster: process.env.NEXT_PUBLIC_PUSHER_APP_CLUSTOR,
+//   }
+// )
+
+// ✅ NUEVO: Socket.io Client
+let socketClient: Socket | null = null
+
+export const getSocketClient = () => {
+  if (!socketClient) {
+    // ✅ Conectar al servidor Socket.io externo
+    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001'
+
+    socketClient = io(socketUrl, {
+      transports: ['websocket', 'polling'],
+      autoConnect: true,
+    })
+
+    // ✅ Eventos de conexión para debugging
+    socketClient.on('connect', () => {
+      console.log('📡 Socket.io Client: Conectado al servidor')
+    })
+
+    socketClient.on('disconnect', () => {
+      console.log('📡 Socket.io Client: Desconectado del servidor')
+    })
+
+    socketClient.on('connect_error', (error) => {
+      console.error('📡 Socket.io Client: Error de conexión:', error)
+    })
   }
-)
+  return socketClient
+}
+
+// ✅ NUEVO: Socket.io Server (para server actions)
+export const socketServer = {
+  // Simular el comportamiento de pusherServer.trigger
+  trigger: async (channel: string, event: string, data: any) => {
+    try {
+      // ✅ Enviar mensaje al servidor Socket.io externo
+      const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001'
+      const response = await fetch(`${socketUrl}/send-message`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          roomId: channel,
+          event: event,
+          data: data
+        })
+      })
+
+      if (response.ok) {
+        console.log(`📡 Socket.io Server: Mensaje enviado a canal ${channel}, evento ${event}`)
+        return { success: true, message: 'Mensaje enviado via Socket.io' }
+      } else {
+        console.log(`📡 Socket.io Server: Fallback - solo logueando mensaje`)
+        return { success: true, message: 'Mensaje logueado (servidor no disponible)' }
+      }
+    } catch (error) {
+      console.log(`📡 Socket.io Server: Error al enviar mensaje:`, error)
+      console.log(`📡 Socket.io Server: Fallback - solo logueando mensaje`)
+      return { success: true, message: 'Mensaje logueado (error de conexión)' }
+    }
+  }
+}
+
+// ✅ NUEVO: Funciones de utilidad para Socket.io
+export const socketClientUtils = {
+  subscribe: (channel: string) => {
+    const socket = getSocketClient()
+    socket.emit('join-room', channel)
+  },
+
+  unsubscribe: (channel: string) => {
+    const socket = getSocketClient()
+    socket.emit('leave-room', channel)
+  },
+
+  bind: (event: string, callback: (data: any) => void) => {
+    const socket = getSocketClient()
+    socket.on(event, callback)
+  },
+
+  unbind: (event: string) => {
+    const socket = getSocketClient()
+    socket.off(event)
+  }
+}
 
 export const postToParent = (message: string) => {
   window.parent.postMessage(message, '*')

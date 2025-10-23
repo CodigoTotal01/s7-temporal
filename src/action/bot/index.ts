@@ -6,10 +6,9 @@ import { clerkClient } from '@clerk/nextjs'
 import { extractEmailsFromString, extractURLfromString } from '@/lib/utils'
 import { onMailer } from '../mailer'
 import OpenAi from 'openai'
-import { TEXTILE_SERVICES, TEXTILE_SYSTEM_PROMPT, TEXTILE_MESSAGES } from '@/constants/services'
+import { TEXTILE_MESSAGES } from '@/constants/services'
 import {
   generateSessionToken,
-  validateSessionToken,
   getCustomerFromToken
 } from '@/lib/session'
 
@@ -68,7 +67,6 @@ export const onStoreConversations = async (
       const responseTimeInSeconds = Math.floor(
         (now.getTime() - lastUserMessage.createdAt.getTime()) / 1000
       )
-      const respondedWithin2Hours = responseTimeInSeconds < 7200 // 2 horas = 7200 segundos
 
       // FR2: Evaluar efectividad de la respuesta
       const isEffective = await isResponseEffective(
@@ -137,6 +135,22 @@ export const onGetCurrentChatBot = async (idOrName: string) => {
             helpdesk: true,
           },
         },
+        // ✅ AGREGAR INFORMACIÓN DE CHATROOM PARA EL TOGGLE
+        customer: {
+          select: {
+            chatRoom: {
+              select: {
+                id: true,
+                conversationState: true,
+                live: true,
+              },
+              orderBy: {
+                createdAt: 'desc'
+              },
+              take: 1
+            }
+          }
+        }
       },
     })
 
@@ -158,7 +172,7 @@ interface CustomerData {
 interface ChatBotDomain {
   name: string
   helpdesk: Array<{ question: string; answer: string }>
-  products: Array<{ 
+  products: Array<{
     name: string
     price: number
     image: string
@@ -202,11 +216,13 @@ const detectHumanTransferRequest = (message: string): boolean => {
     'humano', 'persona', 'agente', 'operador', 'representante',
     'hablar con alguien', 'hablar con una persona', 'hablar con un humano',
     'quiero hablar con', 'necesito hablar con', 'puedo hablar con',
+    'pásame con', 'pasame con', 'pásame a', 'pasame a',
+    'conectame con', 'conéctame con', 'conecta con', 'conecta me',
     'escalar', 'transferir', 'no me ayuda', 'no entiendo',
     'problema', 'queja', 'reclamo', 'urgente', 'emergencia',
     'supervisor', 'gerente', 'jefe', 'ayuda humana'
   ]
-  
+
   const lowerMessage = message.toLowerCase()
   return humanKeywords.some(keyword => lowerMessage.includes(keyword))
 }
@@ -276,25 +292,17 @@ const handleAuthenticatedUser = async (
   sessionToken: string
 ) => {
 
-  // ✅ NUEVA LÓGICA: Usar IA para detectar si el usuario quiere terminar
-  const shouldEndConversation = await detectConversationEndingWithAI(message, chat)
+  // ✅ SOLO PROCESAR TERMINACIÓN SI NO ESTÁ EN MODO HUMANO
+  if (!customerInfo.chatRoom[0].live) {
+    // ✅ NUEVA LÓGICA: Usar IA para detectar si el usuario quiere terminar
+    const shouldEndConversation = await detectConversationEndingWithAI(message, chat)
 
-  if (shouldEndConversation) {
-    // Guardar mensaje del usuario
-    await onStoreConversations(customerInfo.chatRoom[0].id, message, 'user')
+    if (shouldEndConversation) {
+      // Guardar mensaje del usuario
+      await onStoreConversations(customerInfo.chatRoom[0].id, message, 'user')
 
-    // ✅ ENVIAR MENSAJE DEL USUARIO A PUSHER SI ESTÁ EN MODO LIVE
-    if (customerInfo.chatRoom[0].live) {
-      await onRealTimeChat(
-        customerInfo.chatRoom[0].id,
-        message,
-        `user-${Date.now()}`,
-        'user'
-      )
-    }
-
-    // Solicitar calificación de forma simple
-    const ratingMessage = `¡Perfecto! Me alegra haberte ayudado. 😊
+      // Solicitar calificación de forma simple
+      const ratingMessage = `¡Perfecto! Me alegra haberte ayudado. 😊
 
 Antes de que te vayas, ¿podrías calificar tu experiencia del 1 al 5?
 
@@ -303,24 +311,25 @@ Antes de que te vayas, ¿podrías calificar tu experiencia del 1 al 5?
 
 Tu opinión nos ayuda a mejorar.`
 
-    // Guardar solicitud de feedback
-    await onStoreConversations(customerInfo.chatRoom[0].id, ratingMessage, 'assistant', message)
+      // Guardar solicitud de feedback
+      await onStoreConversations(customerInfo.chatRoom[0].id, ratingMessage, 'assistant', message)
 
-    // Marcar como esperando calificación
-    await client.chatRoom.update({
-      where: { id: customerInfo.chatRoom[0].id },
-      data: {
-        conversationState: 'AWAITING_RATING',
-        resolved: true
+      // Marcar como esperando calificación
+      await client.chatRoom.update({
+        where: { id: customerInfo.chatRoom[0].id },
+        data: {
+          conversationState: 'AWAITING_RATING',
+          resolved: true
+        }
+      })
+
+      return {
+        response: {
+          role: 'assistant',
+          content: ratingMessage
+        },
+        sessionToken
       }
-    })
-
-    return {
-      response: {
-        role: 'assistant',
-        content: ratingMessage
-      },
-      sessionToken
     }
   }
 
@@ -365,7 +374,7 @@ Tu opinión nos ayuda a mejorar.`
     // ✅ Guardar mensaje de calificación del usuario
     await onStoreConversations(customerInfo.chatRoom[0].id, message, 'user')
 
-    // ✅ ENVIAR MENSAJE DEL USUARIO A PUSHER SI ESTÁ EN MODO LIVE
+    // ✅ ENVIAR MENSAJE DEL USUARIO INMEDIATAMENTE (ANTES DEL PROCESAMIENTO)
     if (customerInfo.chatRoom[0].live) {
       await onRealTimeChat(
         customerInfo.chatRoom[0].id,
@@ -383,22 +392,79 @@ Tu opinión nos ayuda a mejorar.`
       message
     )
 
-    // ✅ Marcar conversación como ENDED
-    await markConversationAsEnded(customerInfo.chatRoom[0].id)
+    // ✅ VERIFICAR SI ESTABA ESPERANDO CALIFICACIÓN PARA ESCALAR
+    const chatRoom = await client.chatRoom.findUnique({
+      where: { id: customerInfo.chatRoom[0].id },
+      select: { conversationState: true }
+    })
 
-    const thankYouMessage = `¡Muchas gracias por tu calificación de ${satisfactionRating}/5! Tu opinión es muy importante para nosotros y nos ayuda a mejorar nuestro servicio. 😊
+    if (chatRoom?.conversationState === 'AWAITING_RATING') {
+      // ✅ ESCALAR A HUMANO DESPUÉS DE LA CALIFICACIÓN
+      await client.chatRoom.update({
+        where: { id: customerInfo.chatRoom[0].id },
+        data: {
+          live: true,
+          conversationState: 'ESCALATED' as any
+        }
+      })
+
+      // ✅ ENVIAR EMAIL AL DUEÑO CUANDO SE ESCALA A HUMANO
+      try {
+        const domainOwner = await client.domain.findFirst({
+          where: { id: domainId }, // ✅ Usar el domainId del parámetro
+          select: {
+            User: {
+              select: {
+                clerkId: true
+              }
+            }
+          }
+        })
+
+        if (domainOwner?.User?.clerkId) {
+          const user = await clerkClient.users.getUser(domainOwner.User.clerkId)
+          await onMailer(
+            user.emailAddresses[0].emailAddress,
+            customerInfo.name || 'Cliente',
+            customerInfo.email
+          )
+        }
+      } catch (error) {
+        console.error('❌ Error enviando email de escalación:', error)
+      }
+
+      const transferMessage = `¡Muchas gracias por tu calificación de ${satisfactionRating}/5! 😊
+
+Ahora te estoy conectando con uno de nuestros agentes humanos. Un miembro de nuestro equipo se pondrá en contacto contigo en breve. 👨‍💼`
+
+      await onStoreConversations(customerInfo.chatRoom[0].id, transferMessage, 'assistant', message)
+
+      return {
+        response: {
+          role: 'assistant',
+          content: transferMessage
+        },
+        live: true,
+        chatRoom: customerInfo.chatRoom[0].id,
+        sessionToken
+      }
+    } else {
+      // ✅ CALIFICACIÓN NORMAL (terminar conversación)
+      await markConversationAsEnded(customerInfo.chatRoom[0].id)
+
+      const thankYouMessage = `¡Muchas gracias por tu calificación de ${satisfactionRating}/5! Tu opinión es muy importante para nosotros y nos ayuda a mejorar nuestro servicio. 😊
 
 ¿Tienes alguna otra consulta o necesitas ayuda con algo más?`
 
-    // ✅ Guardar mensaje de agradecimiento
-    await onStoreConversations(customerInfo.chatRoom[0].id, thankYouMessage, 'assistant', message)
+      await onStoreConversations(customerInfo.chatRoom[0].id, thankYouMessage, 'assistant', message)
 
-    return {
-      response: {
-        role: 'assistant',
-        content: thankYouMessage
-      },
-      sessionToken // Mantener token
+      return {
+        response: {
+          role: 'assistant',
+          content: thankYouMessage
+        },
+        sessionToken
+      }
     }
   }
 
@@ -433,7 +499,7 @@ Tu opinión nos ayuda a mejorar.`
   // ✅ 4. DETECCIÓN DE TRANSFERENCIA A HUMANO
   if (detectHumanTransferRequest(message)) {
     console.log(`🚨 Solicitud de transferencia detectada: "${message}"`)
-    
+
     // Guardar mensaje del usuario
     await client.chatMessage.create({
       data: {
@@ -445,24 +511,69 @@ Tu opinión nos ayuda a mejorar.`
       }
     })
 
-    // Escalar inmediatamente a humano
-    await client.chatRoom.update({
-      where: { id: customerInfo.chatRoom[0].id },
-      data: { 
-        live: true,
-        conversationState: 'ESCALATED' as any // ✅ Marcar como escalado
+    // ✅ SOLICITAR CALIFICACIÓN ANTES DE ESCALAR
+    const transferMessage = `Te comunicarás con un humano en breve. 😊
+
+Antes de transferirte, ¿podrías calificar mi ayuda del 1 al 5?
+
+⭐ 1 = Muy insatisfecho
+⭐ 5 = Muy satisfecho
+
+Tu opinión me ayuda a mejorar.`
+
+    // Guardar mensaje de transferencia
+    await client.chatMessage.create({
+      data: {
+        message: transferMessage,
+        role: 'assistant',
+        chatRoomId: customerInfo.chatRoom[0].id,
+        responseTime: 0,
+        respondedWithin2Hours: true
       }
     })
 
-    console.log(`🚨 ESCALACIÓN AUTOMÁTICA: Chat ${customerInfo.chatRoom[0].id} - Cliente: ${customerInfo.email}`)
+    // ✅ ENVIAR EMAIL AL DUEÑO INMEDIATAMENTE CUANDO CLIENTE PIDE HUMANO
+    try {
+      const domainOwner = await client.domain.findFirst({
+        where: { id: domainId }, // ✅ Usar el domainId del parámetro
+        select: {
+          User: {
+            select: {
+              clerkId: true
+            }
+          }
+        }
+      })
+      console.log("🚀 ~ domainOwner:", domainOwner)
+
+      if (domainOwner?.User?.clerkId) {
+        const user = await clerkClient.users.getUser(domainOwner.User.clerkId)
+        console.log("🚀 ~ user:", user)
+        await onMailer(
+          user.emailAddresses[0].emailAddress,
+          customerInfo.name || 'Cliente',
+          customerInfo.email
+        )
+      }
+    } catch (error) {
+      console.error('❌ Error enviando email de solicitud de humano:', error)
+    }
+
+    // Marcar como esperando calificación antes de escalar
+    await client.chatRoom.update({
+      where: { id: customerInfo.chatRoom[0].id },
+      data: {
+        conversationState: 'AWAITING_RATING' as any // ✅ Esperar calificación antes de escalar
+      }
+    })
+
+    console.log(`🚨 SOLICITUD DE CALIFICACIÓN ANTES DE ESCALAR: Chat ${customerInfo.chatRoom[0].id} - Cliente: ${customerInfo.email}`)
 
     return {
       response: {
         role: 'assistant' as const,
-        content: `¡Por supuesto! Te estoy conectando con uno de nuestros agentes humanos. Un miembro de nuestro equipo se pondrá en contacto contigo en breve. 👨‍💼`
+        content: transferMessage
       },
-      live: true,
-      chatRoom: customerInfo.chatRoom[0].id,
       sessionToken
     }
   }
@@ -540,6 +651,12 @@ Tu opinión nos ayuda a mejorar.`
 
   // 8. Manejar respuesta
   const response = chatCompletion.choices[0].message.content
+
+  // ✅ Validar que la respuesta no sea null
+  if (!response) {
+    throw new Error('OpenAI no retornó una respuesta válida')
+  }
+
   const result = await handleOpenAIResponse(response, customerInfo, chat)
 
   // ✅ SIMPLIFICADO: Agregar "¿Hay algo más en que te pueda ayudar?" a todas las respuestas
@@ -1008,7 +1125,7 @@ const isResponseEffective = async (
 
     // Criterio 2: Si el usuario pide una acción específica y el bot la ejecuta → Efectivo
     const actionRequests = [
-      /(?:quiero|deseo|necesito|puedo)\s+(?:agendar|reservar|comprar|adquirir)/i,
+      /(?:quiero|deseo|necesito|puedo)\s+(?:agendar|reservar)/i,
       /(?:dame|muestra|enséñame)\s+(?:productos|servicios|precios)/i,
     ]
 
@@ -1044,26 +1161,34 @@ const detectConversationEndingWithAI = async (
     const systemPrompt = `Eres un analizador de conversaciones. Tu trabajo es determinar si el usuario quiere TERMINAR la conversación.
 
 ANALIZA el mensaje del usuario y el contexto de la conversación para determinar si:
-1. El usuario está diciendo que NO necesita más ayuda
-2. El usuario se está DESPIDIENDO
-3. El usuario está SATISFECHO y quiere terminar
-4. El usuario está AGRADECIENDO y cerrando la conversación
+1. El usuario está diciendo EXPLÍCITAMENTE que NO necesita más ayuda
+2. El usuario se está DESPIDIENDO claramente
+3. El usuario está SATISFECHO y quiere terminar EXPLÍCITAMENTE
+4. El usuario está AGRADECIENDO y cerrando la conversación EXPLÍCITAMENTE
+
+IMPORTANTE: Solo marca como terminación si hay señales CLARAS de despedida o satisfacción. 
+Las respuestas a preguntas específicas (materiales, productos, etc.) NO son terminación.
 
 RESPUESTA SOLO: "SI" si el usuario quiere terminar, "NO" si quiere continuar.
 
-EJEMPLOS:
-- "no" → SI
+EJEMPLOS DE TERMINACIÓN:
 - "no, gracias" → SI  
-- "ya está" → SI
-- "perfecto" → SI
+- "ya está, gracias" → SI
+- "perfecto, eso es todo" → SI
 - "adiós" → SI
 - "hasta luego" → SI
-- "gracias" → SI
+- "gracias, ya no necesito más" → SI
 - "eso es todo" → SI
-- "listo" → SI
+- "listo, gracias" → SI
+
+EJEMPLOS DE NO TERMINACIÓN:
+- "lino" → NO (respuesta a pregunta sobre material)
+- "algodón" → NO (respuesta a pregunta sobre material)
 - "quiero más información" → NO
 - "tengo otra pregunta" → NO
-- "necesito ayuda con..." → NO`
+- "necesito ayuda con..." → NO
+- "sí" → NO (respuesta afirmativa)
+- "no" → NO (respuesta negativa a pregunta específica)`
 
     const chatCompletion = await openai.chat.completions.create({
       messages: [
@@ -1081,6 +1206,7 @@ EJEMPLOS:
 
   } catch (error) {
     console.log('Error en detectConversationEndingWithAI:', error)
+    return false // ✅ Retornar false en caso de error
   }
 }
 
@@ -1101,34 +1227,6 @@ const addHelpOffer = (content: string): string => {
   }
 
   return `${content}\n\n¿Hay algo más en que te pueda ayudar?`
-}
-
-/**
- * ✅ NUEVA FUNCIÓN SIMPLE: Detecta si el usuario dice "no" a continuar
- */
-const detectNegativeResponse = (message: string): boolean => {
-  const trimmedMsg = message.toLowerCase().trim()
-
-  // Respuestas negativas claras
-  const negativePatterns = [
-    /^no\.?$/,
-    /^nope\.?$/,
-    /^nop\.?$/,
-    /^no,?\s+gracias\.?$/,
-    /^no,?\s+muchas gracias\.?$/,
-    /^no,?\s+eso es todo\.?$/,
-    /^no,?\s+ya está\.?$/,
-    /^no,?\s+por ahora no\.?$/,
-    /^no necesito nada más\.?$/,
-    /^ya no\.?$/,
-    /^eso es todo\.?$/,
-    /^nada más\.?$/,
-    /^ya está\.?$/,
-    /^listo\.?$/,
-    /^perfecto\.?$/
-  ]
-
-  return negativePatterns.some(pattern => pattern.test(trimmedMsg))
 }
 
 /**
@@ -1154,19 +1252,6 @@ const detectSatisfactionRating = (message: string): number | null => {
 
   return null
 }
-
-// ============================================
-// ✅ FUNCIONES ELIMINADAS - LÓGICA SIMPLIFICADA
-// ============================================
-// Se eliminaron las siguientes funciones complejas porque ahora usamos un sistema más simple:
-// - detectConversationEnding → Ahora solo usamos detectNegativeResponse
-// - detectRequest → No necesario, el flujo es más directo
-// - checkIfHelpWasProvided → No se necesita, siempre ofrecemos ayuda
-// - getConversationLength → No se necesita para la nueva lógica
-// - determineNaturalFeedbackMoment → Reemplazado por detectNegativeResponse y despedidas
-// - createNaturalFeedbackMessage → Ahora usamos mensajes fijos más simples
-// - shouldRequestSatisfactionRating → Simplificado a detectNegativeResponse
-// - shouldAskForSatisfaction → No se necesita, el usuario decide con "no"
 
 /**
  * FR4: Guardar la calificación de satisfacción del cliente
@@ -1407,7 +1492,7 @@ const detectProductPreferences = (
   hasPreferences: boolean
 } => {
   const lowerMsg = message.toLowerCase()
-  
+
   const preferences = {
     materials: [] as string[],
     categories: [] as string[],
@@ -1472,7 +1557,7 @@ const detectProductPreferences = (
     'rojo', 'azul', 'verde', 'amarillo', 'negro', 'blanco', 'gris', 'rosa',
     'morado', 'naranja', 'marrón', 'beige', 'celeste', 'turquesa', 'violeta'
   ]
-  
+
   commonColors.forEach(color => {
     if (lowerMsg.includes(color)) {
       preferences.colors.push(color)
@@ -1499,7 +1584,7 @@ const filterProductsByPreferences = (
 
     // Filtrar por material
     if (preferences.materials.length > 0 && product.material) {
-      if (preferences.materials.some(mat => 
+      if (preferences.materials.some(mat =>
         product.material?.name.toLowerCase().includes(mat.toLowerCase())
       )) {
         matches = true
@@ -1508,7 +1593,7 @@ const filterProductsByPreferences = (
 
     // Filtrar por categoría
     if (preferences.categories.length > 0 && product.category) {
-      if (preferences.categories.some(cat => 
+      if (preferences.categories.some(cat =>
         product.category?.name.toLowerCase().includes(cat.toLowerCase())
       )) {
         matches = true
@@ -1517,7 +1602,7 @@ const filterProductsByPreferences = (
 
     // Filtrar por textura
     if (preferences.textures.length > 0 && product.texture) {
-      if (preferences.textures.some(tex => 
+      if (preferences.textures.some(tex =>
         product.texture?.name.toLowerCase().includes(tex.toLowerCase())
       )) {
         matches = true
@@ -1526,7 +1611,7 @@ const filterProductsByPreferences = (
 
     // Filtrar por temporada
     if (preferences.seasons.length > 0 && product.season) {
-      if (preferences.seasons.some(season => 
+      if (preferences.seasons.some(season =>
         product.season?.name.toLowerCase().includes(season.toLowerCase())
       )) {
         matches = true
@@ -1535,8 +1620,8 @@ const filterProductsByPreferences = (
 
     // Filtrar por uso
     if (preferences.uses.length > 0 && product.uses.length > 0) {
-      if (preferences.uses.some(use => 
-        product.uses.some(pUse => 
+      if (preferences.uses.some(use =>
+        product.uses.some(pUse =>
           pUse.use.name.toLowerCase().includes(use.toLowerCase())
         )
       )) {
@@ -1546,8 +1631,8 @@ const filterProductsByPreferences = (
 
     // Filtrar por características
     if (preferences.features.length > 0 && product.features.length > 0) {
-      if (preferences.features.some(feat => 
-        product.features.some(pFeat => 
+      if (preferences.features.some(feat =>
+        product.features.some(pFeat =>
           pFeat.feature.name.toLowerCase().includes(feat.toLowerCase())
         )
       )) {
@@ -1557,7 +1642,7 @@ const filterProductsByPreferences = (
 
     // Filtrar por color
     if (preferences.colors.length > 0 && product.color) {
-      if (preferences.colors.some(color => 
+      if (preferences.colors.some(color =>
         product.color?.toLowerCase().includes(color.toLowerCase())
       )) {
         matches = true
@@ -1584,26 +1669,25 @@ const generateProductsContext = (
   // Detectar si el cliente pregunta por productos
   const lowerMsg = message.toLowerCase()
   const asksForProducts = /\b(productos?|telas?|textiles?|catálogo|que\s+tienen|que\s+venden|muestrame|muéstrame|ver\s+productos)\b/i.test(lowerMsg)
-  
+
   // Detectar preferencias en el mensaje
   const preferences = detectProductPreferences(message, chatBotDomain)
-  
+
   // Si hay preferencias detectadas, filtrar productos
   if (preferences.hasPreferences) {
     const filteredProducts = filterProductsByPreferences(chatBotDomain.products, preferences)
-    
+
     if (filteredProducts.length === 0) {
-      return `\n❌ No encontramos productos que coincidan exactamente con: ${
-        [...preferences.materials, ...preferences.categories, ...preferences.textures, 
-         ...preferences.seasons, ...preferences.uses, ...preferences.features, 
-         ...preferences.colors].join(', ')
-      }. Tenemos ${chatBotDomain.products.length} productos disponibles en total.`
+      return `\n❌ No encontramos productos que coincidan exactamente con: ${[...preferences.materials, ...preferences.categories, ...preferences.textures,
+      ...preferences.seasons, ...preferences.uses, ...preferences.features,
+      ...preferences.colors].join(', ')
+        }. Tenemos ${chatBotDomain.products.length} productos disponibles en total.`
     }
 
     // Mostrar productos filtrados con información detallada
     const productDetails = filteredProducts.slice(0, 5).map(p => {
       const details: string[] = [`${p.name} - S/${p.salePrice || p.price}`]
-      
+
       if (p.material) details.push(`Material: ${p.material.name}`)
       if (p.texture) details.push(`Textura: ${p.texture.name}`)
       if (p.category) details.push(`Categoría: ${p.category.name}`)
@@ -1611,25 +1695,24 @@ const generateProductsContext = (
       if (p.width) details.push(`Ancho: ${p.width}`)
       if (p.weight) details.push(`Gramaje: ${p.weight}`)
       if (p.description) details.push(`${p.description}`)
-      
+
       const uses = p.uses.map(u => u.use.name).join(', ')
       if (uses) details.push(`Usos: ${uses}`)
-      
+
       const features = p.features.map(f => f.feature.name).join(', ')
       if (features) details.push(`Características: ${features}`)
-      
+
       return details.join(' | ')
     }).join('\n')
 
-    return `\n✅ Productos que coinciden con tu búsqueda (${filteredProducts.length} encontrados):\n${productDetails}${
-      filteredProducts.length > 5 ? `\n... y ${filteredProducts.length - 5} productos más` : ''
-    }`
+    return `\n✅ Productos que coinciden con tu búsqueda (${filteredProducts.length} encontrados):\n${productDetails}${filteredProducts.length > 5 ? `\n... y ${filteredProducts.length - 5} productos más` : ''
+      }`
   }
 
   // Si pregunta por productos pero no da preferencias, sugerir hacer preguntas
   if (asksForProducts) {
     const suggestions: string[] = []
-    
+
     if (chatBotDomain.materials.length > 0) {
       suggestions.push(`Materiales disponibles: ${chatBotDomain.materials.map(m => m.name).join(', ')}`)
     }
@@ -1686,8 +1769,7 @@ CLIENTE: ${customerData.name || 'Usuario'} | ${customerData.email} | ${customerD
 4. NO pidas datos del cliente que ya aparecen arriba (nombre, email, teléfono)
 5. Si dice "agendar/reservar/cita" → Da SOLO este enlace: http://localhost:3000/portal/${domainId}/appointment/${customerInfo?.id}
 6. NO preguntes fecha/hora para citas, solo da el enlace
-7. Para compras → Enlace: http://localhost:3000/portal/${domainId}/payment/${customerInfo?.id}
-8. Si la consulta es fuera de contexto textil, no puedes ayudar, o el cliente solicita hablar con un humano → Responde con "(realtime)" para escalar a humano
+7. Si la consulta es fuera de contexto textil, no puedes ayudar, o el cliente solicita hablar con un humano → Responde con "(realtime)" para escalar a humano
    Palabras clave para escalación: "humano", "persona", "agente", "operador", "hablar con alguien", "no me ayuda", "quiero hablar con", "escalar"
 ${helpdeskContext}${productsContext}
 9. NO preguntes "¿Hay algo más en que pueda ayudarte?" - esto se agrega automáticamente
@@ -1719,16 +1801,10 @@ const isAppointmentRequest = (message: string): boolean => {
  * Determina el contexto específico basado en el tipo de solicitud
  */
 const getContextSpecificPrompt = (message: string, domainId: string, customerId: string): string => {
-  const isPaymentRequest = /pago|pagar|comprar|adquirir|producto/i.test(message)
   const isAppointmentRequest = /cita|agendar|consulta|reunión|visita/i.test(message)
   const isGeneralQuery = /ayuda|información|consulta|pregunta/i.test(message)
 
-  if (isPaymentRequest) {
-    return `
-CONTEXTO ACTUAL: El cliente está solicitando ayuda con un pago o compra.
-RESPUESTA ESPERADA: Debes ayudarlo con el proceso de pago, mostrar productos disponibles si es necesario, y proporcionar el enlace de pago: http://localhost:3000/portal/${domainId}/payment/${customerId}
-NO pidas email nuevamente, ya lo tienes.`
-  } else if (isAppointmentRequest) {
+  if (isAppointmentRequest) {
     return `
 CONTEXTO ACTUAL: El cliente está solicitando agendar una cita o consulta.
 RESPUESTA ESPERADA: Debes ayudarlo con el proceso de agendamiento y proporcionar el enlace de citas: http://localhost:3000/portal/${domainId}/appointment/${customerId}
@@ -1755,7 +1831,7 @@ const handleOpenAIResponse = async (
   if (response.includes('(realtime)')) {
     await client.chatRoom.update({
       where: { id: customerInfo.chatRoom[0].id },
-      data: { 
+      data: {
         live: true,
         conversationState: 'ESCALATED' as any // ✅ Marcar como escalado as any // ✅ Marcar como escalado
       }
@@ -1943,11 +2019,11 @@ export const onAiChatBotAssistant = async (
       select: {
         name: true,
         helpdesk: { select: { question: true, answer: true } },
-        products: { 
+        products: {
           where: { active: true }, // Solo productos activos
-          select: { 
-            name: true, 
-            price: true, 
+          select: {
+            name: true,
+            price: true,
             image: true,
             salePrice: true,
             description: true,
@@ -1959,44 +2035,44 @@ export const onAiChatBotAssistant = async (
             texture: { select: { name: true } },
             category: { select: { name: true } },
             season: { select: { name: true } },
-            uses: { 
-              select: { 
-                use: { select: { name: true } } 
-              } 
+            uses: {
+              select: {
+                use: { select: { name: true } }
+              }
             },
-            features: { 
-              select: { 
-                feature: { select: { name: true } } 
-              } 
+            features: {
+              select: {
+                feature: { select: { name: true } }
+              }
             }
-          } 
+          }
         },
         filterQuestions: {
           where: { answered: null },
           select: { question: true }
         },
         // Obtener catálogos disponibles para hacer preguntas inteligentes
-        categories: { 
+        categories: {
           where: { active: true },
           select: { name: true }
         },
-        materials: { 
+        materials: {
           where: { active: true },
           select: { name: true }
         },
-        textures: { 
+        textures: {
           where: { active: true },
           select: { name: true }
         },
-        seasons: { 
+        seasons: {
           where: { active: true },
           select: { name: true }
         },
-        uses: { 
+        uses: {
           where: { active: true },
           select: { name: true }
         },
-        features: { 
+        features: {
           where: { active: true },
           select: { name: true }
         }
@@ -2024,7 +2100,7 @@ export const onAiChatBotAssistant = async (
           message,
           author,
           chat,
-          id,
+          id, // ✅ Pasar el domainId
           chatBotDomain,
           sessionToken
         )
@@ -2094,7 +2170,7 @@ export const onAiChatBotAssistant = async (
 
           await onStoreConversations(customerInfo.chatRoom[0].id, message, 'user')
 
-          // ✅ ENVIAR MENSAJE DEL USUARIO A PUSHER SI ESTÁ EN MODO LIVE
+          // ✅ ENVIAR MENSAJE DEL USUARIO INMEDIATAMENTE (ANTES DEL PROCESAMIENTO)
           if (customerInfo.chatRoom[0].live) {
             await onRealTimeChat(
               customerInfo.chatRoom[0].id,
@@ -2253,7 +2329,7 @@ export const onAiChatBotAssistant = async (
       if (customerInfo.chatRoom[0].live) {
         await onStoreConversations(customerInfo.chatRoom[0].id, message, author)
 
-        // ✅ ENVIAR MENSAJE DEL USUARIO A PUSHER PARA NOTIFICAR AL DASHBOARD
+        // ✅ ENVIAR MENSAJE DEL USUARIO INMEDIATAMENTE (ANTES DEL PROCESAMIENTO)
         await onRealTimeChat(
           customerInfo.chatRoom[0].id,
           message,
@@ -2266,14 +2342,20 @@ export const onAiChatBotAssistant = async (
             where: { id },
             select: {
               User: {
-                select: { clerkId: true }
+                select: {
+                  clerkId: true
+                }
               }
             }
           })
 
           if (domainOwner?.User?.clerkId) {
             const user = await clerkClient.users.getUser(domainOwner.User.clerkId)
-            onMailer(user.emailAddresses[0].emailAddress)
+            await onMailer(
+              user.emailAddresses[0].emailAddress,
+              customerInfo.name || 'Cliente',
+              customerInfo.email
+            )
 
             await client.chatRoom.update({
               where: { id: customerInfo.chatRoom[0].id },
@@ -2342,6 +2424,12 @@ export const onAiChatBotAssistant = async (
       })
 
       const response = chatCompletion.choices[0].message.content
+
+      // ✅ Validar que la respuesta no sea null
+      if (!response) {
+        throw new Error('OpenAI no retornó una respuesta válida')
+      }
+
       const result = await handleOpenAIResponse(response, customerInfo, chat)
       const finalContentMain = addHelpOffer(result.response.content)
 
@@ -2384,6 +2472,22 @@ export const onAiChatBotAssistant = async (
         response: {
           role: 'assistant',
           content: 'Para agendar tu cita, necesito que me proporciones tu correo electrónico. Por favor, compártelo conmigo.'
+        }
+      }
+    }
+
+    // ✅ VERIFICAR SI PIDE HABLAR CON HUMANO SIN ESTAR AUTENTICADO
+    if (detectHumanTransferRequest(message)) {
+      return {
+        response: {
+          role: 'assistant',
+          content: `Para conectarte con un humano, necesito algunos datos primero:
+
+1. ¿Cómo te llamas?
+2. ¿Cuál es tu correo electrónico?
+3. ¿Tu número de celular?
+
+Una vez que proporciones esta información, te conectaré inmediatamente con nuestro equipo humano.`
         }
       }
     }

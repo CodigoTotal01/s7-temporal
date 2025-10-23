@@ -1,14 +1,23 @@
 'use client'
 
 import React from 'react'
+import { useRealTime } from '@/hooks/chatbot/use-chatbot'
 
 type Props = {
     isHumanMode: boolean
     onToggle: (isHumanMode: boolean) => void
     disabled?: boolean
+    chatRoomId?: string
+    setChats?: React.Dispatch<React.SetStateAction<{
+        role: 'user' | 'assistant'
+        content: string
+        link?: string | undefined
+    }[]>>
 }
 
-const ChatModeToggle = ({ isHumanMode, onToggle, disabled = false }: Props) => {
+const ChatModeToggle = ({ isHumanMode, onToggle, disabled = false, chatRoomId, setChats }: Props) => {
+    // ✅ Siempre llamar el hook, pero solo activar si hay chatRoomId
+    useRealTime(chatRoomId || '', setChats || (() => {}))
 
     return (
         <div className="flex bg-gray-100 rounded-lg p-0.5 w-fit">

@@ -1,8 +1,13 @@
 "use server";
 
 import { client } from "@/lib/prisma";
-import { pusherServer } from "@/lib/utils";
+// ✅ COMENTADO: Pusher Server (plan agotado)
+// import { pusherServer } from "@/lib/utils";
+// ✅ NUEVO: Socket.io Server
+import { socketServer } from "@/lib/utils";
 import { ConversationState } from "@prisma/client";
+import { clerkClient } from '@clerk/nextjs';
+import { onMailer } from '../mailer';
 
 export const onToggleRealtime = async (id: string, state: boolean) => {
   try {
@@ -46,8 +51,42 @@ export const onUpdateConversationState = async (chatRoomId: string, state: Conve
       select: {
         id: true,
         conversationState: true,
+        Customer: {
+          select: {
+            name: true,
+            email: true,
+            domainId: true
+          }
+        }
       },
     });
+
+    // ✅ ENVIAR EMAIL AL DUEÑO CUANDO SE ESCALA A HUMANO MANUALMENTE
+    if (state === 'ESCALATED' && chatRoom?.Customer && chatRoom.Customer.domainId) {
+      try {
+        const domainOwner = await client.domain.findFirst({
+          where: { id: chatRoom.Customer.domainId },
+          select: {
+            User: {
+              select: {
+                clerkId: true
+              }
+            }
+          }
+        })
+
+        if (domainOwner?.User?.clerkId) {
+          const user = await clerkClient.users.getUser(domainOwner.User.clerkId)
+          await onMailer(
+            user.emailAddresses[0].emailAddress,
+            chatRoom.Customer.name || 'Cliente',
+            chatRoom.Customer.email || undefined
+          )
+        }
+      } catch (error) {
+        console.error('❌ Error enviando email de escalación manual:', error)
+      }
+    }
 
     if (chatRoom) {
       return {
@@ -189,7 +228,17 @@ export const onRealTimeChat = async (
   id: string,
   role: 'user' | 'assistant'
 ) => {
-  pusherServer.trigger(chatroomId, 'realtime-mode', {
+  // ✅ COMENTADO: Pusher Server (plan agotado)
+  // pusherServer.trigger(chatroomId, 'realtime-mode', {
+  //   chat: {
+  //     message,
+  //     id,
+  //     role,
+  //   },
+  // })
+
+  // ✅ NUEVO: Socket.io Server
+  await socketServer.trigger(chatroomId, 'realtime-mode', {
     chat: {
       message,
       id,
@@ -240,7 +289,19 @@ export const onOwnerSendMessage = async (
       // ENVIAR MENSAJE A TRAVÉS DE PUSHER PARA TIEMPO REAL
       const newMessage = chat.message[0]
       if (newMessage) {
-        await pusherServer.trigger(chatroom, 'realtime-mode', {
+        // ✅ COMENTADO: Pusher Server (plan agotado)
+        // await pusherServer.trigger(chatroom, 'realtime-mode', {
+        //   chat: {
+        //     message: newMessage.message,
+        //     id: newMessage.id,
+        //     role: newMessage.role,
+        //     createdAt: newMessage.createdAt,
+        //     seen: newMessage.seen
+        //   }
+        // })
+
+        // ✅ NUEVO: Socket.io Server
+        await socketServer.trigger(chatroom, 'realtime-mode', {
           chat: {
             message: newMessage.message,
             id: newMessage.id,

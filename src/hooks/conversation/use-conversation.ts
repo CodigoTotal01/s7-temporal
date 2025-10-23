@@ -1,6 +1,9 @@
 import { onGetChatMessages, onGetDomainChatRooms, onGetAllDomainChatRooms, onOwnerSendMessage, onViewUnReadMessages, onToggleFavorite, onRealTimeChat } from '@/action/conversation'
 import { useChatContext } from '@/context/user-chat-context'
-import { getMonthName, pusherClient } from '@/lib/utils'
+// ✅ COMENTADO: Pusher Client (plan agotado)
+// import { getMonthName, pusherClient } from '@/lib/utils'
+// ✅ NUEVO: Socket.io Client
+import { getMonthName, socketClientUtils } from '@/lib/utils'
 import { ChatBotMessageSchema, ConversationSearchSchema } from '@/schemas/conversation.schema'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useRef, useState } from 'react'
@@ -196,10 +199,34 @@ export const useChatWindow = () => {
     if (chatRoom) {
 
       try {
-        pusherClient.subscribe(chatRoom)
+        // ✅ COMENTADO: Pusher Client (plan agotado)
+        // pusherClient.subscribe(chatRoom)
+        // pusherClient.bind('realtime-mode', (data: any) => {
+        //   try {
+        //     // ✅ Verificar estructura de datos y agregar mensaje seguro
+        //     if (data && data.chat) {
+        //       const messageId = data.chat.id || Date.now().toString()
+        //       setChats((prev) => {
+        //         // ✅ Verificar si el mensaje ya existe para evitar duplicados
+        //         const messageExists = prev.some(msg => msg.id === messageId)
+        //         if (messageExists) {
+        //           return prev
+        //         }
+        //         return [...prev, {
+        //           id: messageId,
+        //           role: data.chat.role || 'assistant',
+        //           message: data.chat.message,
+        //           createdAt: data.chat.createdAt ? new Date(data.chat.createdAt) : new Date(),
+        //           seen: data.chat.seen || false
+        //         }]
+        //       })
+        //     }
+        //   } catch (error) { }
+        // })
 
-        pusherClient.bind('realtime-mode', (data: any) => {
-
+        // ✅ NUEVO: Socket.io Client
+        socketClientUtils.subscribe(chatRoom)
+        socketClientUtils.bind('realtime-mode', (data: any) => {
           try {
             // ✅ Verificar estructura de datos y agregar mensaje seguro
             if (data && data.chat) {
@@ -227,8 +254,13 @@ export const useChatWindow = () => {
 
       return () => {
         try {
-          pusherClient.unbind('realtime-mode')
-          pusherClient.unsubscribe(chatRoom)
+          // ✅ COMENTADO: Pusher Client (plan agotado)
+          // pusherClient.unbind('realtime-mode')
+          // pusherClient.unsubscribe(chatRoom)
+
+          // ✅ NUEVO: Socket.io Client
+          socketClientUtils.unbind('realtime-mode')
+          socketClientUtils.unsubscribe(chatRoom)
         } catch (error) { }
       }
     }

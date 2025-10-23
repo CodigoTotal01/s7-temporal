@@ -1,6 +1,9 @@
 import { onAiChatBotAssistant, onGetCurrentChatBot } from '@/action/bot'
 import { onUpdateConversationState, onToggleRealtime } from '@/action/conversation'
-import { postToParent, pusherClient } from '@/lib/utils'
+// ✅ COMENTADO: Pusher Client (plan agotado)
+// import { postToParent, pusherClient } from '@/lib/utils'
+// ✅ NUEVO: Socket.io Client
+import { postToParent, socketClientUtils } from '@/lib/utils'
 import {
   ChatBotMessageProps,
   ChatBotMessageSchema,
@@ -69,6 +72,9 @@ export const useChatBot = () => {
 
   // ✅ Estado para el toggle de modo humano
   const [isHumanMode, setIsHumanMode] = useState<boolean>(false)
+  
+  // ✅ Almacenar chatroom actual para el toggle
+  const [currentChatRoom, setCurrentChatRoom] = useState<string | undefined>(undefined)
 
   const onScrollToBottom = () => {
     messageWindowRef.current?.scroll({
@@ -112,6 +118,29 @@ export const useChatBot = () => {
       ])
       setCurrentBot(chatbot)
       setLoading(false)
+
+      // ✅ CARGAR ESTADO INICIAL DE LA CONVERSACIÓN
+      if (chatbot.customer && chatbot.customer.length > 0) {
+        const customer = chatbot.customer[0]
+        if (customer.chatRoom && customer.chatRoom.length > 0) {
+          const chatRoom = customer.chatRoom[0]
+          
+          // ✅ Almacenar chatroom actual
+          setCurrentChatRoom(chatRoom.id)
+          
+          // ✅ Determinar modo inicial basado en conversationState
+          const isInitiallyHumanMode = chatRoom.conversationState === 'ESCALATED'
+          setIsHumanMode(isInitiallyHumanMode)
+          
+          // ✅ Configurar tiempo real si está en modo humano
+          if (isInitiallyHumanMode) {
+            setOnRealTime({
+              chatroom: chatRoom.id,
+              mode: true
+            })
+          }
+        }
+      }
     } else {
       console.error('No se pudo encontrar el chatbot para:', idOrName)
     }
@@ -130,9 +159,11 @@ export const useChatBot = () => {
   const onStartChatting = handleSubmit(async (values) => {
     if (values.image && values.image.length) {
       const uploaded = await upload.uploadFile(values.image[0])
+      const userImageId = `user-image-local-${Date.now()}`
       setOnChats((prev: any) => [
         ...prev,
         {
+          id: userImageId,
           role: 'user',
           content: uploaded.uuid,
         },
@@ -147,7 +178,7 @@ export const useChatBot = () => {
       const response = await onAiChatBotAssistant(currentBotId!, onChats, 'user', uploaded.uuid, sessionToken || undefined)
 
       // ENVIAR IMAGEN DEL CLIENTE A PUSHER SI ESTÁ EN MODO LIVE
-      if (response?.live && response?.chatRoom) {
+      if (response && 'live' in response && response.live && 'chatRoom' in response && response.chatRoom) {
         try {
           const { onRealTimeChat } = await import('@/action/conversation')
           await onRealTimeChat(
@@ -176,13 +207,19 @@ export const useChatBot = () => {
           saveSession(response.sessionToken, sessionDataToSave as any)
         }
 
-        if (response.live) {
+        if ('live' in response && response.live && 'chatRoom' in response && response.chatRoom) {
           setOnRealTime((prev) => ({
             ...prev,
             chatroom: response.chatRoom,
             mode: response.live,
           }))
-        } else {
+          
+          // ✅ ALMACENAR CHATROOM ACTUAL
+          setCurrentChatRoom(response.chatRoom)
+          
+          // ✅ ACTUALIZAR MODO DEL TOGGLE CUANDO SE ESCALA A HUMANO
+          setIsHumanMode(true)
+        } else if ('response' in response && response.response) {
           setOnChats((prev: any) => [...prev, response.response])
         }
       }
@@ -190,9 +227,11 @@ export const useChatBot = () => {
     reset()
 
     if (values.content) {
+      const userMessageId = `user-local-${Date.now()}`
       setOnChats((prev: any) => [
         ...prev,
         {
+          id: userMessageId,
           role: 'user',
           content: values.content,
         },
@@ -206,7 +245,7 @@ export const useChatBot = () => {
       const response = await onAiChatBotAssistant(currentBotId!, onChats, 'user', values.content, sessionToken || undefined)
 
       // ENVIAR MENSAJE DEL CLIENTE A PUSHER SI ESTÁ EN MODO LIVE
-      if (response?.live && response?.chatRoom) {
+      if (response && 'live' in response && response.live && 'chatRoom' in response && response.chatRoom) {
         try {
           const { onRealTimeChat } = await import('@/action/conversation')
           await onRealTimeChat(
@@ -235,13 +274,19 @@ export const useChatBot = () => {
           saveSession(response.sessionToken, sessionDataToSave as any)
         }
 
-        if (response.live) {
+        if ('live' in response && response.live && 'chatRoom' in response && response.chatRoom) {
           setOnRealTime((prev) => ({
             ...prev,
             chatroom: response.chatRoom,
             mode: response.live,
           }))
-        } else {
+          
+          // ✅ ALMACENAR CHATROOM ACTUAL
+          setCurrentChatRoom(response.chatRoom)
+          
+          // ✅ ACTUALIZAR MODO DEL TOGGLE CUANDO SE ESCALA A HUMANO
+          setIsHumanMode(true)
+        } else if ('response' in response && response.response) {
           setOnChats((prev: any) => [...prev, response.response])
         }
       }
@@ -266,30 +311,30 @@ export const useChatBot = () => {
 
   const handleToggleHumanMode = async (newIsHumanMode: boolean) => {
     setIsHumanMode(newIsHumanMode)
-    
+
     // ✅ Actualizar el estado de la conversación y el modo live en la base de datos
-    if (onRealTime?.chatroom) {
+    if (currentChatRoom) {
       try {
         const newState = newIsHumanMode ? ConversationState.ESCALATED : ConversationState.ACTIVE
         const newLiveMode = newIsHumanMode // true para humano, false para bot
-        
+
         // Actualizar conversationState
-        await onUpdateConversationState(onRealTime.chatroom, newState)
-        
+        await onUpdateConversationState(currentChatRoom, newState)
+
         // Actualizar live mode
-        await onToggleRealtime(onRealTime.chatroom, newLiveMode)
-        
+        await onToggleRealtime(currentChatRoom, newLiveMode)
+
+        // ✅ Actualizar estado local para mantener sincronización
+        setOnRealTime({
+          chatroom: currentChatRoom,
+          mode: newIsHumanMode
+        })
+
       } catch (error) {
         console.error('❌ Error al actualizar el estado de la conversación:', error)
       }
-    }
-    
-    // ✅ Actualizar estado local para mantener sincronización
-    if (onRealTime?.chatroom) {
-      setOnRealTime(prev => prev ? { 
-        ...prev, 
-        mode: newIsHumanMode 
-      } : undefined)
+    } else {
+      console.error('❌ No hay chatroom disponible para el toggle')
     }
   }
 
@@ -313,7 +358,7 @@ export const useChatBot = () => {
     // ✅ Exportar props del toggle
     isHumanMode,
     onToggleHumanMode: handleToggleHumanMode,
-    isToggleDisabled: loading || !onRealTime?.chatroom
+    isToggleDisabled: loading // ✅ Solo deshabilitar durante carga inicial
   }
 }
 
@@ -330,16 +375,49 @@ export const useRealTime = (
   >
 ) => {
   useEffect(() => {
-    pusherClient.subscribe(chatRoom)
+    // ✅ Solo activar si hay chatRoom válido
+    if (!chatRoom || chatRoom.trim() === '') {
+      return
+    }
 
-    pusherClient.bind('realtime-mode', (data: any) => {
+    // ✅ COMENTADO: Pusher Client (plan agotado)
+    // pusherClient.subscribe(chatRoom)
+    // pusherClient.bind('realtime-mode', (data: any) => {
+    //   const messageId = data.chat.id || Date.now().toString()
+    //   setChats((prev: any) => {
+    //     const messageExists = prev.some((msg: any) => msg.id === messageId)
+    //     if (messageExists) {
+    //       return prev
+    //     }
+    //     return [...prev, {
+    //       id: messageId,
+    //       role: data.chat.role,
+    //       content: data.chat.message,
+    //       createdAt: data.chat.createdAt ? new Date(data.chat.createdAt) : new Date(),
+    //     }]
+    //   })
+    // })
 
+    // NUEVO: Socket.io Client
+    socketClientUtils.subscribe(chatRoom)
+    socketClientUtils.bind('realtime-mode', (data: any) => {
       const messageId = data.chat.id || Date.now().toString()
 
       setChats((prev: any) => {
         const messageExists = prev.some((msg: any) => msg.id === messageId)
         if (messageExists) {
           return prev
+        }
+
+        if (data.chat.role === 'user') {
+          const userMessageExists = prev.some((msg: any) =>
+            msg.role === 'user' &&
+            msg.content === data.chat.message &&
+            msg.id?.startsWith('user-local')
+          )
+          if (userMessageExists) {
+            return prev
+          }
         }
 
         return [...prev, {
@@ -349,12 +427,17 @@ export const useRealTime = (
           createdAt: data.chat.createdAt ? new Date(data.chat.createdAt) : new Date(),
         }]
       })
-
     })
 
     return () => {
-      pusherClient.unbind('realtime-mode')
-      pusherClient.unsubscribe(chatRoom)
+      // ✅ COMENTADO: Pusher Client (plan agotado)
+      // pusherClient.unbind('realtime-mode')
+      // pusherClient.unsubscribe(chatRoom)
+
+      // ✅ NUEVO: Socket.io Client
+      socketClientUtils.unbind('realtime-mode')
+      socketClientUtils.unsubscribe(chatRoom)
     }
   }, [chatRoom, setChats])
 }
+
