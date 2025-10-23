@@ -224,7 +224,7 @@ const detectHumanTransferRequest = (message: string): boolean => {
     'problema', 'queja', 'reclamo', 'urgente', 'emergencia',
     'supervisor', 'gerente', 'jefe', 'ayuda humana'
   ]
-  
+
   const lowerMessage = message.toLowerCase()
   return humanKeywords.some(keyword => lowerMessage.includes(keyword))
 }
@@ -1111,26 +1111,34 @@ const detectConversationEndingWithAI = async (
     const systemPrompt = `Eres un analizador de conversaciones. Tu trabajo es determinar si el usuario quiere TERMINAR la conversación.
 
 ANALIZA el mensaje del usuario y el contexto de la conversación para determinar si:
-1. El usuario está diciendo que NO necesita más ayuda
-2. El usuario se está DESPIDIENDO
-3. El usuario está SATISFECHO y quiere terminar
-4. El usuario está AGRADECIENDO y cerrando la conversación
+1. El usuario está diciendo EXPLÍCITAMENTE que NO necesita más ayuda
+2. El usuario se está DESPIDIENDO claramente
+3. El usuario está SATISFECHO y quiere terminar EXPLÍCITAMENTE
+4. El usuario está AGRADECIENDO y cerrando la conversación EXPLÍCITAMENTE
+
+IMPORTANTE: Solo marca como terminación si hay señales CLARAS de despedida o satisfacción. 
+Las respuestas a preguntas específicas (materiales, productos, etc.) NO son terminación.
 
 RESPUESTA SOLO: "SI" si el usuario quiere terminar, "NO" si quiere continuar.
 
-EJEMPLOS:
-- "no" → SI
+EJEMPLOS DE TERMINACIÓN:
 - "no, gracias" → SI  
-- "ya está" → SI
-- "perfecto" → SI
+- "ya está, gracias" → SI
+- "perfecto, eso es todo" → SI
 - "adiós" → SI
 - "hasta luego" → SI
-- "gracias" → SI
+- "gracias, ya no necesito más" → SI
 - "eso es todo" → SI
-- "listo" → SI
+- "listo, gracias" → SI
+
+EJEMPLOS DE NO TERMINACIÓN:
+- "lino" → NO (respuesta a pregunta sobre material)
+- "algodón" → NO (respuesta a pregunta sobre material)
 - "quiero más información" → NO
 - "tengo otra pregunta" → NO
-- "necesito ayuda con..." → NO`
+- "necesito ayuda con..." → NO
+- "sí" → NO (respuesta afirmativa)
+- "no" → NO (respuesta negativa a pregunta específica)`
 
     const chatCompletion = await openai.chat.completions.create({
       messages: [
