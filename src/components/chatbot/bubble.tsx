@@ -10,6 +10,7 @@ type Props = {
     role: 'user' | 'assistant'
     content: string
     link?: string
+    imageUrl?: string
   }
   createdAt?: Date | string
 }
@@ -17,12 +18,14 @@ type Props = {
 const Bubble = ({ message, createdAt }: Props) => {
   // Validación de seguridad para evitar errores
   if (!message || !message.content) {
-    console.error('Bubble: message or message.content is undefined', message)
     return null
   }
 
   let d = new Date()
-  const image = extractUUIDFromString(message.content)
+
+  // ✅ SIMPLIFICADO: Usar directamente la URL de imagen del mensaje
+  const imageUrl = message.imageUrl
+
   return (
     <div
       className={cn(
@@ -78,27 +81,43 @@ const Bubble = ({ message, createdAt }: Props) => {
               }`}
           </p>
         )}
-        {image ? (
-          <div className="relative aspect-square rounded-md overflow-hidden">
+        <div className="text-xs leading-relaxed whitespace-pre-line">
+          {/* ✅ SIEMPRE mostrar el texto del producto */}
+          {message.content.replace('(complete)', ' ')}
+          {message.link && (
+            <Link
+              className="underline font-medium pl-1"
+              href={message.link}
+              target="_blank"
+            >
+              Ver enlace
+            </Link>
+          )}
+        </div>
+
+        {/* ✅ Si hay imagen, mostrarla debajo del texto */}
+        {imageUrl && (
+          <div className="relative aspect-square rounded-md overflow-hidden bg-gray-100 mt-2">
             <Image
-              src={`https://ucarecdn.com/${image[0]}/`}
+              src={imageUrl}
               fill
-              alt="image"
+              alt="Imagen del producto"
               className="object-cover"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement
+                const container = target.parentElement
+                if (container) {
+                  container.innerHTML = `
+                    <div class="flex items-center justify-center h-full text-xs text-gray-500">
+                      <div class="text-center">
+                        <div class="mb-1">🖼️</div>
+                        <div>Imagen no disponible</div>
+                      </div>
+                    </div>
+                  `
+                }
+              }}
             />
-          </div>
-        ) : (
-          <div className="text-xs leading-relaxed whitespace-pre-line">
-            {message.content.replace('(complete)', ' ')}
-            {message.link && (
-              <Link
-                className="underline font-medium pl-1"
-                href={message.link}
-                target="_blank"
-              >
-                Ver enlace
-              </Link>
-            )}
           </div>
         )}
       </div>

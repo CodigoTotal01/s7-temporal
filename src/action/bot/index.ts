@@ -625,7 +625,7 @@ Tu opinión me ayuda a mejorar.`
     phone: customerInfo.phone
   }
 
-  const systemPrompt = generateOpenAIContext(
+  const systemPromptData = await generateOpenAIContext(
     chatBotDomain,
     customerDataForContext,
     contextSpecificPrompt,
@@ -633,6 +633,8 @@ Tu opinión me ayuda a mejorar.`
     customerInfo,
     message
   )
+
+  const systemPrompt = systemPromptData.content
 
   // 6. Usar solo historial relevante (últimos 10 mensajes)
   const relevantHistory = getRelevantChatHistory(chat, 10)
@@ -686,7 +688,8 @@ Tu opinión me ayuda a mejorar.`
     ...result,
     response: {
       ...result.response,
-      content: finalContent
+      content: finalContent,
+      imageUrl: systemPromptData.imageUrl
     },
     sessionToken // Mantener token
   }
@@ -1658,12 +1661,12 @@ const filterProductsByPreferences = (
  * - Si el cliente menciona preferencias específicas, filtra y muestra solo productos relevantes
  * - Si no hay preferencias, sugiere hacer preguntas antes de mostrar todos los productos
  */
-const generateProductsContext = (
+const generateProductsContext = async (
   chatBotDomain: ChatBotDomain,
   message: string
-): string => {
+): Promise<{ content: string; imageUrl?: string }> => {
   if (chatBotDomain.products.length === 0) {
-    return '\n⚠️ NO hay productos disponibles en este momento.'
+    return { content: '\n⚠️ NO hay productos disponibles en este momento.' }
   }
 
   // Detectar si el cliente pregunta por productos
@@ -1678,15 +1681,44 @@ const generateProductsContext = (
     const filteredProducts = filterProductsByPreferences(chatBotDomain.products, preferences)
 
     if (filteredProducts.length === 0) {
-      return `\n❌ No encontramos productos que coincidan exactamente con: ${[...preferences.materials, ...preferences.categories, ...preferences.textures,
-      ...preferences.seasons, ...preferences.uses, ...preferences.features,
-      ...preferences.colors].join(', ')
-        }. Tenemos ${chatBotDomain.products.length} productos disponibles en total.`
+      return {
+        content: `\n❌ No encontramos productos que coincidan exactamente con: ${[...preferences.materials, ...preferences.categories, ...preferences.textures,
+        ...preferences.seasons, ...preferences.uses, ...preferences.features,
+        ...preferences.colors].join(', ')
+          }. Tenemos ${chatBotDomain.products.length} productos disponibles en total.`
+      }
     }
 
     // Mostrar productos filtrados con información detallada
-    const productDetails = filteredProducts.slice(0, 5).map(p => {
+    let firstProductImageUrl: string | undefined = undefined
+
+    const productDetails = await Promise.all(filteredProducts.slice(0, 5).map(async (p) => {
       const details: string[] = [`${p.name} - S/${p.salePrice || p.price}`]
+
+      // ✅ AGREGAR IMAGEN DEL PRODUCTO - Construir URL completa con validación
+      if (p.image && p.image.trim() !== '') {
+
+        // Validar que el UUID tenga el formato correcto
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+        const isValidUUID = uuidRegex.test(p.image)
+
+        if (isValidUUID) {
+          const imageUrl = `https://ucarecdn.com/${p.image}/`
+
+          // ✅ VALIDAR QUE LA IMAGEN EXISTA ANTES DE INCLUIRLA
+          try {
+            const response = await fetch(imageUrl, { method: 'HEAD' })
+            if (response.ok) {
+              // ✅ Capturar la primera imagen válida para retornarla por separado
+              if (!firstProductImageUrl) {
+                firstProductImageUrl = imageUrl
+              }
+            }
+          } catch (error) {
+            console.warn("🚀 ~ Error checking image existence:", imageUrl, error)
+          }
+        }
+      }
 
       if (p.material) details.push(`Material: ${p.material.name}`)
       if (p.texture) details.push(`Textura: ${p.texture.name}`)
@@ -1703,10 +1735,15 @@ const generateProductsContext = (
       if (features) details.push(`Características: ${features}`)
 
       return details.join(' | ')
-    }).join('\n')
+    }))
 
-    return `\n✅ Productos que coinciden con tu búsqueda (${filteredProducts.length} encontrados):\n${productDetails}${filteredProducts.length > 5 ? `\n... y ${filteredProducts.length - 5} productos más` : ''
-      }`
+    const productDetailsString = productDetails.join('\n')
+
+    return {
+      content: `\n✅ Productos que coinciden con tu búsqueda (${filteredProducts.length} encontrados):\n${productDetailsString}${filteredProducts.length > 5 ? `\n... y ${filteredProducts.length - 5} productos más` : ''
+        }`,
+      imageUrl: firstProductImageUrl
+    }
   }
 
   // Si pregunta por productos pero no da preferencias, sugerir hacer preguntas
@@ -1726,39 +1763,44 @@ const generateProductsContext = (
       suggestions.push(`Usos: ${chatBotDomain.uses.map(u => u.name).join(', ')}`)
     }
 
-    return `\n📋 Tenemos ${chatBotDomain.products.length} productos textiles disponibles.
+    return {
+      content: `\n📋 Tenemos ${chatBotDomain.products.length} productos textiles disponibles.
 
 IMPORTANTE: Para ayudarte mejor, pregunta al cliente sobre sus preferencias:
 ${suggestions.length > 0 ? suggestions.join('\n') : ''}
 
 Ejemplo: "¿Qué tipo de material/tela estás buscando?" o "¿Para qué uso necesitas la tela?"`
+    }
   }
 
   // Si no pregunta por productos, solo dar contexto básico
-  return `\n📦 Tenemos ${chatBotDomain.products.length} productos textiles. Pregunta al cliente qué busca antes de listarlos todos.`
+  return {
+    content: `\n📦 Tenemos ${chatBotDomain.products.length} productos textiles. Pregunta al cliente qué busca antes de listarlos todos.`
+  }
 }
 
 /**
  * OPTIMIZACIÓN: Prompt compacto para reducir tokens
  * Reducción de ~800 tokens a ~300 tokens (62% ahorro)
  */
-const generateOpenAIContext = (
+const generateOpenAIContext = async (
   chatBotDomain: ChatBotDomain,
   customerData: CustomerData,
   contextSpecificPrompt: string,
   domainId: string,
   customerInfo: any,
   message: string
-): string => {
+): Promise<{ content: string; imageUrl?: string }> => {
   // Contextos compactos
   const helpdeskContext = chatBotDomain.helpdesk.length > 0
     ? `\nFAQs: ${chatBotDomain.helpdesk.map(h => h.question).join(', ')}`
     : ''
 
   // ✅ NUEVO: Usar sistema inteligente de productos
-  const productsContext = generateProductsContext(chatBotDomain, message)
+  const productsContext = await generateProductsContext(chatBotDomain, message)
 
-  return `Eres Lunari AI, asistente virtual especializado en textiles para ${chatBotDomain.name}.
+  return {
+    content: `Eres Lunari AI, asistente virtual especializado en textiles para ${chatBotDomain.name}.
 
 CLIENTE: ${customerData.name || 'Usuario'} | ${customerData.email} | ${customerData.phone || 'Sin teléfono'}
 
@@ -1769,9 +1811,10 @@ CLIENTE: ${customerData.name || 'Usuario'} | ${customerData.email} | ${customerD
 4. NO pidas datos del cliente que ya aparecen arriba (nombre, email, teléfono)
 5. Si dice "agendar/reservar/cita" → Da SOLO este enlace: http://localhost:3000/portal/${domainId}/appointment/${customerInfo?.id}
 6. NO preguntes fecha/hora para citas, solo da el enlace
-7. Si la consulta es fuera de contexto textil, no puedes ayudar, o el cliente solicita hablar con un humano → Responde con "(realtime)" para escalar a humano
+7. PROHIBIDO crear enlaces de compra, tiendas online, o cualquier enlace que no sea el de agendar citas
+8. Si la consulta es fuera de contexto textil, no puedes ayudar, o el cliente solicita hablar con un humano → Responde con "(realtime)" para escalar a humano
    Palabras clave para escalación: "humano", "persona", "agente", "operador", "hablar con alguien", "no me ayuda", "quiero hablar con", "escalar"
-${helpdeskContext}${productsContext}
+${helpdeskContext}${productsContext.content}
 9. NO preguntes "¿Hay algo más en que pueda ayudarte?" - esto se agrega automáticamente
 
 🎯 ESTRATEGIA PARA RECOMENDAR PRODUCTOS:
@@ -1784,7 +1827,14 @@ ${helpdeskContext}${productsContext}
 - Una vez que el cliente mencione sus preferencias (material, uso, categoría, color, etc.), muestra SOLO los productos del contexto que coincidan
 - Si el cliente menciona algo que NO está en tu contexto de productos, indícale qué opciones SÍ tienes disponibles
 
-Responde en español, breve, amigable y directo. Usa el nombre del cliente. Sé útil pero NUNCA inventes información.`
+🛒 MANEJO DE SOLICITUDES DE COMPRA:
+- Si el cliente quiere comprar o pregunta por precios, NO generes enlaces de compra
+- En su lugar, proporciona la información del producto y sugiere agendar una cita para más detalles
+- Ejemplo: "Te puedo ayudar con información sobre nuestros productos. Para realizar una compra, te sugiero agendar una cita con nosotros para coordinar los detalles."
+
+Responde en español, breve, amigable y directo. Usa el nombre del cliente. Sé útil pero NUNCA inventes información.`,
+    imageUrl: productsContext.imageUrl
+  }
 }
 
 /**
@@ -2401,7 +2451,7 @@ export const onAiChatBotAssistant = async (
         phone: customerInfo.phone
       }
 
-      const systemPrompt = generateOpenAIContext(
+      const systemPromptData = await generateOpenAIContext(
         chatBotDomain,
         customerDataForContext,
         contextSpecificPrompt,
@@ -2409,6 +2459,8 @@ export const onAiChatBotAssistant = async (
         customerInfo,
         message
       )
+
+      const systemPrompt = systemPromptData.content
 
       const relevantHistory = getRelevantChatHistory(chat, 10)
 
@@ -2461,7 +2513,8 @@ export const onAiChatBotAssistant = async (
         ...result,
         response: {
           ...result.response,
-          content: finalContentMain
+          content: finalContentMain,
+          imageUrl: systemPromptData.imageUrl
         }
       }
     }

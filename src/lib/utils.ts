@@ -12,7 +12,7 @@ export function cn(...inputs: ClassValue[]) {
 
 export const extractUUIDFromString = (url: string) => {
   return url.match(
-    /^[0-9a-f]{8}-?[0-9a-f]{4}-?[1-5][0-9a-f]{3}-?[89ab][0-9a-f]{3}-?[0-9a-f]{12}$/i
+    /[0-9a-f]{8}-?[0-9a-f]{4}-?[1-5][0-9a-f]{3}-?[89ab][0-9a-f]{3}-?[0-9a-f]{12}/i
   )
 }
 
@@ -161,4 +161,15 @@ export const getMonthName = (month: number) => {
                       : month == 11
                         ? 'Nov'
                         : month == 12 && 'Dec'
+}
+
+// NUEVO: Función para validar si una imagen existe
+export const validateImageUrl = async (imageUrl: string): Promise<boolean> => {
+  try {
+    const response = await fetch(imageUrl, { method: 'HEAD' })
+    return response.ok
+  } catch (error) {
+    console.error('Error validating image URL:', imageUrl, error)
+    return false
+  }
 }
