@@ -19,8 +19,6 @@ model User {
   type         String
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
-  stripeId     String?
-  subscription Billings?
   campaign     Campaign[]
   domains      Domain[]
 }
@@ -58,14 +56,6 @@ model ChatBot {
   helpdesk       Boolean @default(false)
   domainId       String? @unique @db.Uuid
   Domain         Domain? @relation(fields: [domainId], references: [id], onDelete: Cascade)
-}
-
-model Billings {
-  id      String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  plan    Plans   @default(STANDARD)
-  credits Int     @default(10)
-  userId  String? @unique @db.Uuid
-  User    User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model HelpDesk {
@@ -390,12 +380,6 @@ model CustomerSatisfaction {
 enum Role {
   user
   assistant
-}
-
-enum Plans {
-  STANDARD
-  PRO
-  ULTIMATE
 }
 
 // FR3: Tipo de resolución

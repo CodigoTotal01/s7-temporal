@@ -3,7 +3,6 @@ import { FieldErrors, FieldValues } from 'react-hook-form'
 import { UseFormRegister } from 'react-hook-form'
 import QuestionsForm from './questions'
 import BookAppointmentDate from './booking-date'
-import PaymentCheckout from './product-checkout'
 
 type Props = {
     questions: {
@@ -11,7 +10,7 @@ type Props = {
         question: string
         answered: string | null
     }[]
-    type: 'Appointment' | 'Payment'
+    type: 'Appointment'
     register: UseFormRegister<FieldValues>
     error: FieldErrors<FieldValues>
     onNext(): void
@@ -28,15 +27,6 @@ type Props = {
         slot: string
     }[]
     | undefined
-    products?:
-    | {
-        name: string
-        image: string
-        price: number
-    }[]
-    | undefined
-    amount?: number
-    stripeId?: string
     availableSlots?: string[]
     loadingSlots?: boolean
 }
@@ -54,10 +44,7 @@ const PortalSteps = ({
     onSlot,
     loading,
     slot,
-    products,
     bookings,
-    amount,
-    stripeId,
     availableSlots = [],
     loadingSlots = false,
 }: Props) => {
@@ -87,19 +74,6 @@ const PortalSteps = ({
                 availableSlots={availableSlots}
                 loadingSlots={loadingSlots}
             />
-        )
-    }
-
-    if (step == 2 && type == 'Payment') {
-        return (
-            <PaymentCheckout
-                products={products}
-                stripeId={stripeId}
-                onBack={onBack}
-                onNext={onNext}
-                amount={amount}
-            />
-            
         )
     }
 
