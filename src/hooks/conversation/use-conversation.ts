@@ -1,6 +1,6 @@
-import { onGetChatMessages, onGetDomainChatRooms, onGetAllDomainChatRooms, onOwnerSendMessage, onViewUnReadMessages, onToggleFavorite } from '@/action/conversation'
+import { onGetChatMessages, onGetDomainChatRooms, onGetAllDomainChatRooms, onOwnerSendMessage, onViewUnReadMessages, onToggleFavorite, onRealTimeChat } from '@/action/conversation'
 import { useChatContext } from '@/context/user-chat-context'
-import { getMonthName } from '@/lib/utils'
+import { getMonthName, pusherClient } from '@/lib/utils'
 import { ChatBotMessageSchema, ConversationSearchSchema } from '@/schemas/conversation.schema'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useRef, useState } from 'react'
@@ -31,7 +31,7 @@ export const useConversation = () => {
   >([])
   const [loading, setLoading] = useState<boolean>(false)
   const [activeTab, setActiveTab] = useState<string>('no leidos')
-  
+
   useEffect(() => {
     const search = watch(async (value) => {
       setLoading(true)
@@ -66,16 +66,16 @@ export const useConversation = () => {
   // Función para filtrar conversaciones según el tab activo
   const getFilteredChatRooms = () => {
     if (!chatRooms.length) return []
-    
+
     return chatRooms.filter((room) => {
       const chatRoom = room.chatRoom[0]
       if (!chatRoom) return false
-      
+
       const lastMessage = chatRoom.message[0]
       const now = new Date()
       const lastActivity = new Date(chatRoom.lastUserActivityAt)
       const hoursSinceLastActivity = (now.getTime() - lastActivity.getTime()) / (1000 * 60 * 60)
-      
+
       switch (activeTab) {
         case 'no leidos':
           return !lastMessage?.seen
@@ -102,11 +102,11 @@ export const useConversation = () => {
       const result = await onToggleFavorite(chatRoomId, isFavorite)
       if (result?.status === 200) {
         // Actualizar el estado local
-        setChatRooms(prev => 
+        setChatRooms(prev =>
           prev.map(room => ({
             ...room,
-            chatRoom: room.chatRoom.map(chat => 
-              chat.id === chatRoomId 
+            chatRoom: room.chatRoom.map(chat =>
+              chat.id === chatRoomId
                 ? { ...chat, isFavorite }
                 : chat
             )
@@ -192,43 +192,59 @@ export const useChatWindow = () => {
     onScrollToBottom()
   }, [chats, messageWindowRef])
 
-  // WIP: setup pusher
+  useEffect(() => {
+    if (chatRoom) {
 
-  /*   useEffect(() => {
-      if (chatRoom) {
+      try {
         pusherClient.subscribe(chatRoom)
+
         pusherClient.bind('realtime-mode', (data: any) => {
-          setChats((prev) => [...prev, data.chat])
+
+          try {
+            // ✅ Verificar estructura de datos y agregar mensaje seguro
+            if (data && data.chat) {
+              const messageId = data.chat.id || Date.now().toString()
+
+              setChats((prev) => {
+                // ✅ Verificar si el mensaje ya existe para evitar duplicados
+                const messageExists = prev.some(msg => msg.id === messageId)
+                if (messageExists) {
+                  return prev
+                }
+
+                return [...prev, {
+                  id: messageId,
+                  role: data.chat.role || 'assistant',
+                  message: data.chat.message,
+                  createdAt: data.chat.createdAt ? new Date(data.chat.createdAt) : new Date(),
+                  seen: data.chat.seen || false
+                }]
+              })
+            }
+          } catch (error) { }
         })
-  
-        return () => {
+      } catch (error) { }
+
+      return () => {
+        try {
           pusherClient.unbind('realtime-mode')
           pusherClient.unsubscribe(chatRoom)
-        }
+        } catch (error) { }
       }
-    }, [chatRoom]) */
+    }
+  }, [chatRoom, setChats])
 
   const onHandleSentMessage = handleSubmit(async (values) => {
     try {
       reset()
-      const message = await onOwnerSendMessage(
+
+      await onOwnerSendMessage(
         chatRoom!,
         values.content,
         'assistant'
       )
-      if (message) {
-        // setChats((prev) => [...prev, message.message[0]])
-        setChats((prev) => [...prev, { ...message.message[0], role: 'assistant' }])
-        /* await onRealTimeChat(
-          chatRoom!,
-          message.message[0].message,
-          message.message[0].id,
-          'assistant'
-        ) */
-      }
-    } catch (error) {
-      console.log(error)
-    }
+
+    } catch (error) { }
   })
 
   return {

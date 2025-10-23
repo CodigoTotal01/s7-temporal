@@ -30,7 +30,9 @@ export const SideSheet = ({
           <SheetTitle>{title}</SheetTitle>
           <SheetDescription>{description}</SheetDescription>
         </SheetHeader>
-        {children}
+        <div className="mt-6">
+          {children}
+        </div>
       </SheetContent>
     </Sheet>
   )

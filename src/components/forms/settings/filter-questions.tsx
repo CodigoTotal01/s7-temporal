@@ -16,9 +16,10 @@ import { Edit, Trash2, X } from 'lucide-react'
 
 type Props = {
   id: string
+  initialQuestions?: Array<{ id: string; question: string }>
 }
 
-const FilterQuestions = ({ id }: Props) => {
+const FilterQuestions = ({ id, initialQuestions }: Props) => {
   const {
     register,
     errors,
@@ -30,7 +31,7 @@ const FilterQuestions = ({ id }: Props) => {
     isQuestions,
     loading,
     deleting
-  } = useFilterQuestions(id)
+  } = useFilterQuestions(id, initialQuestions)
 
   return (
     <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">

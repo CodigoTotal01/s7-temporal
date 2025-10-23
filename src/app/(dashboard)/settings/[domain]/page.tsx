@@ -27,10 +27,22 @@ const DomainSettingsPage = async ({ params }: Props) => {
           name={currentDomain.name}
         />
         <AvailabilityScheduleForm id={currentDomain.id} />
-        <BotTrainingForm id={currentDomain.id} />
+        <BotTrainingForm 
+          id={currentDomain.id} 
+          helpdesk={currentDomain.helpdesk || []}
+          filterQuestions={currentDomain.filterQuestions || []}
+        />
         <ProductTable
           id={currentDomain.id}
           products={currentDomain.products || []}
+          catalogs={{
+            categories: currentDomain.categories || [],
+            materials: currentDomain.materials || [],
+            textures: currentDomain.textures || [],
+            seasons: currentDomain.seasons || [],
+            uses: currentDomain.uses || [],
+            features: currentDomain.features || [],
+          }}
         />
       </div>
     </>

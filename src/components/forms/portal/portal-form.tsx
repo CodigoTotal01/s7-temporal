@@ -11,7 +11,7 @@ type PortalFormProps = {
     question: string
     answered: string | null
   }[]
-  type: 'Appointment' | 'Payment'
+  type: 'Appointment'
   customerId: string
   domainid: string
   email: string
@@ -21,15 +21,6 @@ type PortalFormProps = {
     slot: string
   }[]
   | undefined
-  products?:
-  | {
-    name: string
-    image: string
-    price: number
-  }[]
-  | undefined
-  amount?: number
-  stripeId?: string
 }
 
 const PortalForm = ({
@@ -38,10 +29,7 @@ const PortalForm = ({
   customerId,
   domainid,
   bookings,
-  products,
   email,
-  amount,
-  stripeId,
 }: PortalFormProps) => {
   const {
     step,
@@ -83,10 +71,7 @@ const PortalForm = ({
         error={errors}
         register={register}
         onNext={onNext}
-        products={products}
         onBack={onPrev}
-        amount={amount}
-        stripeId={stripeId}
         availableSlots={availableSlots}
         loadingSlots={loadingSlots}
       />

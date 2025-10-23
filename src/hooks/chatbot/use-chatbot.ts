@@ -1,14 +1,16 @@
 import { onAiChatBotAssistant, onGetCurrentChatBot } from '@/action/bot'
+import { onUpdateConversationState, onToggleRealtime } from '@/action/conversation'
 import { postToParent, pusherClient } from '@/lib/utils'
 import {
   ChatBotMessageProps,
   ChatBotMessageSchema,
 } from '@/schemas/conversation.schema'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { ConversationState } from '@prisma/client'
 import { useEffect, useRef, useState } from 'react'
 import { UploadClient } from '@uploadcare/upload-client'
 import { useForm } from 'react-hook-form'
-import { useChatSession } from './use-chat-session' // ✅ Importar hook de sesión
+import { useChatSession } from './use-chat-session'
 
 const upload = new UploadClient({
   publicKey: process.env.NEXT_PUBLIC_UPLOAD_CARE_PUBLIC_KEY as string,
@@ -23,16 +25,15 @@ export const useChatBot = () => {
   } = useForm<ChatBotMessageProps>({
     resolver: zodResolver(ChatBotMessageSchema),
   })
-  
-  // ✅ Hook de sesión
-  const { 
-    token: sessionToken, 
-    sessionData, 
-    isAuthenticated, 
+
+  const {
+    token: sessionToken,
+    sessionData,
+    isAuthenticated,
     saveSession,
-    clearSession 
+    clearSession
   } = useChatSession()
-  
+
   const [currentBot, setCurrentBot] = useState<
     | {
       name: string
@@ -66,6 +67,9 @@ export const useChatBot = () => {
     { chatroom: string; mode: boolean } | undefined
   >(undefined)
 
+  // ✅ Estado para el toggle de modo humano
+  const [isHumanMode, setIsHumanMode] = useState<boolean>(false)
+
   const onScrollToBottom = () => {
     messageWindowRef.current?.scroll({
       top: messageWindowRef.current.scrollHeight,
@@ -93,14 +97,12 @@ export const useChatBot = () => {
     setCurrentBotId(idOrName)
     const chatbot = await onGetCurrentChatBot(idOrName)
     if (chatbot) {
-      // ✅ Mensaje personalizado si hay sesión
       let welcomeMessage = chatbot.chatBot?.welcomeMessage!
-      
+
       if (isAuthenticated && sessionData?.name) {
         welcomeMessage = `¡Hola de nuevo ${sessionData.name}! 👋\n${welcomeMessage}`
-        console.log('👤 Usuario identificado:', sessionData.name)
       }
-      
+
       setOnChats((prev) => [
         ...prev,
         {
@@ -128,37 +130,52 @@ export const useChatBot = () => {
   const onStartChatting = handleSubmit(async (values) => {
     if (values.image && values.image.length) {
       const uploaded = await upload.uploadFile(values.image[0])
+      setOnChats((prev: any) => [
+        ...prev,
+        {
+          role: 'user',
+          content: uploaded.uuid,
+        },
+      ])
+
       if (!onRealTime?.mode) {
-        setOnChats((prev: any) => [
-          ...prev,
-          {
-            role: 'user',
-            content: uploaded.uuid,
-          },
-        ])
+        setOnAiTyping(true)
       }
 
-      setOnAiTyping(true)
       console.log('142')
-      
-      // ✅ Enviar token de sesión si existe
+
       const response = await onAiChatBotAssistant(currentBotId!, onChats, 'user', uploaded.uuid, sessionToken || undefined)
 
+      // ENVIAR IMAGEN DEL CLIENTE A PUSHER SI ESTÁ EN MODO LIVE
+      if (response?.live && response?.chatRoom) {
+        try {
+          const { onRealTimeChat } = await import('@/action/conversation')
+          await onRealTimeChat(
+            response.chatRoom,
+            uploaded.uuid,
+            `user-${Date.now()}`,
+            'user'
+          )
+        } catch (error) {
+          console.error(`❌ Chatbot: Error al enviar imagen a Pusher:`, error)
+        }
+      }
+
       if (response) {
-        setOnAiTyping(false)
-        
-        // ✅ Guardar token si el backend lo envía (verificación segura)
+        if (!onRealTime?.mode) {
+          setOnAiTyping(false)
+        }
+
         if ('sessionToken' in response && 'sessionData' in response && response.sessionToken && response.sessionData) {
           const sessionDataToSave = {
             ...response.sessionData,
-            expiresAt: response.sessionData.expiresAt instanceof Date 
-              ? response.sessionData.expiresAt.toISOString() 
+            expiresAt: response.sessionData.expiresAt instanceof Date
+              ? response.sessionData.expiresAt.toISOString()
               : response.sessionData.expiresAt
           }
           saveSession(response.sessionToken, sessionDataToSave as any)
-          console.log('💾 Nueva sesión guardada (imagen)')
         }
-        
+
         if (response.live) {
           setOnRealTime((prev) => ({
             ...prev,
@@ -170,38 +187,54 @@ export const useChatBot = () => {
         }
       }
     }
-   reset()
+    reset()
 
     if (values.content) {
+      setOnChats((prev: any) => [
+        ...prev,
+        {
+          role: 'user',
+          content: values.content,
+        },
+      ])
+
       if (!onRealTime?.mode) {
-        setOnChats((prev: any) => [
-          ...prev,
-          {
-            role: 'user',
-            content: values.content,
-          },
-        ])
+        setOnAiTyping(true)
       }
 
-      setOnAiTyping(true)
       console.log('187')
       const response = await onAiChatBotAssistant(currentBotId!, onChats, 'user', values.content, sessionToken || undefined)
-      
+
+      // ENVIAR MENSAJE DEL CLIENTE A PUSHER SI ESTÁ EN MODO LIVE
+      if (response?.live && response?.chatRoom) {
+        try {
+          const { onRealTimeChat } = await import('@/action/conversation')
+          await onRealTimeChat(
+            response.chatRoom,
+            values.content,
+            `user-${Date.now()}`,
+            'user'
+          )
+        } catch (error) {
+          console.error(`❌ Chatbot: Error al enviar a Pusher:`, error)
+        }
+      }
+
       if (response) {
-        setOnAiTyping(false)
-        
-        // ✅ Guardar token si el backend lo envía (verificación segura)
+        if (!onRealTime?.mode) {
+          setOnAiTyping(false)
+        }
+
         if ('sessionToken' in response && 'sessionData' in response && response.sessionToken && response.sessionData) {
           const sessionDataToSave = {
             ...response.sessionData,
-            expiresAt: response.sessionData.expiresAt instanceof Date 
-              ? response.sessionData.expiresAt.toISOString() 
+            expiresAt: response.sessionData.expiresAt instanceof Date
+              ? response.sessionData.expiresAt.toISOString()
               : response.sessionData.expiresAt
           }
           saveSession(response.sessionToken, sessionDataToSave as any)
-          console.log('💾 Nueva sesión guardada (texto)')
         }
-        
+
         if (response.live) {
           setOnRealTime((prev) => ({
             ...prev,
@@ -215,7 +248,6 @@ export const useChatBot = () => {
     }
   })
 
-  // ✅ Función para cerrar sesión y limpiar chat
   const handleLogout = () => {
     clearSession()
     setOnChats([
@@ -230,7 +262,35 @@ export const useChatBot = () => {
                   Ejemplo: "tunombre@email.com"`
       }
     ])
-    console.log('👋 Sesión cerrada y chat reiniciado')
+  }
+
+  const handleToggleHumanMode = async (newIsHumanMode: boolean) => {
+    setIsHumanMode(newIsHumanMode)
+    
+    // ✅ Actualizar el estado de la conversación y el modo live en la base de datos
+    if (onRealTime?.chatroom) {
+      try {
+        const newState = newIsHumanMode ? ConversationState.ESCALATED : ConversationState.ACTIVE
+        const newLiveMode = newIsHumanMode // true para humano, false para bot
+        
+        // Actualizar conversationState
+        await onUpdateConversationState(onRealTime.chatroom, newState)
+        
+        // Actualizar live mode
+        await onToggleRealtime(onRealTime.chatroom, newLiveMode)
+        
+      } catch (error) {
+        console.error('❌ Error al actualizar el estado de la conversación:', error)
+      }
+    }
+    
+    // ✅ Actualizar estado local para mantener sincronización
+    if (onRealTime?.chatroom) {
+      setOnRealTime(prev => prev ? { 
+        ...prev, 
+        mode: newIsHumanMode 
+      } : undefined)
+    }
   }
 
   return {
@@ -249,11 +309,15 @@ export const useChatBot = () => {
     // ✅ Exportar datos de sesión
     sessionData,
     isAuthenticated,
-    clearSession: handleLogout, // ✅ Usar versión que limpia el chat
+    clearSession: handleLogout, // Usar versión que limpia el chat
+    // ✅ Exportar props del toggle
+    isHumanMode,
+    onToggleHumanMode: handleToggleHumanMode,
+    isToggleDisabled: loading || !onRealTime?.chatroom
   }
 }
 
-/* export const useRealTime = (
+export const useRealTime = (
   chatRoom: string,
   setChats: React.Dispatch<
     React.SetStateAction<
@@ -265,26 +329,32 @@ export const useChatBot = () => {
     >
   >
 ) => {
-  const counterRef = useRef(1)
-
   useEffect(() => {
     pusherClient.subscribe(chatRoom)
+
     pusherClient.bind('realtime-mode', (data: any) => {
-      console.log('✅', data)
-      if (counterRef.current !== 1) {
-        setChats((prev: any) => [
-          ...prev,
-          {
-            role: data.chat.role,
-            content: data.chat.message,
-          },
-        ])
-      }
-      counterRef.current += 1
+
+      const messageId = data.chat.id || Date.now().toString()
+
+      setChats((prev: any) => {
+        const messageExists = prev.some((msg: any) => msg.id === messageId)
+        if (messageExists) {
+          return prev
+        }
+
+        return [...prev, {
+          id: messageId,
+          role: data.chat.role,
+          content: data.chat.message,
+          createdAt: data.chat.createdAt ? new Date(data.chat.createdAt) : new Date(),
+        }]
+      })
+
     })
+
     return () => {
       pusherClient.unbind('realtime-mode')
       pusherClient.unsubscribe(chatRoom)
     }
-  }, [])
-} */
+  }, [chatRoom, setChats])
+}

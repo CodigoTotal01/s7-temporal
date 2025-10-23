@@ -24,6 +24,10 @@ type Props = {
     active: boolean
     createdAt: Date
     domainId: string | null
+    category?: { id: string; name: string } | null
+    material?: { id: string; name: string } | null
+    texture?: { id: string; name: string } | null
+    season?: { id: string; name: string } | null
   }[]
   id: string
 }
@@ -35,12 +39,19 @@ const ProductTable = ({ id, products }: Props) => {
     onDeleteProduct,
     onToggleProduct,
     register, 
+    setValue,
     errors, 
     loading, 
     deleting,
     editingProduct,
     startEditing,
-    cancelEditing
+    cancelEditing,
+    categories,
+    materials,
+    textures,
+    seasons,
+    uses,
+    features,
   } = useProducts(id)
 
   return (
@@ -88,8 +99,15 @@ const ProductTable = ({ id, products }: Props) => {
                       onCreateNewProduct={onCreateNewProduct}
                       onUpdateProduct={onUpdateProduct}
                       register={register}
+                      setValue={setValue}
                       errors={errors}
                       loading={loading}
+                      categories={categories}
+                      materials={materials}
+                      textures={textures}
+                      seasons={seasons}
+                      uses={uses}
+                      features={features}
                     />
                   </SideSheet>
                 </div>
@@ -109,12 +127,19 @@ const ProductTable = ({ id, products }: Props) => {
                         onCreateNewProduct={onCreateNewProduct}
                         onUpdateProduct={onUpdateProduct}
                         register={register}
+                        setValue={setValue}
                         errors={errors}
                         loading={loading}
+                        categories={categories}
+                        materials={materials}
+                        textures={textures}
+                        seasons={seasons}
+                        uses={uses}
+                        features={features}
                       />
                     </div>
                   ) : products.length > 0 ? (
-                    <DataTable headers={['Imagen destacada', 'Nombre', 'Precio', 'Estado', 'Creado', 'Acciones']}>
+                    <DataTable headers={['Imagen', 'Nombre', 'Material', 'Categoría', 'Precio', 'Estado', 'Acciones']}>
                       {products.filter(product => {
                         // Filtro por pestañas
                         const activeProducts = products.filter(p => p.active)
@@ -135,6 +160,12 @@ const ProductTable = ({ id, products }: Props) => {
                             />
                           </TableCell>
                           <TableCell className="font-medium text-gray-900">{product.name}</TableCell>
+                          <TableCell className="text-gray-700">
+                            {product.material?.name || <span className="text-gray-400 italic">Sin material</span>}
+                          </TableCell>
+                          <TableCell className="text-gray-700">
+                            {product.category?.name || <span className="text-gray-400 italic">Sin categoría</span>}
+                          </TableCell>
                           <TableCell className="font-semibold text-orange">S/{product.price}</TableCell>
                           <TableCell className="text-center">
                             <div className="flex items-center justify-center gap-2">
@@ -211,8 +242,15 @@ const ProductTable = ({ id, products }: Props) => {
                           onCreateNewProduct={onCreateNewProduct}
                           onUpdateProduct={onUpdateProduct}
                           register={register}
+                          setValue={setValue}
                           errors={errors}
                           loading={loading}
+                          categories={categories}
+                          materials={materials}
+                          textures={textures}
+                          seasons={seasons}
+                          uses={uses}
+                          features={features}
                         />
                       </SideSheet>
                     </div>
@@ -223,7 +261,7 @@ const ProductTable = ({ id, products }: Props) => {
               <TabsContent value="Activos" className="mt-4">
                 <div className="bg-gray-50 rounded-lg p-3 md:p-4 lg:p-6 border border-gray-100 overflow-x-auto">
                   {products.filter(p => p.active).length > 0 ? (
-                    <DataTable headers={['Imagen destacada', 'Nombre', 'Precio', 'Estado', 'Creado', 'Acciones']}>
+                    <DataTable headers={['Imagen', 'Nombre', 'Material', 'Categoría', 'Precio', 'Estado', 'Acciones']}>
                       {products.filter(p => p.active).map((product) => (
                         <TableRow key={product.id}>
                           <TableCell>
@@ -237,6 +275,12 @@ const ProductTable = ({ id, products }: Props) => {
                             />
                           </TableCell>
                           <TableCell className="font-medium text-gray-900">{product.name}</TableCell>
+                          <TableCell className="text-gray-700">
+                            {product.material?.name || <span className="text-gray-400 italic">Sin material</span>}
+                          </TableCell>
+                          <TableCell className="text-gray-700">
+                            {product.category?.name || <span className="text-gray-400 italic">Sin categoría</span>}
+                          </TableCell>
                           <TableCell className="font-semibold text-orange">S/{product.price}</TableCell>
                           <TableCell className="text-center">
                             <div className="flex items-center justify-center gap-2">
@@ -300,7 +344,7 @@ const ProductTable = ({ id, products }: Props) => {
               <TabsContent value="Inactivos" className="mt-4">
                 <div className="bg-gray-50 rounded-lg p-3 md:p-4 lg:p-6 border border-gray-100 overflow-x-auto">
                   {products.filter(p => !p.active).length > 0 ? (
-                    <DataTable headers={['Imagen destacada', 'Nombre', 'Precio', 'Estado', 'Creado', 'Acciones']}>
+                    <DataTable headers={['Imagen', 'Nombre', 'Material', 'Categoría', 'Precio', 'Estado', 'Acciones']}>
                       {products.filter(p => !p.active).map((product) => (
                         <TableRow key={product.id}>
                           <TableCell>
@@ -314,6 +358,12 @@ const ProductTable = ({ id, products }: Props) => {
                             />
                           </TableCell>
                           <TableCell className="font-medium text-gray-900">{product.name}</TableCell>
+                          <TableCell className="text-gray-700">
+                            {product.material?.name || <span className="text-gray-400 italic">Sin material</span>}
+                          </TableCell>
+                          <TableCell className="text-gray-700">
+                            {product.category?.name || <span className="text-gray-400 italic">Sin categoría</span>}
+                          </TableCell>
                           <TableCell className="font-semibold text-orange">S/{product.price}</TableCell>
                           <TableCell className="text-center">
                             <div className="flex items-center justify-center gap-2">

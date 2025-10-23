@@ -19,8 +19,6 @@ model User {
   type         String
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
-  stripeId     String?
-  subscription Billings?
   campaign     Campaign[]
   domains      Domain[]
 }
@@ -39,6 +37,14 @@ model Domain {
   helpdesk        HelpDesk[]
   products        Product[]
   availability    AvailabilitySchedule[]
+  
+  // Catálogos de productos
+  categories      Category[]
+  materials       Material[]
+  textures        Texture[]
+  seasons         Season[]
+  uses            Use[]
+  features        Feature[]
 }
 
 model ChatBot {
@@ -50,14 +56,6 @@ model ChatBot {
   helpdesk       Boolean @default(false)
   domainId       String? @unique @db.Uuid
   Domain         Domain? @relation(fields: [domainId], references: [id], onDelete: Cascade)
-}
-
-model Billings {
-  id      String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  plan    Plans   @default(STANDARD)
-  credits Int     @default(10)
-  userId  String? @unique @db.Uuid
-  User    User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model HelpDesk {
@@ -180,7 +178,151 @@ model Product {
   createdAt DateTime @default(now())
   domainId  String?  @db.Uuid
   active    Boolean  @default(true)
-  Domain    Domain?  @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  
+  // Información técnica de la tela (Referencias)
+  materialId      String?   @db.Uuid
+  width           String?           // Ancho: "1.50m", "2.80m", etc.
+  weight          String?           // Gramaje: "150 gr/m²", "200 gr/m²"
+  color           String?           // Color principal
+  textureId       String?   @db.Uuid
+  
+  // Información de inventario
+  stock           Int       @default(0)           // Cantidad disponible en metros
+  unit            String    @default("metro")     // Unidad: metro, rollo, kg
+  minStock        Int?                            // Stock mínimo para alerta
+  sku             String?   @unique               // Código único del producto
+  
+  // Información de venta (Referencias)
+  salePrice       Int?                            // Precio de oferta/descuento
+  categoryId      String?   @db.Uuid
+  featured        Boolean   @default(false)       // Producto destacado
+  description     String?   @db.Text             // Descripción detallada
+  colors          String[]                        // Colores disponibles (array simple)
+  images          String[]                        // Galería de imágenes (URLs)
+  
+  // Usos y características (Referencias many-to-many)
+  seasonId        String?   @db.Uuid
+  care            String?   @db.Text             // Instrucciones de cuidado
+  
+  // Relaciones
+  Domain    Domain?         @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  material  Material?       @relation(fields: [materialId], references: [id], onDelete: SetNull)
+  texture   Texture?        @relation(fields: [textureId], references: [id], onDelete: SetNull)
+  category  Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  season    Season?         @relation(fields: [seasonId], references: [id], onDelete: SetNull)
+  uses      ProductUse[]
+  features  ProductFeature[]
+  
+  @@index([domainId])
+  @@index([categoryId])
+  @@index([materialId])
+  @@index([featured])
+  @@index([active])
+}
+
+// ===== MODELOS DE CATÁLOGO =====
+
+model Category {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  domainId  String    @db.Uuid
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  products  Product[]
+  Domain    Domain    @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  
+  @@unique([name, domainId])
+  @@index([domainId])
+}
+
+model Material {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String    // Algodón, Lino, Seda, etc.
+  domainId  String    @db.Uuid
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  products  Product[]
+  Domain    Domain    @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  
+  @@unique([name, domainId])
+  @@index([domainId])
+}
+
+model Texture {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String    // Lisa, Texturizada, Satinada, etc.
+  domainId  String    @db.Uuid
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  products  Product[]
+  Domain    Domain    @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  
+  @@unique([name, domainId])
+  @@index([domainId])
+}
+
+model Season {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String    // Verano, Invierno, Todo el año
+  domainId  String    @db.Uuid
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  products  Product[]
+  Domain    Domain    @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  
+  @@unique([name, domainId])
+  @@index([domainId])
+}
+
+model Use {
+  id        String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String       // Vestidos, Camisas, Blusas, etc.
+  domainId  String       @db.Uuid
+  active    Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  products  ProductUse[]
+  Domain    Domain       @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  
+  @@unique([name, domainId])
+  @@index([domainId])
+}
+
+model Feature {
+  id        String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String           // Impermeable, Elástico, Antibacterial, etc.
+  domainId  String           @db.Uuid
+  active    Boolean          @default(true)
+  createdAt DateTime         @default(now())
+  products  ProductFeature[]
+  Domain    Domain           @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  
+  @@unique([name, domainId])
+  @@index([domainId])
+}
+
+// Tablas intermedias para relaciones many-to-many
+model ProductUse {
+  id        String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productId String  @db.Uuid
+  useId     String  @db.Uuid
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  use       Use     @relation(fields: [useId], references: [id], onDelete: Cascade)
+  
+  @@unique([productId, useId])
+  @@index([productId])
+  @@index([useId])
+}
+
+model ProductFeature {
+  id        String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productId String  @db.Uuid
+  featureId String  @db.Uuid
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  feature   Feature @relation(fields: [featureId], references: [id], onDelete: Cascade)
+  
+  @@unique([productId, featureId])
+  @@index([productId])
+  @@index([featureId])
 }
 
 model AvailabilitySchedule {
@@ -240,12 +382,6 @@ enum Role {
   assistant
 }
 
-enum Plans {
-  STANDARD
-  PRO
-  ULTIMATE
-}
-
 // FR3: Tipo de resolución
 enum ResolutionType {
   FIRST_INTERACTION  // Resuelto en primera interacción
@@ -260,6 +396,7 @@ enum ConversationState {
   IDLE        // Usuario inactivo (>5 minutos sin responder)
   AWAITING_RATING  // Esperando calificación del usuario
   ENDED       // Conversación finalizada (calificada o despedida)
+  ESCALATED   // Escalado a humano
 }
 
 // Días de la semana para disponibilidad

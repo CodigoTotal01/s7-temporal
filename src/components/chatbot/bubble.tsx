@@ -11,7 +11,7 @@ type Props = {
     content: string
     link?: string
   }
-  createdAt?: Date
+  createdAt?: Date | string
 }
 
 const Bubble = ({ message, createdAt }: Props) => {
@@ -56,11 +56,20 @@ const Bubble = ({ message, createdAt }: Props) => {
         {createdAt ? (
           <div className="flex gap-2 text-xs opacity-70">
             <p>
-              {createdAt.getDate()} {getMonthName(createdAt.getMonth())}
+              {(() => {
+                // ✅ Convertir a Date si es necesario
+                const date = createdAt instanceof Date ? createdAt : new Date(createdAt)
+                return `${date.getDate()} ${getMonthName(date.getMonth())}`
+              })()}
             </p>
             <p>
-              {createdAt.getHours()}:{createdAt.getMinutes()}
-              {createdAt.getHours() > 12 ? 'PM' : 'AM'}
+              {(() => {
+                // ✅ Convertir a Date si es necesario
+                const date = createdAt instanceof Date ? createdAt : new Date(createdAt)
+                const hours = date.getHours()
+                const minutes = date.getMinutes().toString().padStart(2, '0')
+                return `${hours}:${minutes}${hours > 12 ? 'PM' : 'AM'}`
+              })()}
             </p>
           </div>
         ) : (

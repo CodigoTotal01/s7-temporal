@@ -6,9 +6,11 @@ const nextConfig = {
             {
                 protocol: 'https',
                 hostname: 'ucarecdn.com'
-
             }
         ]
+    },
+    experimental: {
+        serverComponentsExternalPackages: ['@prisma/client']
     }
 };
 

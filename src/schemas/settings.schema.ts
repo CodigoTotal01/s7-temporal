@@ -18,6 +18,22 @@ export type AddProductProps = {
   name: string
   image: any
   price: string
+  materialId?: string
+  width?: string
+  weight?: string
+  color?: string
+  textureId?: string
+  stock?: string
+  unit?: string
+  minStock?: string
+  sku?: string
+  salePrice?: string
+  categoryId?: string
+  featured?: boolean
+  description?: string
+  colors?: string
+  seasonId?: string
+  care?: string
 }
 
 export type FilterQuestionsProps = {
@@ -105,4 +121,24 @@ export const AddProductSchema = z.object({
       message: 'Solo se aceptan archivos JPG, JPEG & PNG',
     }),
   price: z.string(),
+  // Información técnica de la tela (IDs de relaciones)
+  materialId: z.string().optional(),
+  width: z.string().optional(),
+  weight: z.string().optional(),
+  color: z.string().optional(),
+  textureId: z.string().optional(),
+  // Información de inventario
+  stock: z.string().optional(),
+  unit: z.string().optional(),
+  minStock: z.string().optional(),
+  sku: z.string().optional(),
+  // Información de venta (IDs de relaciones)
+  salePrice: z.string().optional(),
+  categoryId: z.string().optional(),
+  featured: z.boolean().optional(),
+  description: z.string().optional(),
+  colors: z.string().optional(), // Será convertido a array
+  // Temporada (ID de relación)
+  seasonId: z.string().optional(),
+  care: z.string().optional(),
 })

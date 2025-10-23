@@ -4,6 +4,8 @@
       "path": "/api/cron/check-inactive-chats",
       "schedule": "*/5 * * * *"
     }
-  ]
+  ],
+  "buildCommand": "prisma generate && next build",
+  "installCommand": "npm install && prisma generate"
 }
 

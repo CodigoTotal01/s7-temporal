@@ -2,7 +2,7 @@
 
 import { client } from "@/lib/prisma";
 import { pusherServer } from "@/lib/utils";
-import { Role } from "@prisma/client";
+import { ConversationState } from "@prisma/client";
 
 export const onToggleRealtime = async (id: string, state: boolean) => {
   try {
@@ -33,6 +33,38 @@ export const onToggleRealtime = async (id: string, state: boolean) => {
   }
 };
 
+// Nueva función para actualizar el estado de la conversación
+export const onUpdateConversationState = async (chatRoomId: string, state: ConversationState) => {
+  try {
+    const chatRoom = await client.chatRoom.update({
+      where: {
+        id: chatRoomId,
+      },
+      data: {
+        conversationState: state,
+      },
+      select: {
+        id: true,
+        conversationState: true,
+      },
+    });
+
+    if (chatRoom) {
+      return {
+        status: 200,
+        message: `Conversation state updated to ${state}`,
+        chatRoom,
+      };
+    }
+  } catch (error) {
+    console.log("Error updating conversation state:", error);
+    return {
+      status: 500,
+      message: "Error updating conversation state",
+    };
+  }
+};
+
 export const onGetConversationMode = async (id: string) => {
   try {
     const mode = await client.chatRoom.findUnique({
@@ -44,7 +76,6 @@ export const onGetConversationMode = async (id: string) => {
       },
     });
 
-    console.log(mode);
     return mode;
   } catch (error) {
     console.log(error);
@@ -53,8 +84,7 @@ export const onGetConversationMode = async (id: string) => {
 
 export const onGetDomainChatRooms = async (id: string) => {
   try {
-    console.log(`🔍 Obteniendo chatRooms para dominio: ${id}`)
-    
+
     const domains = await client.domain.findUnique({
       where: {
         id,
@@ -101,12 +131,9 @@ export const onGetDomainChatRooms = async (id: string) => {
     })
 
     if (domains) {
-      console.log(`📊 Encontrados ${(domains as any).customer.length} clientes con chats`)
       return domains
     }
-  } catch (error) {
-    console.log('❌ Error en onGetDomainChatRooms:', error)
-  }
+  } catch (error) { }
 }
 
 export const onGetChatMessages = async (id: string) => {
@@ -136,12 +163,9 @@ export const onGetChatMessages = async (id: string) => {
     })
 
     if (messages) {
-      console.log(`📊 Obteniendo mensajes para chatRoom ${id}: ${messages.message.length} mensajes`)
       return messages
     }
-  } catch (error) {
-    console.log('❌ Error en onGetChatMessages:', error)
-  }
+  } catch (error) { }
 }
 
 export const onViewUnReadMessages = async (id: string) => {
@@ -180,11 +204,13 @@ export const onOwnerSendMessage = async (
   role: 'user' | 'assistant'
 ) => {
   try {
+    // ✅ ACTIVAR MODO REAL TIME cuando el agente envía mensaje
     const chat = await client.chatRoom.update({
       where: {
         id: chatroom,
       },
       data: {
+        live: true, // ✅ Activar modo live
         message: {
           create: {
             message,
@@ -210,11 +236,24 @@ export const onOwnerSendMessage = async (
     })
 
     if (chat) {
+
+      // ENVIAR MENSAJE A TRAVÉS DE PUSHER PARA TIEMPO REAL
+      const newMessage = chat.message[0]
+      if (newMessage) {
+        await pusherServer.trigger(chatroom, 'realtime-mode', {
+          chat: {
+            message: newMessage.message,
+            id: newMessage.id,
+            role: newMessage.role,
+            createdAt: newMessage.createdAt,
+            seen: newMessage.seen
+          }
+        })
+      }
+
       return chat
     }
-  } catch (error) {
-    console.log(error)
-  }
+  } catch (error) { }
 }
 
 export const onToggleFavorite = async (chatRoomId: string, isFavorite: boolean) => {
@@ -253,8 +292,7 @@ export const onToggleFavorite = async (chatRoomId: string, isFavorite: boolean) 
 // ✅ NUEVA FUNCIÓN: Obtener todas las conversaciones agrupadas por cliente
 export const onGetAllDomainChatRooms = async (id: string) => {
   try {
-    console.log(`🔍 Obteniendo TODAS las conversaciones para dominio: ${id}`)
-    
+
     // Obtener todas las conversaciones del dominio
     const allChatRooms = await client.chatRoom.findMany({
       where: {
@@ -300,10 +338,10 @@ export const onGetAllDomainChatRooms = async (id: string) => {
 
     // Agrupar por cliente (email) y tomar solo la conversación más reciente de cada cliente
     const groupedByCustomer = new Map()
-    
+
     allChatRooms.forEach(chatRoom => {
       const customerEmail = (chatRoom as any).Customer?.email || 'unknown'
-      
+
       if (!groupedByCustomer.has(customerEmail)) {
         groupedByCustomer.set(customerEmail, {
           id: (chatRoom as any).Customer?.id,
@@ -327,7 +365,6 @@ export const onGetAllDomainChatRooms = async (id: string) => {
       customer: Array.from(groupedByCustomer.values())
     }
 
-    console.log(`📊 Encontrados ${result.customer.length} clientes únicos con conversaciones`)
     return result
   } catch (error) {
     console.log('❌ Error en onGetAllDomainChatRooms:', error)

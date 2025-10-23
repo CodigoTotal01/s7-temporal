@@ -87,7 +87,7 @@ const DashboardPage = async (props: Props) => {
         <WeeklyStats stats={weeklyStats} />
 
         {/* Métricas de Calidad - Fichas de Registro para Tesis */}
-        <QualityMetrics metrics={qualityMetrics} />
+        {/* <QualityMetrics metrics={qualityMetrics} /> */}
       </div>
     </div>
   )
