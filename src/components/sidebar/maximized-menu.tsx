@@ -34,6 +34,10 @@ const MaxMenu = ({ current, domains, onExpand, onSignOut }: Props) => {
         if (menu.path === 'settings' && !hasCompany) {
           return false // No mostrar configuración si NO hay empresa
         }
+        // Verificar visibilidad para inventario
+        if (menu.path === 'inventory' && !hasCompany) {
+          return false // No mostrar inventario si NO hay empresa
+        }
         return true
       })
       .map((menu, key) => {

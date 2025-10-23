@@ -43,9 +43,12 @@ const MenuItem = ({ icon, label, size, current, onSignOut, path, isSubmenu, pare
         return `/${path}`
     }
 
-    // Lógica de visibilidad para configuración
+    // Lógica de visibilidad para configuración e inventario
     const shouldShow = () => {
         if (path === 'settings' || parentPath === 'settings') {
+            return hasCompany // Solo mostrar si HAY empresa creada
+        }
+        if (path === 'inventory' || parentPath === 'inventory') {
             return hasCompany // Solo mostrar si HAY empresa creada
         }
         return true

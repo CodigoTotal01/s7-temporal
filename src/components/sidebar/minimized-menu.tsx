@@ -22,6 +22,9 @@ type MinMenuProps = {
 };
 
 const MinMenu = ({ current, domains, onShrink, onSignOut }: MinMenuProps) => {
+    // Verificar si hay empresa creada
+    const hasCompany = Boolean(domains && domains.length > 0)
+
     return (
         <div className="p-3 flex flex-col items-center h-full">
             <span className="animate-fade-in opacity-0 delay-300 fill-mode-forwards cursor-pointer">
@@ -29,14 +32,26 @@ const MinMenu = ({ current, domains, onShrink, onSignOut }: MinMenuProps) => {
             </span>
             <div className="animate-fade-in opacity-0 delay-300 fill-mode-forwards flex flex-col justify-between h-full pt-10">
                 <div className="flex flex-col">
-                    {SIDE_BAR_MENU.map((menu, key) => (
-                        <MenuItem
-                            size="min"
-                            {...menu}
-                            key={key}
-                            current={current}
-                        />
-                    ))}
+                    {SIDE_BAR_MENU
+                        .filter(menu => {
+                            // Verificar visibilidad para configuración
+                            if (menu.path === 'settings' && !hasCompany) {
+                                return false // No mostrar configuración si NO hay empresa
+                            }
+                            // Verificar visibilidad para inventario
+                            if (menu.path === 'inventory' && !hasCompany) {
+                                return false // No mostrar inventario si NO hay empresa
+                            }
+                            return true
+                        })
+                        .map((menu, key) => (
+                            <MenuItem
+                                size="min"
+                                {...menu}
+                                key={key}
+                                current={current}
+                            />
+                        ))}
                     {/* <DomainMenu
                         min
                         domains={domains}
