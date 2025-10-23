@@ -158,7 +158,7 @@ interface CustomerData {
 interface ChatBotDomain {
   name: string
   helpdesk: Array<{ question: string; answer: string }>
-  products: Array<{ 
+  products: Array<{
     name: string
     price: number
     image: string
@@ -206,7 +206,7 @@ const detectHumanTransferRequest = (message: string): boolean => {
     'problema', 'queja', 'reclamo', 'urgente', 'emergencia',
     'supervisor', 'gerente', 'jefe', 'ayuda humana'
   ]
-  
+
   const lowerMessage = message.toLowerCase()
   return humanKeywords.some(keyword => lowerMessage.includes(keyword))
 }
@@ -276,25 +276,17 @@ const handleAuthenticatedUser = async (
   sessionToken: string
 ) => {
 
-  // ✅ NUEVA LÓGICA: Usar IA para detectar si el usuario quiere terminar
-  const shouldEndConversation = await detectConversationEndingWithAI(message, chat)
+  // ✅ SOLO PROCESAR TERMINACIÓN SI NO ESTÁ EN MODO HUMANO
+  if (!customerInfo.chatRoom[0].live) {
+    // ✅ NUEVA LÓGICA: Usar IA para detectar si el usuario quiere terminar
+    const shouldEndConversation = await detectConversationEndingWithAI(message, chat)
 
-  if (shouldEndConversation) {
-    // Guardar mensaje del usuario
-    await onStoreConversations(customerInfo.chatRoom[0].id, message, 'user')
+    if (shouldEndConversation) {
+      // Guardar mensaje del usuario
+      await onStoreConversations(customerInfo.chatRoom[0].id, message, 'user')
 
-    // ✅ ENVIAR MENSAJE DEL USUARIO INMEDIATAMENTE (ANTES DEL PROCESAMIENTO)
-    if (customerInfo.chatRoom[0].live) {
-      await onRealTimeChat(
-        customerInfo.chatRoom[0].id,
-        message,
-        `user-${Date.now()}`,
-        'user'
-      )
-    }
-
-    // Solicitar calificación de forma simple
-    const ratingMessage = `¡Perfecto! Me alegra haberte ayudado. 😊
+      // Solicitar calificación de forma simple
+      const ratingMessage = `¡Perfecto! Me alegra haberte ayudado. 😊
 
 Antes de que te vayas, ¿podrías calificar tu experiencia del 1 al 5?
 
@@ -303,24 +295,25 @@ Antes de que te vayas, ¿podrías calificar tu experiencia del 1 al 5?
 
 Tu opinión nos ayuda a mejorar.`
 
-    // Guardar solicitud de feedback
-    await onStoreConversations(customerInfo.chatRoom[0].id, ratingMessage, 'assistant', message)
+      // Guardar solicitud de feedback
+      await onStoreConversations(customerInfo.chatRoom[0].id, ratingMessage, 'assistant', message)
 
-    // Marcar como esperando calificación
-    await client.chatRoom.update({
-      where: { id: customerInfo.chatRoom[0].id },
-      data: {
-        conversationState: 'AWAITING_RATING',
-        resolved: true
+      // Marcar como esperando calificación
+      await client.chatRoom.update({
+        where: { id: customerInfo.chatRoom[0].id },
+        data: {
+          conversationState: 'AWAITING_RATING',
+          resolved: true
+        }
+      })
+
+      return {
+        response: {
+          role: 'assistant',
+          content: ratingMessage
+        },
+        sessionToken
       }
-    })
-
-    return {
-      response: {
-        role: 'assistant',
-        content: ratingMessage
-      },
-      sessionToken
     }
   }
 
@@ -383,22 +376,54 @@ Tu opinión nos ayuda a mejorar.`
       message
     )
 
-    // ✅ Marcar conversación como ENDED
-    await markConversationAsEnded(customerInfo.chatRoom[0].id)
+    // ✅ VERIFICAR SI ESTABA ESPERANDO CALIFICACIÓN PARA ESCALAR
+    const chatRoom = await client.chatRoom.findUnique({
+      where: { id: customerInfo.chatRoom[0].id },
+      select: { conversationState: true }
+    })
 
-    const thankYouMessage = `¡Muchas gracias por tu calificación de ${satisfactionRating}/5! Tu opinión es muy importante para nosotros y nos ayuda a mejorar nuestro servicio. 😊
+    if (chatRoom?.conversationState === 'AWAITING_RATING') {
+      // ✅ ESCALAR A HUMANO DESPUÉS DE LA CALIFICACIÓN
+      await client.chatRoom.update({
+        where: { id: customerInfo.chatRoom[0].id },
+        data: {
+          live: true,
+          conversationState: 'ESCALATED' as any
+        }
+      })
+
+      const transferMessage = `¡Muchas gracias por tu calificación de ${satisfactionRating}/5! 😊
+
+Ahora te estoy conectando con uno de nuestros agentes humanos. Un miembro de nuestro equipo se pondrá en contacto contigo en breve. 👨‍💼`
+
+      await onStoreConversations(customerInfo.chatRoom[0].id, transferMessage, 'assistant', message)
+
+      return {
+        response: {
+          role: 'assistant',
+          content: transferMessage
+        },
+        live: true,
+        chatRoom: customerInfo.chatRoom[0].id,
+        sessionToken
+      }
+    } else {
+      // ✅ CALIFICACIÓN NORMAL (terminar conversación)
+      await markConversationAsEnded(customerInfo.chatRoom[0].id)
+
+      const thankYouMessage = `¡Muchas gracias por tu calificación de ${satisfactionRating}/5! Tu opinión es muy importante para nosotros y nos ayuda a mejorar nuestro servicio. 😊
 
 ¿Tienes alguna otra consulta o necesitas ayuda con algo más?`
 
-    // ✅ Guardar mensaje de agradecimiento
-    await onStoreConversations(customerInfo.chatRoom[0].id, thankYouMessage, 'assistant', message)
+      await onStoreConversations(customerInfo.chatRoom[0].id, thankYouMessage, 'assistant', message)
 
-    return {
-      response: {
-        role: 'assistant',
-        content: thankYouMessage
-      },
-      sessionToken // Mantener token
+      return {
+        response: {
+          role: 'assistant',
+          content: thankYouMessage
+        },
+        sessionToken
+      }
     }
   }
 
@@ -433,7 +458,7 @@ Tu opinión nos ayuda a mejorar.`
   // ✅ 4. DETECCIÓN DE TRANSFERENCIA A HUMANO
   if (detectHumanTransferRequest(message)) {
     console.log(`🚨 Solicitud de transferencia detectada: "${message}"`)
-    
+
     // Guardar mensaje del usuario
     await client.chatMessage.create({
       data: {
@@ -445,16 +470,36 @@ Tu opinión nos ayuda a mejorar.`
       }
     })
 
-    // Escalar inmediatamente a humano
-    await client.chatRoom.update({
-      where: { id: customerInfo.chatRoom[0].id },
-      data: { 
-        live: true,
-        conversationState: 'ESCALATED' as any // ✅ Marcar como escalado
+    // ✅ SOLICITAR CALIFICACIÓN ANTES DE ESCALAR
+    const transferMessage = `Te comunicarás con un humano en breve. 😊
+
+Antes de transferirte, ¿podrías calificar mi ayuda del 1 al 5?
+
+⭐ 1 = Muy insatisfecho
+⭐ 5 = Muy satisfecho
+
+Tu opinión me ayuda a mejorar.`
+
+    // Guardar mensaje de transferencia
+    await client.chatMessage.create({
+      data: {
+        message: transferMessage,
+        role: 'assistant',
+        chatRoomId: customerInfo.chatRoom[0].id,
+        responseTime: 0,
+        respondedWithin2Hours: true
       }
     })
 
-    console.log(`🚨 ESCALACIÓN AUTOMÁTICA: Chat ${customerInfo.chatRoom[0].id} - Cliente: ${customerInfo.email}`)
+    // Marcar como esperando calificación antes de escalar
+    await client.chatRoom.update({
+      where: { id: customerInfo.chatRoom[0].id },
+      data: {
+        conversationState: 'AWAITING_RATING' as any // ✅ Esperar calificación antes de escalar
+      }
+    })
+
+    console.log(`🚨 SOLICITUD DE CALIFICACIÓN ANTES DE ESCALAR: Chat ${customerInfo.chatRoom[0].id} - Cliente: ${customerInfo.email}`)
 
     return {
       response: {
@@ -540,12 +585,12 @@ Tu opinión nos ayuda a mejorar.`
 
   // 8. Manejar respuesta
   const response = chatCompletion.choices[0].message.content
-  
+
   // ✅ Validar que la respuesta no sea null
   if (!response) {
     throw new Error('OpenAI no retornó una respuesta válida')
   }
-  
+
   const result = await handleOpenAIResponse(response, customerInfo, chat)
 
   // ✅ SIMPLIFICADO: Agregar "¿Hay algo más en que te pueda ayudar?" a todas las respuestas
@@ -1414,7 +1459,7 @@ const detectProductPreferences = (
   hasPreferences: boolean
 } => {
   const lowerMsg = message.toLowerCase()
-  
+
   const preferences = {
     materials: [] as string[],
     categories: [] as string[],
@@ -1479,7 +1524,7 @@ const detectProductPreferences = (
     'rojo', 'azul', 'verde', 'amarillo', 'negro', 'blanco', 'gris', 'rosa',
     'morado', 'naranja', 'marrón', 'beige', 'celeste', 'turquesa', 'violeta'
   ]
-  
+
   commonColors.forEach(color => {
     if (lowerMsg.includes(color)) {
       preferences.colors.push(color)
@@ -1506,7 +1551,7 @@ const filterProductsByPreferences = (
 
     // Filtrar por material
     if (preferences.materials.length > 0 && product.material) {
-      if (preferences.materials.some(mat => 
+      if (preferences.materials.some(mat =>
         product.material?.name.toLowerCase().includes(mat.toLowerCase())
       )) {
         matches = true
@@ -1515,7 +1560,7 @@ const filterProductsByPreferences = (
 
     // Filtrar por categoría
     if (preferences.categories.length > 0 && product.category) {
-      if (preferences.categories.some(cat => 
+      if (preferences.categories.some(cat =>
         product.category?.name.toLowerCase().includes(cat.toLowerCase())
       )) {
         matches = true
@@ -1524,7 +1569,7 @@ const filterProductsByPreferences = (
 
     // Filtrar por textura
     if (preferences.textures.length > 0 && product.texture) {
-      if (preferences.textures.some(tex => 
+      if (preferences.textures.some(tex =>
         product.texture?.name.toLowerCase().includes(tex.toLowerCase())
       )) {
         matches = true
@@ -1533,7 +1578,7 @@ const filterProductsByPreferences = (
 
     // Filtrar por temporada
     if (preferences.seasons.length > 0 && product.season) {
-      if (preferences.seasons.some(season => 
+      if (preferences.seasons.some(season =>
         product.season?.name.toLowerCase().includes(season.toLowerCase())
       )) {
         matches = true
@@ -1542,8 +1587,8 @@ const filterProductsByPreferences = (
 
     // Filtrar por uso
     if (preferences.uses.length > 0 && product.uses.length > 0) {
-      if (preferences.uses.some(use => 
-        product.uses.some(pUse => 
+      if (preferences.uses.some(use =>
+        product.uses.some(pUse =>
           pUse.use.name.toLowerCase().includes(use.toLowerCase())
         )
       )) {
@@ -1553,8 +1598,8 @@ const filterProductsByPreferences = (
 
     // Filtrar por características
     if (preferences.features.length > 0 && product.features.length > 0) {
-      if (preferences.features.some(feat => 
-        product.features.some(pFeat => 
+      if (preferences.features.some(feat =>
+        product.features.some(pFeat =>
           pFeat.feature.name.toLowerCase().includes(feat.toLowerCase())
         )
       )) {
@@ -1564,7 +1609,7 @@ const filterProductsByPreferences = (
 
     // Filtrar por color
     if (preferences.colors.length > 0 && product.color) {
-      if (preferences.colors.some(color => 
+      if (preferences.colors.some(color =>
         product.color?.toLowerCase().includes(color.toLowerCase())
       )) {
         matches = true
@@ -1591,26 +1636,25 @@ const generateProductsContext = (
   // Detectar si el cliente pregunta por productos
   const lowerMsg = message.toLowerCase()
   const asksForProducts = /\b(productos?|telas?|textiles?|catálogo|que\s+tienen|que\s+venden|muestrame|muéstrame|ver\s+productos)\b/i.test(lowerMsg)
-  
+
   // Detectar preferencias en el mensaje
   const preferences = detectProductPreferences(message, chatBotDomain)
-  
+
   // Si hay preferencias detectadas, filtrar productos
   if (preferences.hasPreferences) {
     const filteredProducts = filterProductsByPreferences(chatBotDomain.products, preferences)
-    
+
     if (filteredProducts.length === 0) {
-      return `\n❌ No encontramos productos que coincidan exactamente con: ${
-        [...preferences.materials, ...preferences.categories, ...preferences.textures, 
-         ...preferences.seasons, ...preferences.uses, ...preferences.features, 
-         ...preferences.colors].join(', ')
-      }. Tenemos ${chatBotDomain.products.length} productos disponibles en total.`
+      return `\n❌ No encontramos productos que coincidan exactamente con: ${[...preferences.materials, ...preferences.categories, ...preferences.textures,
+      ...preferences.seasons, ...preferences.uses, ...preferences.features,
+      ...preferences.colors].join(', ')
+        }. Tenemos ${chatBotDomain.products.length} productos disponibles en total.`
     }
 
     // Mostrar productos filtrados con información detallada
     const productDetails = filteredProducts.slice(0, 5).map(p => {
       const details: string[] = [`${p.name} - S/${p.salePrice || p.price}`]
-      
+
       if (p.material) details.push(`Material: ${p.material.name}`)
       if (p.texture) details.push(`Textura: ${p.texture.name}`)
       if (p.category) details.push(`Categoría: ${p.category.name}`)
@@ -1618,25 +1662,24 @@ const generateProductsContext = (
       if (p.width) details.push(`Ancho: ${p.width}`)
       if (p.weight) details.push(`Gramaje: ${p.weight}`)
       if (p.description) details.push(`${p.description}`)
-      
+
       const uses = p.uses.map(u => u.use.name).join(', ')
       if (uses) details.push(`Usos: ${uses}`)
-      
+
       const features = p.features.map(f => f.feature.name).join(', ')
       if (features) details.push(`Características: ${features}`)
-      
+
       return details.join(' | ')
     }).join('\n')
 
-    return `\n✅ Productos que coinciden con tu búsqueda (${filteredProducts.length} encontrados):\n${productDetails}${
-      filteredProducts.length > 5 ? `\n... y ${filteredProducts.length - 5} productos más` : ''
-    }`
+    return `\n✅ Productos que coinciden con tu búsqueda (${filteredProducts.length} encontrados):\n${productDetails}${filteredProducts.length > 5 ? `\n... y ${filteredProducts.length - 5} productos más` : ''
+      }`
   }
 
   // Si pregunta por productos pero no da preferencias, sugerir hacer preguntas
   if (asksForProducts) {
     const suggestions: string[] = []
-    
+
     if (chatBotDomain.materials.length > 0) {
       suggestions.push(`Materiales disponibles: ${chatBotDomain.materials.map(m => m.name).join(', ')}`)
     }
@@ -1762,7 +1805,7 @@ const handleOpenAIResponse = async (
   if (response.includes('(realtime)')) {
     await client.chatRoom.update({
       where: { id: customerInfo.chatRoom[0].id },
-      data: { 
+      data: {
         live: true,
         conversationState: 'ESCALATED' as any // ✅ Marcar como escalado as any // ✅ Marcar como escalado
       }
@@ -1950,11 +1993,11 @@ export const onAiChatBotAssistant = async (
       select: {
         name: true,
         helpdesk: { select: { question: true, answer: true } },
-        products: { 
+        products: {
           where: { active: true }, // Solo productos activos
-          select: { 
-            name: true, 
-            price: true, 
+          select: {
+            name: true,
+            price: true,
             image: true,
             salePrice: true,
             description: true,
@@ -1966,44 +2009,44 @@ export const onAiChatBotAssistant = async (
             texture: { select: { name: true } },
             category: { select: { name: true } },
             season: { select: { name: true } },
-            uses: { 
-              select: { 
-                use: { select: { name: true } } 
-              } 
+            uses: {
+              select: {
+                use: { select: { name: true } }
+              }
             },
-            features: { 
-              select: { 
-                feature: { select: { name: true } } 
-              } 
+            features: {
+              select: {
+                feature: { select: { name: true } }
+              }
             }
-          } 
+          }
         },
         filterQuestions: {
           where: { answered: null },
           select: { question: true }
         },
         // Obtener catálogos disponibles para hacer preguntas inteligentes
-        categories: { 
+        categories: {
           where: { active: true },
           select: { name: true }
         },
-        materials: { 
+        materials: {
           where: { active: true },
           select: { name: true }
         },
-        textures: { 
+        textures: {
           where: { active: true },
           select: { name: true }
         },
-        seasons: { 
+        seasons: {
           where: { active: true },
           select: { name: true }
         },
-        uses: { 
+        uses: {
           where: { active: true },
           select: { name: true }
         },
-        features: { 
+        features: {
           where: { active: true },
           select: { name: true }
         }
@@ -2349,12 +2392,12 @@ export const onAiChatBotAssistant = async (
       })
 
       const response = chatCompletion.choices[0].message.content
-      
+
       // ✅ Validar que la respuesta no sea null
       if (!response) {
         throw new Error('OpenAI no retornó una respuesta válida')
       }
-      
+
       const result = await handleOpenAIResponse(response, customerInfo, chat)
       const finalContentMain = addHelpOffer(result.response.content)
 
