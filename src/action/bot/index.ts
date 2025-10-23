@@ -1178,34 +1178,6 @@ const addHelpOffer = (content: string): string => {
 }
 
 /**
- * ✅ NUEVA FUNCIÓN SIMPLE: Detecta si el usuario dice "no" a continuar
- */
-const detectNegativeResponse = (message: string): boolean => {
-  const trimmedMsg = message.toLowerCase().trim()
-
-  // Respuestas negativas claras
-  const negativePatterns = [
-    /^no\.?$/,
-    /^nope\.?$/,
-    /^nop\.?$/,
-    /^no,?\s+gracias\.?$/,
-    /^no,?\s+muchas gracias\.?$/,
-    /^no,?\s+eso es todo\.?$/,
-    /^no,?\s+ya está\.?$/,
-    /^no,?\s+por ahora no\.?$/,
-    /^no necesito nada más\.?$/,
-    /^ya no\.?$/,
-    /^eso es todo\.?$/,
-    /^nada más\.?$/,
-    /^ya está\.?$/,
-    /^listo\.?$/,
-    /^perfecto\.?$/
-  ]
-
-  return negativePatterns.some(pattern => pattern.test(trimmedMsg))
-}
-
-/**
  * FR4: Detectar si el cliente está calificando la atención (1-5)
  */
 const detectSatisfactionRating = (message: string): number | null => {
@@ -1228,19 +1200,6 @@ const detectSatisfactionRating = (message: string): number | null => {
 
   return null
 }
-
-// ============================================
-// ✅ FUNCIONES ELIMINADAS - LÓGICA SIMPLIFICADA
-// ============================================
-// Se eliminaron las siguientes funciones complejas porque ahora usamos un sistema más simple:
-// - detectConversationEnding → Ahora solo usamos detectNegativeResponse
-// - detectRequest → No necesario, el flujo es más directo
-// - checkIfHelpWasProvided → No se necesita, siempre ofrecemos ayuda
-// - getConversationLength → No se necesita para la nueva lógica
-// - determineNaturalFeedbackMoment → Reemplazado por detectNegativeResponse y despedidas
-// - createNaturalFeedbackMessage → Ahora usamos mensajes fijos más simples
-// - shouldRequestSatisfactionRating → Simplificado a detectNegativeResponse
-// - shouldAskForSatisfaction → No se necesita, el usuario decide con "no"
 
 /**
  * FR4: Guardar la calificación de satisfacción del cliente
