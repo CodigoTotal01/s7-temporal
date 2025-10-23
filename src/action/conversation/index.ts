@@ -6,6 +6,8 @@ import { client } from "@/lib/prisma";
 // ✅ NUEVO: Socket.io Server
 import { socketServer } from "@/lib/utils";
 import { ConversationState } from "@prisma/client";
+import { clerkClient } from '@clerk/nextjs';
+import { onMailer } from '../mailer';
 
 export const onToggleRealtime = async (id: string, state: boolean) => {
   try {
@@ -49,8 +51,42 @@ export const onUpdateConversationState = async (chatRoomId: string, state: Conve
       select: {
         id: true,
         conversationState: true,
+        Customer: {
+          select: {
+            name: true,
+            email: true,
+            domainId: true
+          }
+        }
       },
     });
+
+    // ✅ ENVIAR EMAIL AL DUEÑO CUANDO SE ESCALA A HUMANO MANUALMENTE
+    if (state === 'ESCALATED' && chatRoom?.Customer && chatRoom.Customer.domainId) {
+      try {
+        const domainOwner = await client.domain.findFirst({
+          where: { id: chatRoom.Customer.domainId },
+          select: {
+            User: {
+              select: {
+                clerkId: true
+              }
+            }
+          }
+        })
+
+        if (domainOwner?.User?.clerkId) {
+          const user = await clerkClient.users.getUser(domainOwner.User.clerkId)
+          await onMailer(
+            user.emailAddresses[0].emailAddress,
+            chatRoom.Customer.name || 'Cliente',
+            chatRoom.Customer.email || undefined
+          )
+        }
+      } catch (error) {
+        console.error('❌ Error enviando email de escalación manual:', error)
+      }
+    }
 
     if (chatRoom) {
       return {

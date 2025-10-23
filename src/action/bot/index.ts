@@ -408,6 +408,31 @@ Tu opinión nos ayuda a mejorar.`
         }
       })
 
+      // ✅ ENVIAR EMAIL AL DUEÑO CUANDO SE ESCALA A HUMANO
+      try {
+        const domainOwner = await client.domain.findFirst({
+          where: { id: customerInfo.domainId },
+          select: {
+            User: {
+              select: {
+                clerkId: true
+              }
+            }
+          }
+        })
+
+        if (domainOwner?.User?.clerkId) {
+          const user = await clerkClient.users.getUser(domainOwner.User.clerkId)
+          await onMailer(
+            user.emailAddresses[0].emailAddress,
+            customerInfo.name || 'Cliente',
+            customerInfo.email
+          )
+        }
+      } catch (error) {
+        console.error('❌ Error enviando email de escalación:', error)
+      }
+
       const transferMessage = `¡Muchas gracias por tu calificación de ${satisfactionRating}/5! 😊
 
 Ahora te estoy conectando con uno de nuestros agentes humanos. Un miembro de nuestro equipo se pondrá en contacto contigo en breve. 👨‍💼`
@@ -2290,14 +2315,20 @@ export const onAiChatBotAssistant = async (
             where: { id },
             select: {
               User: {
-                select: { clerkId: true }
+                select: {
+                  clerkId: true
+                }
               }
             }
           })
 
           if (domainOwner?.User?.clerkId) {
             const user = await clerkClient.users.getUser(domainOwner.User.clerkId)
-            onMailer(user.emailAddresses[0].emailAddress)
+            await onMailer(
+              user.emailAddresses[0].emailAddress,
+              customerInfo.name || 'Cliente',
+              customerInfo.email
+            )
 
             await client.chatRoom.update({
               where: { id: customerInfo.chatRoom[0].id },
