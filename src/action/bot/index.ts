@@ -218,11 +218,13 @@ const detectHumanTransferRequest = (message: string): boolean => {
     'humano', 'persona', 'agente', 'operador', 'representante',
     'hablar con alguien', 'hablar con una persona', 'hablar con un humano',
     'quiero hablar con', 'necesito hablar con', 'puedo hablar con',
+    'pásame con', 'pasame con', 'pásame a', 'pasame a',
+    'conectame con', 'conéctame con', 'conecta con', 'conecta me',
     'escalar', 'transferir', 'no me ayuda', 'no entiendo',
     'problema', 'queja', 'reclamo', 'urgente', 'emergencia',
     'supervisor', 'gerente', 'jefe', 'ayuda humana'
   ]
-
+  
   const lowerMessage = message.toLowerCase()
   return humanKeywords.some(keyword => lowerMessage.includes(keyword))
 }
@@ -520,10 +522,8 @@ Tu opinión me ayuda a mejorar.`
     return {
       response: {
         role: 'assistant' as const,
-        content: `¡Por supuesto! Te estoy conectando con uno de nuestros agentes humanos. Un miembro de nuestro equipo se pondrá en contacto contigo en breve. 👨‍💼`
+        content: transferMessage
       },
-      live: true,
-      chatRoom: customerInfo.chatRoom[0].id,
       sessionToken
     }
   }
