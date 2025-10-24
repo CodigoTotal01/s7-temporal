@@ -1,6 +1,7 @@
 import { onLoginUser } from '@/action/auth';
 import SideBar from '@/components/sidebar';
 import { ChatProvider } from '@/context/user-chat-context';
+import DomainRequiredGuard from '@/components/domain-required-guard';
 import React from 'react';
 
 type Props = {
@@ -23,12 +24,14 @@ const OwnerLayout = async ({ children }: Props) => {
 
   return (
     <ChatProvider>
-      <div className='flex h-screen w-full'>
-        <SideBar domains={authenticated.domains} />
-        <div className='w-full h-screen flex flex-col pl-20 md:pl-4'>
-          {children}
+      <DomainRequiredGuard domains={authenticated.domains}>
+        <div className='flex h-screen w-full'>
+          <SideBar domains={authenticated.domains} />
+          <div className='w-full h-screen flex flex-col pl-20 md:pl-4'>
+            {children}
+          </div>
         </div>
-      </div>
+      </DomainRequiredGuard>
     </ChatProvider>
   )
 }

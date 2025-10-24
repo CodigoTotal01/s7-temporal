@@ -30,7 +30,7 @@ export const useDomain = () => {
     const router = useRouter();
 
     useEffect(() => {
-        const lastSegment = pathname.split("/").pop();
+        const lastSegment = pathname?.split("/").pop();
         setIsDomain(lastSegment ? decodeURIComponent(lastSegment) : undefined);
     }, [pathname]);
 
@@ -45,9 +45,9 @@ export const useDomain = () => {
                 title: domain.status === 200 ? 'Success' : 'Error',
                 description: domain.message,
             })
-            
+
             if (domain.status === 200 && domain.domainId) {
-                router.push(`/settings/${domain.domainId}`);
+                router.push(`/company`);
             } else {
                 router.refresh();
             }

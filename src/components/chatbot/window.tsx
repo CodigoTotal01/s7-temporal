@@ -137,7 +137,7 @@ export const BotWindow = forwardRef<HTMLDivElement, Props>(
             triggers={BOT_TABS_MENU}
             className="bg-transparent border-[1px] border-border p-0.5"
           >
-            <TabsContent value="chatbot">
+            <TabsContent value="asistente">
               <Separator orientation="horizontal" />
               <div className="flex flex-col h-full">
                 <div

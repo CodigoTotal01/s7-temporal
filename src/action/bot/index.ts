@@ -625,7 +625,7 @@ Tu opinión me ayuda a mejorar.`
     phone: customerInfo.phone
   }
 
-  const systemPrompt = generateOpenAIContext(
+  const systemPromptData = await generateOpenAIContext(
     chatBotDomain,
     customerDataForContext,
     contextSpecificPrompt,
@@ -633,6 +633,8 @@ Tu opinión me ayuda a mejorar.`
     customerInfo,
     message
   )
+
+  const systemPrompt = systemPromptData.content
 
   // 6. Usar solo historial relevante (últimos 10 mensajes)
   const relevantHistory = getRelevantChatHistory(chat, 10)
@@ -657,7 +659,7 @@ Tu opinión me ayuda a mejorar.`
     throw new Error('OpenAI no retornó una respuesta válida')
   }
 
-  const result = await handleOpenAIResponse(response, customerInfo, chat)
+  const result = await handleOpenAIResponse(response, customerInfo, chat, message)
 
   // ✅ SIMPLIFICADO: Agregar "¿Hay algo más en que te pueda ayudar?" a todas las respuestas
   const finalContent = addHelpOffer(result.response.content)
@@ -686,7 +688,8 @@ Tu opinión me ayuda a mejorar.`
     ...result,
     response: {
       ...result.response,
-      content: finalContent
+      content: finalContent,
+      imageUrl: systemPromptData.imageUrl
     },
     sessionToken // Mantener token
   }
@@ -1658,12 +1661,12 @@ const filterProductsByPreferences = (
  * - Si el cliente menciona preferencias específicas, filtra y muestra solo productos relevantes
  * - Si no hay preferencias, sugiere hacer preguntas antes de mostrar todos los productos
  */
-const generateProductsContext = (
+const generateProductsContext = async (
   chatBotDomain: ChatBotDomain,
   message: string
-): string => {
+): Promise<{ content: string; imageUrl?: string }> => {
   if (chatBotDomain.products.length === 0) {
-    return '\n⚠️ NO hay productos disponibles en este momento.'
+    return { content: '\n⚠️ NO hay productos disponibles en este momento.' }
   }
 
   // Detectar si el cliente pregunta por productos
@@ -1678,15 +1681,44 @@ const generateProductsContext = (
     const filteredProducts = filterProductsByPreferences(chatBotDomain.products, preferences)
 
     if (filteredProducts.length === 0) {
-      return `\n❌ No encontramos productos que coincidan exactamente con: ${[...preferences.materials, ...preferences.categories, ...preferences.textures,
-      ...preferences.seasons, ...preferences.uses, ...preferences.features,
-      ...preferences.colors].join(', ')
-        }. Tenemos ${chatBotDomain.products.length} productos disponibles en total.`
+      return {
+        content: `\n❌ No encontramos productos que coincidan exactamente con: ${[...preferences.materials, ...preferences.categories, ...preferences.textures,
+        ...preferences.seasons, ...preferences.uses, ...preferences.features,
+        ...preferences.colors].join(', ')
+          }. Tenemos ${chatBotDomain.products.length} productos disponibles en total.`
+      }
     }
 
     // Mostrar productos filtrados con información detallada
-    const productDetails = filteredProducts.slice(0, 5).map(p => {
+    let firstProductImageUrl: string | undefined = undefined
+
+    const productDetails = await Promise.all(filteredProducts.slice(0, 5).map(async (p) => {
       const details: string[] = [`${p.name} - S/${p.salePrice || p.price}`]
+
+      // ✅ AGREGAR IMAGEN DEL PRODUCTO - Construir URL completa con validación
+      if (p.image && p.image.trim() !== '') {
+
+        // Validar que el UUID tenga el formato correcto
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+        const isValidUUID = uuidRegex.test(p.image)
+
+        if (isValidUUID) {
+          const imageUrl = `https://ucarecdn.com/${p.image}/`
+
+          // ✅ VALIDAR QUE LA IMAGEN EXISTA ANTES DE INCLUIRLA
+          try {
+            const response = await fetch(imageUrl, { method: 'HEAD' })
+            if (response.ok) {
+              // ✅ Capturar la primera imagen válida para retornarla por separado
+              if (!firstProductImageUrl) {
+                firstProductImageUrl = imageUrl
+              }
+            }
+          } catch (error) {
+            console.warn("🚀 ~ Error checking image existence:", imageUrl, error)
+          }
+        }
+      }
 
       if (p.material) details.push(`Material: ${p.material.name}`)
       if (p.texture) details.push(`Textura: ${p.texture.name}`)
@@ -1703,10 +1735,15 @@ const generateProductsContext = (
       if (features) details.push(`Características: ${features}`)
 
       return details.join(' | ')
-    }).join('\n')
+    }))
 
-    return `\n✅ Productos que coinciden con tu búsqueda (${filteredProducts.length} encontrados):\n${productDetails}${filteredProducts.length > 5 ? `\n... y ${filteredProducts.length - 5} productos más` : ''
-      }`
+    const productDetailsString = productDetails.join('\n')
+
+    return {
+      content: `\n✅ Productos que coinciden con tu búsqueda (${filteredProducts.length} encontrados):\n${productDetailsString}${filteredProducts.length > 5 ? `\n... y ${filteredProducts.length - 5} productos más` : ''
+        }`,
+      imageUrl: firstProductImageUrl
+    }
   }
 
   // Si pregunta por productos pero no da preferencias, sugerir hacer preguntas
@@ -1726,39 +1763,44 @@ const generateProductsContext = (
       suggestions.push(`Usos: ${chatBotDomain.uses.map(u => u.name).join(', ')}`)
     }
 
-    return `\n📋 Tenemos ${chatBotDomain.products.length} productos textiles disponibles.
+    return {
+      content: `\n📋 Tenemos ${chatBotDomain.products.length} productos textiles disponibles.
 
 IMPORTANTE: Para ayudarte mejor, pregunta al cliente sobre sus preferencias:
 ${suggestions.length > 0 ? suggestions.join('\n') : ''}
 
 Ejemplo: "¿Qué tipo de material/tela estás buscando?" o "¿Para qué uso necesitas la tela?"`
+    }
   }
 
   // Si no pregunta por productos, solo dar contexto básico
-  return `\n📦 Tenemos ${chatBotDomain.products.length} productos textiles. Pregunta al cliente qué busca antes de listarlos todos.`
+  return {
+    content: `\n📦 Tenemos ${chatBotDomain.products.length} productos textiles. Pregunta al cliente qué busca antes de listarlos todos.`
+  }
 }
 
 /**
  * OPTIMIZACIÓN: Prompt compacto para reducir tokens
  * Reducción de ~800 tokens a ~300 tokens (62% ahorro)
  */
-const generateOpenAIContext = (
+const generateOpenAIContext = async (
   chatBotDomain: ChatBotDomain,
   customerData: CustomerData,
   contextSpecificPrompt: string,
   domainId: string,
   customerInfo: any,
   message: string
-): string => {
+): Promise<{ content: string; imageUrl?: string }> => {
   // Contextos compactos
   const helpdeskContext = chatBotDomain.helpdesk.length > 0
     ? `\nFAQs: ${chatBotDomain.helpdesk.map(h => h.question).join(', ')}`
     : ''
 
   // ✅ NUEVO: Usar sistema inteligente de productos
-  const productsContext = generateProductsContext(chatBotDomain, message)
+  const productsContext = await generateProductsContext(chatBotDomain, message)
 
-  return `Eres Lunari AI, asistente virtual especializado en textiles para ${chatBotDomain.name}.
+  return {
+    content: `Eres Lunari AI, asistente virtual especializado en textiles para ${chatBotDomain.name}.
 
 CLIENTE: ${customerData.name || 'Usuario'} | ${customerData.email} | ${customerData.phone || 'Sin teléfono'}
 
@@ -1769,9 +1811,11 @@ CLIENTE: ${customerData.name || 'Usuario'} | ${customerData.email} | ${customerD
 4. NO pidas datos del cliente que ya aparecen arriba (nombre, email, teléfono)
 5. Si dice "agendar/reservar/cita" → Da SOLO este enlace: http://localhost:3000/portal/${domainId}/appointment/${customerInfo?.id}
 6. NO preguntes fecha/hora para citas, solo da el enlace
-7. Si la consulta es fuera de contexto textil, no puedes ayudar, o el cliente solicita hablar con un humano → Responde con "(realtime)" para escalar a humano
+7. PROHIBIDO crear enlaces de compra, tiendas online, o cualquier enlace que no sea el de agendar citas
+8. PROHIBIDO mencionar pagos online, transferencias bancarias, o cualquier forma de pago digital
+9. Si la consulta es fuera de contexto textil, no puedes ayudar, o el cliente solicita hablar con un humano → Responde con "(realtime)" para escalar a humano
    Palabras clave para escalación: "humano", "persona", "agente", "operador", "hablar con alguien", "no me ayuda", "quiero hablar con", "escalar"
-${helpdeskContext}${productsContext}
+${helpdeskContext}${productsContext.content}
 9. NO preguntes "¿Hay algo más en que pueda ayudarte?" - esto se agrega automáticamente
 
 🎯 ESTRATEGIA PARA RECOMENDAR PRODUCTOS:
@@ -1784,7 +1828,18 @@ ${helpdeskContext}${productsContext}
 - Una vez que el cliente mencione sus preferencias (material, uso, categoría, color, etc.), muestra SOLO los productos del contexto que coincidan
 - Si el cliente menciona algo que NO está en tu contexto de productos, indícale qué opciones SÍ tienes disponibles
 
-Responde en español, breve, amigable y directo. Usa el nombre del cliente. Sé útil pero NUNCA inventes información.`
+🛒 MANEJO DE SOLICITUDES DE COMPRA Y RESERVA (100% PRESENCIAL):
+- IMPORTANTE: NO realizamos ventas online ni pagos en línea. TODAS las compras son presenciales en nuestra tienda.
+- Si el cliente quiere comprar o pregunta por precios, NO generes enlaces de compra online
+- Si el cliente dice "quiero reservar", "reservar", "me interesa", "quiero ese producto", responde con "(reserve)" seguido del nombre del producto
+- Si el cliente dice "quiero visitar", "visitar la tienda", "ver productos", responde con "(visit)" para sugerir una visita
+- Si el cliente dice "quiero comprar", "hacer compra", "deseo comprar", "deseo realizar una compra", "quiero realizar una compra", "necesito comprar", responde con "(purchase)" seguido del nombre del producto
+- SIEMPRE explica que las compras se realizan presencialmente en la tienda durante la cita
+- Ejemplo: "Te puedo ayudar con información sobre nuestros productos. Para realizar tu compra, necesitas agendar una cita para venir a nuestra tienda y pagar presencialmente."
+
+Responde en español, breve, amigable y directo. Usa el nombre del cliente. Sé útil pero NUNCA inventes información.`,
+    imageUrl: productsContext.imageUrl
+  }
 }
 
 /**
@@ -1825,8 +1880,189 @@ NO pidas email nuevamente, ya lo tienes.`
 const handleOpenAIResponse = async (
   response: string,
   customerInfo: CustomerInfo,
-  chatHistory: any[]
+  chatHistory: any[],
+  userMessage?: string
 ) => {
+  // ✅ Manejar solicitudes iniciales de compra
+  const initialPurchase = detectInitialPurchaseRequest(userMessage || '')
+  if (initialPurchase.isInitialPurchase) {
+    try {
+      // Buscar productos que coincidan con el material mencionado
+      const chatRoom = await client.chatRoom.findUnique({
+        where: { id: customerInfo.chatRoom[0].id },
+        select: {
+          Customer: {
+            select: { domainId: true }
+          }
+        }
+      })
+      const domainId = chatRoom?.Customer?.domainId || ''
+
+      let products: any[] = []
+
+      if (initialPurchase.productName) {
+        // Buscar productos por material mencionado
+        products = await findProductByName(initialPurchase.productName, domainId)
+      }
+
+      // Si no se encontraron productos específicos, buscar productos de lino por defecto
+      if (products.length === 0) {
+        products = await findProductByName('lino', domainId)
+      }
+
+      if (products.length > 0) {
+        const product = products[0]
+
+        return {
+          response: {
+            role: 'assistant' as const,
+            content: `¡Excelente! Te ayudo con tu compra de "${product.name}".
+
+📋 **Información del producto:**
+- Precio: S/${product.salePrice || product.price} por ${product.unit || 'metro'}
+- Stock disponible: ${product.stock} ${product.unit || 'metros'}
+${product.width ? `- Ancho disponible: ${product.width}` : ''}
+${product.weight ? `- Gramaje: ${product.weight}` : ''}
+${product.colors && product.colors.length > 0 ? `- Colores disponibles: ${product.colors.join(', ')}` : ''}
+
+Para proceder con tu compra, necesito algunos detalles específicos:
+
+${generatePurchaseQuestions(product, {})}
+
+Por favor, proporciona esta información para poder calcular el precio exacto y crear tu reserva.`
+          }
+        }
+      } else {
+        return {
+          response: {
+            role: 'assistant' as const,
+            content: `¡Perfecto! Te ayudo con tu compra. 
+
+Para poder asistirte mejor, necesito saber qué tipo de tela específica te interesa. ¿Podrías ser más específico sobre el material o producto que deseas comprar?
+
+Por ejemplo: "quiero comprar tela de algodón" o "necesito gabardina"`
+
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error handling initial purchase request:', error)
+      return {
+        response: {
+          role: 'assistant' as const,
+          content: 'Lo siento, hubo un problema al procesar tu solicitud. Por favor, intenta de nuevo o contacta con nuestro equipo.'
+        }
+      }
+    }
+  }
+
+  // ✅ Manejar respuestas a preguntas de compra
+  const purchaseResponse = detectPurchaseResponse(userMessage || '', chatHistory)
+  if (purchaseResponse.isPurchaseResponse && purchaseResponse.productName) {
+    try {
+      // Buscar el producto por nombre
+      const chatRoom = await client.chatRoom.findUnique({
+        where: { id: customerInfo.chatRoom[0].id },
+        select: {
+          Customer: {
+            select: { domainId: true }
+          }
+        }
+      })
+      const domainId = chatRoom?.Customer?.domainId || ''
+      const products = await findProductByName(purchaseResponse.productName, domainId)
+
+      if (products.length > 0) {
+        const product = products[0]
+        const purchaseDetails = detectPurchaseDetails(userMessage || '')
+
+        if (purchaseDetails.hasDetails) {
+          // El cliente proporcionó detalles específicos
+          const quantity = purchaseDetails.quantity || 1
+          const unitPrice = product.salePrice || product.price
+          const totalPrice = calculateTotalPrice(product, quantity, purchaseDetails)
+
+          // Verificar stock disponible
+          if (product.stock < quantity) {
+            return {
+              response: {
+                role: 'assistant' as const,
+                content: `❌ Lo siento, solo tenemos ${product.stock} ${product.unit || 'metros'} disponibles de "${product.name}". ¿Te gustaría reservar la cantidad disponible o elegir otro producto?`
+              }
+            }
+          }
+
+          // Crear la reserva con detalles específicos
+          const reservation = await createProductReservation(
+            product.id,
+            customerInfo.id,
+            quantity,
+            `Reserva con detalles específicos - ${product.name}`,
+            {
+              unitPrice,
+              totalPrice,
+              unit: purchaseDetails.unit || product.unit || undefined,
+              width: purchaseDetails.width || product.width || undefined,
+              weight: purchaseDetails.weight || product.weight || undefined,
+              color: purchaseDetails.color || product.color || undefined,
+              category: product.category?.name
+            }
+          )
+
+          // Actualizar stock
+          const stockUpdated = await updateProductStock(product.id, quantity)
+
+          console.log(`✅ RESERVA DETALLADA CREADA: ${reservation.id} - Cliente: ${customerInfo.email} - Producto: ${product.name} - Cantidad: ${quantity}`)
+
+          return {
+            response: {
+              role: 'assistant' as const,
+              content: `¡Perfecto! He reservado "${product.name}" con los siguientes detalles:
+
+📋 **Detalles de tu reserva:**
+- Producto: ${product.name}
+- Cantidad: ${quantity} ${purchaseDetails.unit || product.unit || 'metros'}
+- Precio unitario: S/${unitPrice}
+- Precio total: S/${totalPrice}
+${purchaseDetails.width ? `- Ancho: ${purchaseDetails.width}` : ''}
+${purchaseDetails.weight ? `- Gramaje: ${purchaseDetails.weight}` : ''}
+${purchaseDetails.color ? `- Color: ${purchaseDetails.color}` : ''}
+- Estado: Pendiente de confirmación
+- Válida por: 7 días
+
+💳 **IMPORTANTE:** El pago se realiza presencialmente en nuestra tienda durante la cita. NO aceptamos pagos online.
+
+Para completar tu compra y recoger el producto, necesitas agendar una cita para venir a nuestra tienda y pagar presencialmente. ¿Te gustaría agendar una cita ahora?`,
+              link: `http://localhost:3000/portal/${domainId}/appointment/${customerInfo.id}`
+            }
+          }
+        } else {
+          // El cliente no proporcionó suficientes detalles, preguntar por los faltantes
+          const questions = generatePurchaseQuestions(product, {})
+
+          return {
+            response: {
+              role: 'assistant' as const,
+              content: `Entiendo que quieres "${product.name}". Para completar tu reserva, necesito algunos detalles más:
+
+${questions}
+
+Por favor, proporciona esta información para poder calcular el precio exacto y crear tu reserva.`
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error handling purchase response:', error)
+      return {
+        response: {
+          role: 'assistant' as const,
+          content: 'Lo siento, hubo un problema al procesar tu respuesta. Por favor, intenta de nuevo o contacta con nuestro equipo.'
+        }
+      }
+    }
+  }
+
   // ✅ Manejar modo tiempo real (escalado a humano)
   if (response.includes('(realtime)')) {
     await client.chatRoom.update({
@@ -1847,6 +2083,215 @@ const handleOpenAIResponse = async (
       },
       live: true, // ✅ Indicar que está en modo live
       chatRoom: customerInfo.chatRoom[0].id // ✅ ID del chatRoom para Pusher
+    }
+  }
+
+  // ✅ Manejar reservas de productos con detalles específicos
+  if (response.includes('(reserve)')) {
+    const reservationMatch = response.match(/\(reserve\)\s*(.+)/i)
+    if (reservationMatch) {
+      const productName = reservationMatch[1].trim()
+
+      try {
+        // Buscar el producto por nombre - obtener domainId del chatRoom
+        const chatRoom = await client.chatRoom.findUnique({
+          where: { id: customerInfo.chatRoom[0].id },
+          select: {
+            Customer: {
+              select: { domainId: true }
+            }
+          }
+        })
+        const domainId = chatRoom?.Customer?.domainId || ''
+        const products = await findProductByName(productName, domainId)
+
+        if (products.length > 0) {
+          const product = products[0] // Tomar el primer producto encontrado
+
+          // Detectar detalles específicos en el mensaje del cliente
+          const purchaseDetails = detectPurchaseDetails(userMessage || '')
+
+          if (purchaseDetails.hasDetails) {
+            // El cliente ya proporcionó detalles específicos
+            const quantity = purchaseDetails.quantity || 1
+            const unitPrice = product.salePrice || product.price
+            const totalPrice = calculateTotalPrice(product, quantity, purchaseDetails)
+
+            // Verificar stock disponible
+            if (product.stock < quantity) {
+              return {
+                response: {
+                  role: 'assistant' as const,
+                  content: `❌ Lo siento, solo tenemos ${product.stock} ${product.unit || 'metros'} disponibles de "${product.name}". ¿Te gustaría reservar la cantidad disponible o elegir otro producto?`
+                }
+              }
+            }
+
+            // Crear la reserva con detalles específicos
+            const reservation = await createProductReservation(
+              product.id,
+              customerInfo.id,
+              quantity,
+              `Reserva con detalles específicos - ${product.name}`,
+              {
+                unitPrice,
+                totalPrice,
+                unit: purchaseDetails.unit || product.unit || undefined,
+                width: purchaseDetails.width || product.width || undefined,
+                weight: purchaseDetails.weight || product.weight || undefined,
+                color: purchaseDetails.color || product.color || undefined,
+                category: product.category?.name
+              }
+            )
+
+            // Actualizar stock
+            const stockUpdated = await updateProductStock(product.id, quantity)
+
+            console.log(`✅ RESERVA DETALLADA CREADA: ${reservation.id} - Cliente: ${customerInfo.email} - Producto: ${product.name} - Cantidad: ${quantity}`)
+
+            return {
+              response: {
+                role: 'assistant' as const,
+                content: `¡Perfecto! He reservado "${product.name}" con los siguientes detalles:
+
+📋 **Detalles de tu reserva:**
+- Producto: ${product.name}
+- Cantidad: ${quantity} ${purchaseDetails.unit || product.unit || 'metros'}
+- Precio unitario: S/${unitPrice}
+- Precio total: S/${totalPrice}
+${purchaseDetails.width ? `- Ancho: ${purchaseDetails.width}` : ''}
+${purchaseDetails.weight ? `- Gramaje: ${purchaseDetails.weight}` : ''}
+${purchaseDetails.color ? `- Color: ${purchaseDetails.color}` : ''}
+- Estado: Pendiente de confirmación
+- Válida por: 7 días
+
+💳 **IMPORTANTE:** El pago se realiza presencialmente en nuestra tienda durante la cita. NO aceptamos pagos online.
+
+Para completar tu compra y recoger el producto, necesitas agendar una cita para venir a nuestra tienda y pagar presencialmente. ¿Te gustaría agendar una cita ahora?`
+              }
+            }
+          } else {
+            // El cliente no proporcionó detalles específicos, preguntar por ellos
+            const questions = generatePurchaseQuestions(product, {})
+
+            return {
+              response: {
+                role: 'assistant' as const,
+                content: `¡Excelente elección! "${product.name}" es un gran producto.
+
+📋 **Información del producto:**
+- Precio: S/${product.salePrice || product.price} por ${product.unit || 'metro'}
+- Stock disponible: ${product.stock} ${product.unit || 'metros'}
+${product.width ? `- Ancho disponible: ${product.width}` : ''}
+${product.weight ? `- Gramaje: ${product.weight}` : ''}
+${product.colors && product.colors.length > 0 ? `- Colores disponibles: ${product.colors.join(', ')}` : ''}
+
+Para proceder con tu reserva, necesito algunos detalles específicos:
+
+${questions}
+
+Por favor, proporciona esta información para poder calcular el precio exacto y crear tu reserva.`
+              }
+            }
+          }
+        } else {
+          return {
+            response: {
+              role: 'assistant' as const,
+              content: `No pude encontrar el producto "${productName}" en nuestro catálogo. ¿Podrías ser más específico sobre el producto que te interesa?`
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error creating reservation:', error)
+        return {
+          response: {
+            role: 'assistant' as const,
+            content: 'Lo siento, hubo un problema al procesar tu reserva. Por favor, intenta de nuevo o contacta con nuestro equipo.'
+          }
+        }
+      }
+    }
+  }
+
+  // ✅ Manejar solicitudes de visita a la tienda
+  if (response.includes('(visit)')) {
+    return {
+      response: {
+        role: 'assistant' as const,
+        content: `¡Excelente idea! Te invito a visitar nuestra tienda para que puedas ver todos nuestros productos textiles en persona.
+
+🏪 **¿Por qué visitar nuestra tienda?**
+- Ver y tocar las telas antes de comprar
+- Recibir asesoría personalizada
+- Conocer nuestra amplia variedad de productos
+- Resolver todas tus dudas directamente
+
+💳 **IMPORTANTE:** Todas nuestras ventas son presenciales. NO realizamos ventas online.
+
+¿Te gustaría agendar una cita para visitar nuestra tienda? Puedo ayudarte a coordinar una visita en el horario que más te convenga.`
+      }
+    }
+  }
+
+  // ✅ Manejar solicitudes de compra directa con preguntas específicas
+  if (response.includes('(purchase)')) {
+    const purchaseMatch = response.match(/\(purchase\)\s*(.+)/i)
+    if (purchaseMatch) {
+      const productName = purchaseMatch[1].trim()
+
+      try {
+        // Buscar el producto por nombre
+        const chatRoom = await client.chatRoom.findUnique({
+          where: { id: customerInfo.chatRoom[0].id },
+          select: {
+            Customer: {
+              select: { domainId: true }
+            }
+          }
+        })
+        const domainId = chatRoom?.Customer?.domainId || ''
+        const products = await findProductByName(productName, domainId)
+
+        if (products.length > 0) {
+          const product = products[0]
+
+          return {
+            response: {
+              role: 'assistant' as const,
+              content: `¡Excelente elección! "${product.name}" es un gran producto.
+
+📋 **Información del producto:**
+- Precio: S/${product.salePrice || product.price} por ${product.unit || 'metro'}
+- Stock disponible: ${product.stock} ${product.unit || 'metros'}
+${product.width ? `- Ancho disponible: ${product.width}` : ''}
+${product.weight ? `- Gramaje: ${product.weight}` : ''}
+${product.colors && product.colors.length > 0 ? `- Colores disponibles: ${product.colors.join(', ')}` : ''}
+
+Para proceder con tu compra, necesito algunos detalles específicos:
+
+${generatePurchaseQuestions(product, {})}
+
+Por favor, proporciona esta información para poder calcular el precio exacto y crear tu reserva.`
+            }
+          }
+        } else {
+          return {
+            response: {
+              role: 'assistant' as const,
+              content: `No pude encontrar el producto "${productName}" en nuestro catálogo. ¿Podrías ser más específico sobre el producto que te interesa?`
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error handling purchase request:', error)
+        return {
+          response: {
+            role: 'assistant' as const,
+            content: 'Lo siento, hubo un problema al procesar tu solicitud. Por favor, intenta de nuevo o contacta con nuestro equipo.'
+          }
+        }
+      }
     }
   }
 
@@ -2006,6 +2451,478 @@ RECUERDA: Sé natural, amigable y profesional. Solo pide la información que rea
 }
 
 // ===== FUNCIÓN PRINCIPAL REFACTORIZADA =====
+// ============================================
+// SISTEMA DE RESERVAS DE PRODUCTOS
+// ============================================
+
+/**
+ * Detecta si el cliente quiere reservar un producto específico
+ */
+const detectProductReservationRequest = (message: string): { wantsReservation: boolean; productName?: string } => {
+  const lowerMsg = message.toLowerCase()
+
+  // Palabras clave que indican interés en reservar
+  const reservationKeywords = [
+    'quiero reservar', 'reservar', 'me interesa', 'quiero ese producto',
+    'quiero comprar', 'me gusta', 'quiero ese', 'resérvame', 'guárdame'
+  ]
+
+  const wantsReservation = reservationKeywords.some(keyword => lowerMsg.includes(keyword))
+
+  // Intentar extraer el nombre del producto del mensaje
+  let productName: string | undefined
+
+  // Buscar patrones como "quiero reservar [producto]", "me interesa [producto]", etc.
+  const patterns = [
+    /quiero reservar (.+)/i,
+    /reservar (.+)/i,
+    /me interesa (.+)/i,
+    /quiero (.+)/i,
+    /me gusta (.+)/i
+  ]
+
+  for (const pattern of patterns) {
+    const match = message.match(pattern)
+    if (match && match[1]) {
+      productName = match[1].trim()
+      break
+    }
+  }
+
+  return { wantsReservation, productName }
+}
+
+/**
+ * Crea una reserva de producto con detalles específicos de compra
+ */
+const createProductReservation = async (
+  productId: string,
+  customerId: string,
+  quantity: number = 1,
+  notes?: string,
+  purchaseDetails?: {
+    unitPrice?: number
+    totalPrice?: number
+    unit?: string
+    width?: string
+    weight?: string
+    color?: string
+    category?: string
+  }
+) => {
+  try {
+    const reservation = await client.productReservation.create({
+      data: {
+        productId,
+        customerId,
+        quantity,
+        notes,
+        status: 'PENDING',
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Expira en 7 días
+        // ✅ NUEVOS CAMPOS: Detalles específicos de compra
+        unitPrice: purchaseDetails?.unitPrice,
+        totalPrice: purchaseDetails?.totalPrice,
+        unit: purchaseDetails?.unit,
+        width: purchaseDetails?.width,
+        weight: purchaseDetails?.weight,
+        color: purchaseDetails?.color,
+        category: purchaseDetails?.category
+      },
+      include: {
+        Product: {
+          select: {
+            name: true,
+            price: true,
+            salePrice: true,
+            stock: true,
+            unit: true,
+            width: true,
+            weight: true,
+            color: true,
+            colors: true,
+            category: {
+              select: { name: true }
+            }
+          }
+        }
+      }
+    })
+
+    return reservation
+  } catch (error) {
+    console.error('Error creating product reservation:', error)
+    throw error
+  }
+}
+
+/**
+ * Detecta si el cliente está haciendo una solicitud inicial de compra
+ */
+const detectInitialPurchaseRequest = (message: string): {
+  isInitialPurchase: boolean
+  productName?: string
+} => {
+  const lowerMsg = message.toLowerCase()
+
+  // Patrones que indican solicitud inicial de compra
+  const purchasePatterns = [
+    /deseo realizar una compra/i,
+    /quiero realizar una compra/i,
+    /necesito comprar/i,
+    /quiero comprar/i,
+    /deseo comprar/i,
+    /hacer compra/i,
+    /realizar compra/i
+  ]
+
+  const isInitialPurchase = purchasePatterns.some(pattern => pattern.test(message))
+
+  if (!isInitialPurchase) {
+    return { isInitialPurchase: false }
+  }
+
+  // Intentar extraer el tipo de producto mencionado
+  let productName: string | undefined
+
+  // Buscar menciones de materiales o tipos de tela
+  const materialPatterns = [
+    /tela de (\w+)/i,
+    /(\w+) de tela/i,
+    /compra de (\w+)/i,
+    /(\w+) para comprar/i
+  ]
+
+  for (const pattern of materialPatterns) {
+    const match = message.match(pattern)
+    if (match) {
+      productName = match[1]
+      break
+    }
+  }
+
+  return {
+    isInitialPurchase: true,
+    productName
+  }
+}
+
+/**
+ * Detecta si el cliente está respondiendo a preguntas de compra
+ */
+const detectPurchaseResponse = (message: string, chatHistory: any[]): {
+  isPurchaseResponse: boolean
+  productName?: string
+} => {
+  const lowerMsg = message.toLowerCase()
+
+  // Verificar si el mensaje anterior del asistente contenía preguntas de compra
+  const lastAssistantMessage = chatHistory
+    .filter(msg => msg.role === 'assistant')
+    .slice(-1)[0]?.content || ''
+
+  const hasPurchaseQuestions = lastAssistantMessage.includes('¿Cuántos') ||
+    lastAssistantMessage.includes('¿Qué ancho') ||
+    lastAssistantMessage.includes('¿Qué gramaje') ||
+    lastAssistantMessage.includes('¿Qué color') ||
+    lastAssistantMessage.includes('necesito algunos detalles')
+
+  if (!hasPurchaseQuestions) {
+    return { isPurchaseResponse: false }
+  }
+
+  // Intentar extraer el nombre del producto del contexto
+  const productMatch = lastAssistantMessage.match(/"([^"]+)"/)
+  const productName = productMatch ? productMatch[1] : undefined
+
+  // Verificar si el mensaje actual contiene detalles de compra
+  const hasDetails = detectPurchaseDetails(message).hasDetails
+
+  return {
+    isPurchaseResponse: hasDetails,
+    productName
+  }
+}
+
+/**
+ * Detecta si el cliente está proporcionando detalles específicos de compra
+ */
+const detectPurchaseDetails = (message: string): {
+  hasDetails: boolean
+  quantity?: number
+  unit?: string
+  width?: string
+  weight?: string
+  color?: string
+  category?: string
+} => {
+  const lowerMsg = message.toLowerCase()
+
+  const details = {
+    hasDetails: false,
+    quantity: undefined as number | undefined,
+    unit: undefined as string | undefined,
+    width: undefined as string | undefined,
+    weight: undefined as string | undefined,
+    color: undefined as string | undefined,
+    category: undefined as string | undefined
+  }
+
+  // Detectar cantidad - patrones más amplios
+  const quantityPatterns = [
+    /(\d+)\s*(metros?|rollos?|kg|kilos?|unidades?|mts?|m)/i,
+    /quiero\s*(\d+)/i,
+    /necesito\s*(\d+)/i,
+    /(\d+)\s*por\s*favor/i,
+    /(\d+)\s*gracias/i
+  ]
+
+  for (const pattern of quantityPatterns) {
+    const match = message.match(pattern)
+    if (match) {
+      details.quantity = parseInt(match[1])
+      if (match[2]) {
+        details.unit = match[2].toLowerCase()
+      }
+      details.hasDetails = true
+      break
+    }
+  }
+
+  // Detectar ancho - patrones más amplios
+  const widthPatterns = [
+    /(\d+(?:\.\d+)?)\s*m(?:etros?)?/i,
+    /ancho\s*(\d+(?:\.\d+)?)/i,
+    /(\d+(?:\.\d+)?)\s*de\s*ancho/i
+  ]
+
+  for (const pattern of widthPatterns) {
+    const match = message.match(pattern)
+    if (match) {
+      details.width = `${match[1]}m`
+      details.hasDetails = true
+      break
+    }
+  }
+
+  // Detectar gramaje
+  const weightPatterns = [
+    /(\d+)\s*gr\/m²/i,
+    /(\d+)\s*gramos/i,
+    /gramaje\s*(\d+)/i
+  ]
+
+  for (const pattern of weightPatterns) {
+    const match = message.match(pattern)
+    if (match) {
+      details.weight = `${match[1]} gr/m²`
+      details.hasDetails = true
+      break
+    }
+  }
+
+  // Detectar color - lista más amplia
+  const colors = [
+    'rojo', 'azul', 'verde', 'amarillo', 'negro', 'blanco', 'gris', 'rosa',
+    'morado', 'naranja', 'marrón', 'beige', 'celeste', 'turquesa', 'violeta',
+    'café', 'azul marino', 'verde oliva', 'rojo vino', 'azul cielo'
+  ]
+
+  for (const color of colors) {
+    if (lowerMsg.includes(color)) {
+      details.color = color
+      details.hasDetails = true
+      break
+    }
+  }
+
+  return details
+}
+
+/**
+ * Genera preguntas específicas para completar los detalles de compra
+ */
+const generatePurchaseQuestions = (product: any, currentDetails: any): string => {
+  const questions: string[] = []
+
+  // Preguntar por cantidad si no se especificó
+  if (!currentDetails.quantity) {
+    questions.push(`1. ¿Cuántos ${product.unit || 'metros'} necesitas?`)
+  }
+
+  // Preguntar por ancho si el producto tiene opciones
+  if (!currentDetails.width && product.width) {
+    questions.push(`2. ¿Qué ancho prefieres? (Disponible: ${product.width})`)
+  }
+
+  // Preguntar por gramaje si el producto tiene opciones
+  if (!currentDetails.weight && product.weight) {
+    questions.push(`3. ¿Qué gramaje necesitas? (Disponible: ${product.weight})`)
+  }
+
+  // Preguntar por color si hay opciones
+  if (!currentDetails.color && product.colors && product.colors.length > 0) {
+    questions.push(`4. ¿Qué color prefieres? (Disponibles: ${product.colors.join(', ')})`)
+  } else if (!currentDetails.color && product.color) {
+    questions.push(`4. ¿Te gusta el color ${product.color} o prefieres otro?`)
+  }
+
+  // Si no hay preguntas específicas, preguntar por cantidad básica
+  if (questions.length === 0) {
+    questions.push(`1. ¿Cuántos ${product.unit || 'metros'} necesitas?`)
+  }
+
+  return questions.join('\n')
+}
+
+/**
+ * Calcula el precio total basado en los detalles
+ */
+const calculateTotalPrice = (product: any, quantity: number, details: any): number => {
+  const unitPrice = product.salePrice || product.price
+  return unitPrice * quantity
+}
+
+/**
+ * Actualiza el stock del producto después de una reserva
+ */
+const updateProductStock = async (productId: string, quantity: number): Promise<boolean> => {
+  try {
+    const product = await client.product.findUnique({
+      where: { id: productId },
+      select: { stock: true }
+    })
+
+    if (!product) return false
+
+    const newStock = product.stock - quantity
+    if (newStock < 0) return false // No hay suficiente stock
+
+    await client.product.update({
+      where: { id: productId },
+      data: { stock: newStock }
+    })
+
+    return true
+  } catch (error) {
+    console.error('Error updating product stock:', error)
+    return false
+  }
+}
+const findProductByName = async (productName: string, domainId: string) => {
+  try {
+    const products = await client.product.findMany({
+      where: {
+        domainId,
+        active: true,
+        name: {
+          contains: productName,
+          mode: 'insensitive'
+        }
+      },
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        salePrice: true,
+        stock: true,
+        unit: true,
+        width: true,
+        weight: true,
+        color: true,
+        colors: true,
+        category: {
+          select: { name: true }
+        }
+      }
+    })
+
+    return products
+  } catch (error) {
+    console.error('Error finding product by name:', error)
+    return []
+  }
+}
+
+/**
+ * Crea una cita con tipo específico y opcionalmente asocia reservas
+ */
+const createAppointmentWithType = async (
+  customerId: string,
+  domainId: string,
+  appointmentType: 'STORE_VISIT' | 'PURCHASE',
+  purpose?: string,
+  notes?: string,
+  reservationIds?: string[]
+) => {
+  try {
+    const appointment = await client.bookings.create({
+      data: {
+        customerId,
+        domainId,
+        appointmentType: appointmentType as any,
+        purpose,
+        notes,
+        email: '', // Se llenará cuando se procese la cita
+        date: new Date(), // Se actualizará cuando se procese la cita
+        slot: '' // Se llenará cuando se procese la cita
+      }
+    })
+
+    // Si hay reservas asociadas, actualizarlas
+    if (reservationIds && reservationIds.length > 0) {
+      await client.productReservation.updateMany({
+        where: {
+          id: { in: reservationIds },
+          customerId
+        },
+        data: {
+          bookingId: appointment.id,
+          status: 'CONFIRMED'
+        }
+      })
+    }
+
+    return appointment
+  } catch (error) {
+    console.error('Error creating appointment with type:', error)
+    throw error
+  }
+}
+
+/**
+ * Obtiene las reservas pendientes de un cliente
+ */
+const getCustomerPendingReservations = async (customerId: string) => {
+  try {
+    const reservations = await client.productReservation.findMany({
+      where: {
+        customerId,
+        status: 'PENDING',
+        expiresAt: {
+          gt: new Date() // Solo reservas que no han expirado
+        }
+      },
+      include: {
+        Product: {
+          select: {
+            name: true,
+            price: true,
+            salePrice: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    })
+
+    return reservations
+  } catch (error) {
+    console.error('Error getting customer reservations:', error)
+    return []
+  }
+}
+
 export const onAiChatBotAssistant = async (
   id: string,
   chat: { role: 'user' | 'assistant'; content: string }[],
@@ -2401,7 +3318,7 @@ export const onAiChatBotAssistant = async (
         phone: customerInfo.phone
       }
 
-      const systemPrompt = generateOpenAIContext(
+      const systemPromptData = await generateOpenAIContext(
         chatBotDomain,
         customerDataForContext,
         contextSpecificPrompt,
@@ -2409,6 +3326,8 @@ export const onAiChatBotAssistant = async (
         customerInfo,
         message
       )
+
+      const systemPrompt = systemPromptData.content
 
       const relevantHistory = getRelevantChatHistory(chat, 10)
 
@@ -2430,7 +3349,7 @@ export const onAiChatBotAssistant = async (
         throw new Error('OpenAI no retornó una respuesta válida')
       }
 
-      const result = await handleOpenAIResponse(response, customerInfo, chat)
+      const result = await handleOpenAIResponse(response, customerInfo, chat, message)
       const finalContentMain = addHelpOffer(result.response.content)
 
       const messagesToSave = [
@@ -2461,7 +3380,8 @@ export const onAiChatBotAssistant = async (
         ...result,
         response: {
           ...result.response,
-          content: finalContentMain
+          content: finalContentMain,
+          imageUrl: systemPromptData.imageUrl
         }
       }
     }

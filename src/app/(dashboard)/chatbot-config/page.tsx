@@ -1,5 +1,5 @@
 import { onGetCurrentDomainInfo } from '@/action/settings'
-import CatalogsManager from '@/components/catalogs'
+import ChatbotSettings from '@/components/forms/settings/chatbot-settings'
 import { redirect } from 'next/navigation'
 import React from 'react'
 
@@ -9,7 +9,7 @@ export const revalidate = 0
 
 type Props = { params: { domain: string } }
 
-const DomainCatalogsPage = async ({ params }: Props) => {
+const ChatbotConfigPage = async ({ params }: Props) => {
   const domain = await onGetCurrentDomainInfo(params.domain)
   if (!domain || !domain.domains || domain.domains.length === 0) redirect('/dashboard')
 
@@ -17,10 +17,15 @@ const DomainCatalogsPage = async ({ params }: Props) => {
 
   return (
     <div className="overflow-y-auto w-full chat-window flex-1 h-0">
-      <CatalogsManager domainId={currentDomain.id} />
+      <ChatbotSettings
+        id={currentDomain.id}
+        name={currentDomain.name}
+        chatBot={currentDomain.chatBot}
+        helpdesk={currentDomain.helpdesk || []}
+        filterQuestions={currentDomain.filterQuestions || []}
+      />
     </div>
   )
 }
 
-export default DomainCatalogsPage
-
+export default ChatbotConfigPage

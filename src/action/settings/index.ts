@@ -160,6 +160,14 @@ export const onGetCurrentDomainInfo = async (domain: string) => {
                 season: true,
               },
             },
+            categories: true,
+            materials: true,
+            textures: true,
+            seasons: true,
+            uses: true,
+            features: true,
+            helpdesk: true,
+            filterQuestions: true,
             chatBot: {
               select: {
                 id: true,
@@ -940,7 +948,7 @@ export const onToggleCategory = async (id: string) => {
   try {
     const category = await client.category.findUnique({ where: { id } })
     if (!category) return { status: 404, message: 'Categoría no encontrada' }
-    
+
     const updated = await client.category.update({
       where: { id },
       data: { active: !category.active },
@@ -1005,7 +1013,7 @@ export const onToggleMaterial = async (id: string) => {
   try {
     const material = await client.material.findUnique({ where: { id } })
     if (!material) return { status: 404, message: 'Material no encontrado' }
-    
+
     const updated = await client.material.update({
       where: { id },
       data: { active: !material.active },
@@ -1070,7 +1078,7 @@ export const onToggleTexture = async (id: string) => {
   try {
     const texture = await client.texture.findUnique({ where: { id } })
     if (!texture) return { status: 404, message: 'Textura no encontrada' }
-    
+
     const updated = await client.texture.update({
       where: { id },
       data: { active: !texture.active },
@@ -1135,7 +1143,7 @@ export const onToggleSeason = async (id: string) => {
   try {
     const season = await client.season.findUnique({ where: { id } })
     if (!season) return { status: 404, message: 'Temporada no encontrada' }
-    
+
     const updated = await client.season.update({
       where: { id },
       data: { active: !season.active },
@@ -1200,7 +1208,7 @@ export const onToggleUse = async (id: string) => {
   try {
     const use = await client.use.findUnique({ where: { id } })
     if (!use) return { status: 404, message: 'Uso no encontrado' }
-    
+
     const updated = await client.use.update({
       where: { id },
       data: { active: !use.active },
@@ -1265,7 +1273,7 @@ export const onToggleFeature = async (id: string) => {
   try {
     const feature = await client.feature.findUnique({ where: { id } })
     if (!feature) return { status: 404, message: 'Característica no encontrada' }
-    
+
     const updated = await client.feature.update({
       where: { id },
       data: { active: !feature.active },

@@ -13,38 +13,38 @@ datasource db {
 }
 
 model User {
-  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  fullname     String
-  clerkId      String     @unique
-  type         String
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  campaign     Campaign[]
-  domains      Domain[]
+  id        String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  fullname  String
+  clerkId   String     @unique
+  type      String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  campaign  Campaign[]
+  domains   Domain[]
 }
 
 model Domain {
-  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id              String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name            String
   icon            String
-  userId          String?           @db.Uuid
-  campaignId      String?           @db.Uuid
+  userId          String?                @db.Uuid
+  campaignId      String?                @db.Uuid
   chatBot         ChatBot?
   customer        Customer[]
-  Campaign        Campaign?         @relation(fields: [campaignId], references: [id])
-  User            User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Campaign        Campaign?              @relation(fields: [campaignId], references: [id])
+  User            User?                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   filterQuestions FilterQuestions[]
   helpdesk        HelpDesk[]
   products        Product[]
   availability    AvailabilitySchedule[]
-  
+
   // Catálogos de productos
-  categories      Category[]
-  materials       Material[]
-  textures        Texture[]
-  seasons         Season[]
-  uses            Use[]
-  features        Feature[]
+  categories Category[]
+  materials  Material[]
+  textures   Texture[]
+  seasons    Season[]
+  uses       Use[]
+  features   Feature[]
 }
 
 model ChatBot {
@@ -93,70 +93,124 @@ model Customer {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
-  questions CustomerResponses[]
-  chatRoom  ChatRoom[]
-  booking   Bookings[]
+  questions           CustomerResponses[]
+  chatRoom            ChatRoom[]
+  booking             Bookings[]
   satisfactionRecords CustomerSatisfaction[]
+  reservations        ProductReservation[] // ✅ Reservas de productos del cliente
 
   Domain   Domain? @relation(fields: [domainId], references: [id], onDelete: Cascade)
   domainId String? @db.Uuid
 }
 
 model ChatRoom {
-  id         String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  live       Boolean       @default(false)
-  mailed     Boolean       @default(false)
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
-  customerId String?       @db.Uuid
-  
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  live       Boolean  @default(false)
+  mailed     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  customerId String?  @db.Uuid
+
   // Sistema de favoritos
-  isFavorite                Boolean               @default(false)
-  
+  isFavorite Boolean @default(false)
+
   // Métricas para la tesis - FR3 y FR4
-  resolved                    Boolean               @default(false)
-  resolvedInFirstInteraction  Boolean?
-  resolutionType              ResolutionType        @default(UNRESOLVED)
-  satisfactionRating          Int?                  // 1-5, null si no ha evaluado
-  satisfactionCollected       Boolean               @default(false)
-  conversationEndedAt         DateTime?
-  
+  resolved                   Boolean        @default(false)
+  resolvedInFirstInteraction Boolean?
+  resolutionType             ResolutionType @default(UNRESOLVED)
+  satisfactionRating         Int? // 1-5, null si no ha evaluado
+  satisfactionCollected      Boolean        @default(false)
+  conversationEndedAt        DateTime?
+
   // Estado de conversación y gestión de ciclo de vida
-  conversationState           ConversationState     @default(ACTIVE)
-  lastUserActivityAt          DateTime              @default(now())
-  conversationNumber          Int                   @default(1) // Número de conversación con este cliente
-  
-  message              ChatMessage[]
-  metrics              ConversationMetrics[]
-  satisfactionRecords  CustomerSatisfaction[]
-  Customer             Customer?             @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  conversationState  ConversationState @default(ACTIVE)
+  lastUserActivityAt DateTime          @default(now())
+  conversationNumber Int               @default(1) // Número de conversación con este cliente
+
+  message             ChatMessage[]
+  metrics             ConversationMetrics[]
+  satisfactionRecords CustomerSatisfaction[]
+  Customer            Customer?              @relation(fields: [customerId], references: [id], onDelete: Cascade)
 }
 
 model ChatMessage {
-  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   message    String
   role       Role?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  chatRoomId String?   @db.Uuid
-  seen       Boolean   @default(false)
-  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  chatRoomId String?  @db.Uuid
+  seen       Boolean  @default(false)
+
   // Métricas para la tesis - FR1 y FR2
-  responseTime           Int?     // Tiempo en segundos desde mensaje user hasta respuesta assistant
-  respondedWithin2Hours  Boolean? // True si fue respondido en menos de 2 horas
-  
-  ChatRoom   ChatRoom? @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
+  responseTime          Int? // Tiempo en segundos desde mensaje user hasta respuesta assistant
+  respondedWithin2Hours Boolean? // True si fue respondido en menos de 2 horas
+
+  ChatRoom ChatRoom? @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
 }
 
 model Bookings {
-  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  date       DateTime
-  slot       String
-  email      String
-  customerId String?   @db.Uuid
-  domainId   String?   @db.Uuid
-  createdAt  DateTime  @default(now())
-  Customer   Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  id              String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  date            DateTime
+  slot            String
+  email           String
+  customerId      String?              @db.Uuid
+  domainId        String?              @db.Uuid
+  createdAt       DateTime             @default(now())
+  // ✅ NUEVO: Tipo de cita y propósito
+  appointmentType AppointmentType      @default(STORE_VISIT)
+  purpose         String? // Propósito específico de la cita
+  notes           String? // Notas adicionales del cliente
+  Customer        Customer?            @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  reservations    ProductReservation[] // ✅ Relación con reservas de productos
+}
+
+// ✅ SIMPLIFICADO: Enum para tipos de citas (100% presencial)
+enum AppointmentType {
+  STORE_VISIT // Visita a la tienda (ver productos, asesoría)
+  PURCHASE // Compra en tienda (con o sin reserva previa)
+}
+
+// ✅ MEJORADO: Modelo para reservas de productos con detalles de compra
+model ProductReservation {
+  id         String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productId  String            @db.Uuid
+  customerId String            @db.Uuid
+  bookingId  String?           @db.Uuid // Opcional: puede estar asociada a una cita
+  quantity   Int               @default(1) // Cantidad reservada
+  status     ReservationStatus @default(PENDING) // Estado de la reserva
+  notes      String? // Notas adicionales del cliente
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  expiresAt  DateTime? // Fecha de expiración de la reserva
+
+  // ✅ NUEVOS CAMPOS: Detalles específicos de compra
+  unitPrice  Int? // Precio por unidad al momento de la reserva
+  totalPrice Int? // Precio total calculado (quantity * unitPrice)
+  unit       String? // Unidad específica: metro, rollo, kg, etc.
+  width      String? // Ancho específico si aplica
+  weight     String? // Gramaje específico si aplica
+  color      String? // Color específico seleccionado
+  category   String? // Categoría específica si aplica
+
+  // Relaciones
+  Product  Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  Customer Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  Booking  Bookings? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  @@index([productId])
+  @@index([customerId])
+  @@index([bookingId])
+  @@index([status])
+}
+
+// ✅ NUEVO: Enum para estados de reserva
+enum ReservationStatus {
+  PENDING // Pendiente de confirmación
+  CONFIRMED // Confirmada
+  COMPLETED // Completada (producto entregado)
+  CANCELLED // Cancelada
+  EXPIRED // Expirada
 }
 
 model Campaign {
@@ -178,41 +232,42 @@ model Product {
   createdAt DateTime @default(now())
   domainId  String?  @db.Uuid
   active    Boolean  @default(true)
-  
+
   // Información técnica de la tela (Referencias)
-  materialId      String?   @db.Uuid
-  width           String?           // Ancho: "1.50m", "2.80m", etc.
-  weight          String?           // Gramaje: "150 gr/m²", "200 gr/m²"
-  color           String?           // Color principal
-  textureId       String?   @db.Uuid
-  
+  materialId String? @db.Uuid
+  width      String? // Ancho: "1.50m", "2.80m", etc.
+  weight     String? // Gramaje: "150 gr/m²", "200 gr/m²"
+  color      String? // Color principal
+  textureId  String? @db.Uuid
+
   // Información de inventario
-  stock           Int       @default(0)           // Cantidad disponible en metros
-  unit            String    @default("metro")     // Unidad: metro, rollo, kg
-  minStock        Int?                            // Stock mínimo para alerta
-  sku             String?   @unique               // Código único del producto
-  
+  stock    Int     @default(0) // Cantidad disponible en metros
+  unit     String  @default("metro") // Unidad: metro, rollo, kg
+  minStock Int? // Stock mínimo para alerta
+  sku      String? @unique // Código único del producto
+
   // Información de venta (Referencias)
-  salePrice       Int?                            // Precio de oferta/descuento
-  categoryId      String?   @db.Uuid
-  featured        Boolean   @default(false)       // Producto destacado
-  description     String?   @db.Text             // Descripción detallada
-  colors          String[]                        // Colores disponibles (array simple)
-  images          String[]                        // Galería de imágenes (URLs)
-  
+  salePrice   Int? // Precio de oferta/descuento
+  categoryId  String?  @db.Uuid
+  featured    Boolean  @default(false) // Producto destacado
+  description String?  @db.Text // Descripción detallada
+  colors      String[] // Colores disponibles (array simple)
+  images      String[] // Galería de imágenes (URLs)
+
   // Usos y características (Referencias many-to-many)
-  seasonId        String?   @db.Uuid
-  care            String?   @db.Text             // Instrucciones de cuidado
-  
+  seasonId String? @db.Uuid
+  care     String? @db.Text // Instrucciones de cuidado
+
   // Relaciones
-  Domain    Domain?         @relation(fields: [domainId], references: [id], onDelete: Cascade)
-  material  Material?       @relation(fields: [materialId], references: [id], onDelete: SetNull)
-  texture   Texture?        @relation(fields: [textureId], references: [id], onDelete: SetNull)
-  category  Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  season    Season?         @relation(fields: [seasonId], references: [id], onDelete: SetNull)
-  uses      ProductUse[]
-  features  ProductFeature[]
-  
+  Domain       Domain?              @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  material     Material?            @relation(fields: [materialId], references: [id], onDelete: SetNull)
+  texture      Texture?             @relation(fields: [textureId], references: [id], onDelete: SetNull)
+  category     Category?            @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  season       Season?              @relation(fields: [seasonId], references: [id], onDelete: SetNull)
+  uses         ProductUse[]
+  features     ProductFeature[]
+  reservations ProductReservation[] // ✅ Reservas de este producto
+
   @@index([domainId])
   @@index([categoryId])
   @@index([materialId])
@@ -230,72 +285,72 @@ model Category {
   createdAt DateTime  @default(now())
   products  Product[]
   Domain    Domain    @relation(fields: [domainId], references: [id], onDelete: Cascade)
-  
+
   @@unique([name, domainId])
   @@index([domainId])
 }
 
 model Material {
   id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name      String    // Algodón, Lino, Seda, etc.
+  name      String // Algodón, Lino, Seda, etc.
   domainId  String    @db.Uuid
   active    Boolean   @default(true)
   createdAt DateTime  @default(now())
   products  Product[]
   Domain    Domain    @relation(fields: [domainId], references: [id], onDelete: Cascade)
-  
+
   @@unique([name, domainId])
   @@index([domainId])
 }
 
 model Texture {
   id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name      String    // Lisa, Texturizada, Satinada, etc.
+  name      String // Lisa, Texturizada, Satinada, etc.
   domainId  String    @db.Uuid
   active    Boolean   @default(true)
   createdAt DateTime  @default(now())
   products  Product[]
   Domain    Domain    @relation(fields: [domainId], references: [id], onDelete: Cascade)
-  
+
   @@unique([name, domainId])
   @@index([domainId])
 }
 
 model Season {
   id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name      String    // Verano, Invierno, Todo el año
+  name      String // Verano, Invierno, Todo el año
   domainId  String    @db.Uuid
   active    Boolean   @default(true)
   createdAt DateTime  @default(now())
   products  Product[]
   Domain    Domain    @relation(fields: [domainId], references: [id], onDelete: Cascade)
-  
+
   @@unique([name, domainId])
   @@index([domainId])
 }
 
 model Use {
   id        String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name      String       // Vestidos, Camisas, Blusas, etc.
+  name      String // Vestidos, Camisas, Blusas, etc.
   domainId  String       @db.Uuid
   active    Boolean      @default(true)
   createdAt DateTime     @default(now())
   products  ProductUse[]
   Domain    Domain       @relation(fields: [domainId], references: [id], onDelete: Cascade)
-  
+
   @@unique([name, domainId])
   @@index([domainId])
 }
 
 model Feature {
   id        String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name      String           // Impermeable, Elástico, Antibacterial, etc.
+  name      String // Impermeable, Elástico, Antibacterial, etc.
   domainId  String           @db.Uuid
   active    Boolean          @default(true)
   createdAt DateTime         @default(now())
   products  ProductFeature[]
   Domain    Domain           @relation(fields: [domainId], references: [id], onDelete: Cascade)
-  
+
   @@unique([name, domainId])
   @@index([domainId])
 }
@@ -307,7 +362,7 @@ model ProductUse {
   useId     String  @db.Uuid
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   use       Use     @relation(fields: [useId], references: [id], onDelete: Cascade)
-  
+
   @@unique([productId, useId])
   @@index([productId])
   @@index([useId])
@@ -319,60 +374,60 @@ model ProductFeature {
   featureId String  @db.Uuid
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   feature   Feature @relation(fields: [featureId], references: [id], onDelete: Cascade)
-  
+
   @@unique([productId, featureId])
   @@index([productId])
   @@index([featureId])
 }
 
 model AvailabilitySchedule {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   dayOfWeek DayOfWeek
-  timeSlots String[]  // Array de strings como ["9:00am", "9:30am", "10:00am"]
-  isActive  Boolean  @default(true)
-  domainId  String   @db.Uuid
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  Domain    Domain   @relation(fields: [domainId], references: [id], onDelete: Cascade)
-  
+  timeSlots String[] // Array de strings como ["9:00am", "9:30am", "10:00am"]
+  isActive  Boolean   @default(true)
+  domainId  String    @db.Uuid
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  Domain    Domain    @relation(fields: [domainId], references: [id], onDelete: Cascade)
+
   @@unique([domainId, dayOfWeek])
 }
 
 // Nuevos modelos para métricas de tesis
 model ConversationMetrics {
-  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  chatRoomId            String   @db.Uuid
-  domainId              String   @db.Uuid
-  
+  id         String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  chatRoomId String @db.Uuid
+  domainId   String @db.Uuid
+
   // FR1: Tiempo promedio de respuesta
-  averageResponseTime   Int      // En segundos
-  totalResponseTime     Int      // Suma total para calcular promedio
-  messagesCount         Int      // Total de intercambios
-  
+  averageResponseTime Int // En segundos
+  totalResponseTime   Int // Suma total para calcular promedio
+  messagesCount       Int // Total de intercambios
+
   // FR2: Porcentaje de mensajes respondidos oportunamente
-  messagesRespondedOnTime Int    // Mensajes respondidos < 2 horas
-  totalMessagesReceived   Int    // Total de mensajes del usuario
-  percentageOnTime        Decimal @db.Decimal(5,2)
-  
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  
+  messagesRespondedOnTime Int // Mensajes respondidos < 2 horas
+  totalMessagesReceived   Int // Total de mensajes del usuario
+  percentageOnTime        Decimal @db.Decimal(5, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   chatRoom ChatRoom @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
 }
 
 // FR4: Satisfacción del cliente
 model CustomerSatisfaction {
   id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  rating     Int      // 1-5
-  comment    String?  // Comentario opcional del cliente
+  rating     Int // 1-5
+  comment    String? // Comentario opcional del cliente
   chatRoomId String   @db.Uuid
   customerId String   @db.Uuid
   domainId   String   @db.Uuid
   createdAt  DateTime @default(now())
-  
+
   chatRoom ChatRoom @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  
+
   @@index([domainId])
   @@index([createdAt])
 }
@@ -384,19 +439,19 @@ enum Role {
 
 // FR3: Tipo de resolución
 enum ResolutionType {
-  FIRST_INTERACTION  // Resuelto en primera interacción
-  FOLLOW_UP          // Requirió seguimiento
-  ESCALATED          // Escalado a humano
-  UNRESOLVED         // No resuelto aún
+  FIRST_INTERACTION // Resuelto en primera interacción
+  FOLLOW_UP // Requirió seguimiento
+  ESCALATED // Escalado a humano
+  UNRESOLVED // No resuelto aún
 }
 
 // Estado del ciclo de vida de la conversación
 enum ConversationState {
-  ACTIVE      // Conversación activa (usuario interactuando)
-  IDLE        // Usuario inactivo (>5 minutos sin responder)
-  AWAITING_RATING  // Esperando calificación del usuario
-  ENDED       // Conversación finalizada (calificada o despedida)
-  ESCALATED   // Escalado a humano
+  ACTIVE // Conversación activa (usuario interactuando)
+  IDLE // Usuario inactivo (>5 minutos sin responder)
+  AWAITING_RATING // Esperando calificación del usuario
+  ENDED // Conversación finalizada (calificada o despedida)
+  ESCALATED // Escalado a humano
 }
 
 // Días de la semana para disponibilidad
